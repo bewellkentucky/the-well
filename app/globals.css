@@ -688,16 +688,17 @@ img.avatar  { object-fit: cover; }
   flex-shrink: 0;
 }
 
-/* Cream tile so the navy mountain logo reads on the dark nav */
+/* Cream tile with BWK logo as background-image — gives precise crop control */
 .tnav-mark {
   width: 36px;
   height: 36px;
   border-radius: 9px;
-  background: var(--cream);
-  display: grid;
-  place-items: center;
+  background-color: var(--cream);
+  background-image: url('/Be_Well_Icon_Color.png');
+  background-size: 170%;
+  background-position: center center;
+  background-repeat: no-repeat;
   flex-shrink: 0;
-  overflow: hidden;
 }
 
 .tnav-wordmark {

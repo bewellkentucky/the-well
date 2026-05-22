@@ -1,4 +1,3 @@
-import Image from "next/image"
 import { auth } from "@/auth"
 import { db } from "@/lib/db"
 import NavLinks from "./NavLinks"
@@ -25,16 +24,7 @@ export default async function TopNav() {
 
         {/* ── Brand ──────────────────────────────────────────── */}
         <div className="tnav-brand">
-          <div className="tnav-mark">
-            <Image
-              src="/Be_Well_Icon_Color.png"
-              alt="Be Well Kentucky"
-              width={68}
-              height={68}
-              style={{ display: "block", width: 68, height: 68, maxWidth: "none" }}
-              priority
-            />
-          </div>
+          <div className="tnav-mark" role="img" aria-label="Be Well Kentucky" />
           <div className="tnav-wordmark">
             <div className="tnav-name">The Well</div>
             <div className="tnav-parent">by Be Well Kentucky</div>
