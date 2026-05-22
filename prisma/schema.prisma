@@ -1,0 +1,98 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  googleId     String?   @unique
+  fullName     String
+  title        String?
+  department   String?
+  domain       String    // bewellkentucky.com
+  entity       String    @default("BWK") // BWK | LCED | Both
+  thumbnailUrl String?
+  hireDate     DateTime?
+  birthday     DateTime?
+  active       Boolean   @default(true)
+  role         String    @default("member") // member | admin | owner
+
+  // Drop balances
+  balance      Int @default(0)   // earned drops, redeemable
+  givingBalance Int @default(100) // drops available to give; resets monthly
+
+  kudosGiven    Kudo[]       @relation("KudoFrom")
+  kudosReceived Kudo[]       @relation("KudoTo")
+  redemptions   Redemption[]
+  reactions     Reaction[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Kudo {
+  id        String   @id @default(cuid())
+  fromId    String
+  from      User     @relation("KudoFrom", fields: [fromId], references: [id])
+  toId      String
+  to        User     @relation("KudoTo", fields: [toId], references: [id])
+  amount    Int
+  message   String
+  values    String[] // e.g. ["Compassion", "Ownership"]
+  isPrivate Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  reactions Reaction[]
+
+  @@index([toId, createdAt])
+  @@index([fromId, createdAt])
+  @@index([createdAt])
+}
+
+model Reaction {
+  id     String @id @default(cuid())
+  kudoId String
+  kudo   Kudo   @relation(fields: [kudoId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+  emoji  String
+
+  @@unique([kudoId, userId, emoji])
+}
+
+model Reward {
+  id          String  @id @default(cuid())
+  title       String
+  description String
+  cost        Int
+  category    String  // Swag | Gift Card | Time | Office | Team | Growth
+  imageUrl    String?
+  inventory   Int?    // null = unlimited
+  active      Boolean @default(true)
+
+  redemptions Redemption[]
+}
+
+model Redemption {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  rewardId  String
+  reward    Reward   @relation(fields: [rewardId], references: [id])
+  cost      Int      // snapshot at time of redemption
+  status    String   @default("pending") // pending | processing | shipped | delivered | used
+  notes     String?
+  createdAt DateTime @default(now())
+}
+
+model AllowanceReset {
+  id      String   @id @default(cuid())
+  userId  String
+  amount  Int
+  resetAt DateTime @default(now())
+}

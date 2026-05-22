@@ -1,0 +1,9 @@
+@import "tailwindcss";
+
+:root {
+  --slate:      #2a3441;
+  --sage:       #7a9b7e;
+  --terracotta: #c97b5c;
+  --cream:      #f4f1ec;
+  --plum:       #6b5b73;
+}
