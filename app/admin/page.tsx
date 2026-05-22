@@ -15,6 +15,9 @@ import ReportsPanel, {
   type HealthStats,
   type CategoryStat,
 } from "@/app/components/admin/ReportsPanel"
+import OverviewPanel, {
+  type OverviewData,
+} from "@/app/components/admin/OverviewPanel"
 import { ADMIN_TABS, type AdminTabId } from "@/lib/adminTabsConfig"
 
 const TAB_IDS = ADMIN_TABS.map((t) => t.id)
@@ -246,6 +249,60 @@ export default async function AdminPage({
     }))
   }
 
+  // ── Overview tab data ──────────────────────────────────────
+  let overviewData: OverviewData = {
+    totalUsers:        0,
+    earnedOutstanding: 0,
+    participationRate: 0,
+    totalKudos:        0,
+    uniqueGivers:      0,
+    noKudosCount:      0,
+    pendingCount,
+    lastSync:          null,
+    recentHireCount:   0,
+  }
+
+  if (activeTab === "overview") {
+    const thirtyDaysAgo = new Date()
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+
+    const [rawUsers, rawKudos, lastSyncRow] = await Promise.all([
+      db.user.findMany({ select: { id: true, balance: true, hireDate: true } }),
+      db.kudo.findMany({ select: { fromId: true } }),
+      db.integrationSync.findFirst({
+        where:   { source: "bamboohr" },
+        orderBy: { lastRunAt: "desc" },
+      }),
+    ])
+
+    const totalUsers       = rawUsers.length
+    const earnedOutstanding = rawUsers.reduce((s, u) => s + u.balance, 0)
+    const giverSet          = new Set(rawKudos.map((k) => k.fromId))
+    const uniqueGivers      = giverSet.size
+    const noKudosCount      = rawUsers.filter((u) => !giverSet.has(u.id)).length
+    const recentHireCount   = rawUsers.filter(
+      (u) => u.hireDate !== null && u.hireDate >= thirtyDaysAgo
+    ).length
+
+    overviewData = {
+      totalUsers,
+      earnedOutstanding,
+      participationRate: totalUsers > 0 ? uniqueGivers / totalUsers : 0,
+      totalKudos:        rawKudos.length,
+      uniqueGivers,
+      noKudosCount,
+      pendingCount,
+      lastSync: lastSyncRow
+        ? {
+            lastRunAt:        lastSyncRow.lastRunAt.toISOString(),
+            errors:           lastSyncRow.errors,
+            recordsProcessed: lastSyncRow.recordsProcessed,
+          }
+        : null,
+      recentHireCount,
+    }
+  }
+
   return (
     <main style={{ maxWidth: 1100, margin: "0 auto", padding: "32px 24px 100px" }}>
       <div className="dir-topbar" style={{ marginBottom: 24 }}>
@@ -260,7 +317,9 @@ export default async function AdminPage({
       <AdminTabs activeTab={activeTab} pendingCount={pendingCount} />
 
       <div className="admin-pane-shell">
-        {activeTab === "approvals" ? (
+        {activeTab === "overview" ? (
+          <OverviewPanel data={overviewData} />
+        ) : activeTab === "approvals" ? (
           <ApprovalsPanel
             pendingClaims={pendingClaims}
             pendingRedemptions={pendingRedemptions}

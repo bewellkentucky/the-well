@@ -1,3 +1,5 @@
+import ExportCsvButton from "./ExportCsvButton"
+
 export type LocationStat = {
   location: string
   redeemed: number
@@ -102,6 +104,14 @@ export default function ReportsPanel({
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+
+      <div style={{ display: "flex", justifyContent: "flex-end" }}>
+        <ExportCsvButton
+          locationStats={locationStats}
+          healthStats={healthStats}
+          categoryStats={categoryStats}
+        />
+      </div>
 
       {/* ── Card 1: Spend by location ──────────────────────── */}
       <div className="card">
