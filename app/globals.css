@@ -1051,3 +1051,210 @@ img.avatar  { object-fit: cover; }
 .reward-btn-cancel:hover {
   opacity: 1;
 }
+
+/* ── Earn / Incentives ───────────────────────────────────── */
+.incentives-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.incentive-card {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 18px 20px;
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.incentive-card-suggest {
+  opacity: 0.6;
+}
+
+.incentive-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  flex-shrink: 0;
+}
+
+.incentive-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.incentive-title {
+  font-family: var(--font-lora), serif;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: 4px;
+}
+
+.incentive-desc {
+  font-size: 13px;
+  color: var(--ink-soft);
+  line-height: 1.5;
+  margin-bottom: 10px;
+}
+
+.incentive-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.incentive-chip {
+  font-size: 11px;
+  font-weight: 600;
+  font-family: var(--font-mono), monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink-soft);
+  background: var(--cream-2);
+  border-radius: 6px;
+  padding: 2px 8px;
+}
+
+.chip-admin {
+  color: var(--plum);
+  background: rgba(107, 91, 115, 0.1);
+}
+
+.chip-window {
+  color: var(--coral);
+  background: rgba(201, 123, 92, 0.1);
+}
+
+.incentive-action {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.incentive-reward {
+  font-family: var(--font-mono), monospace;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--honey-deep);
+}
+
+.incentive-claim-btn {
+  background: var(--honey);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 7px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+
+.incentive-claim-btn:hover:not(:disabled) {
+  background: var(--honey-deep);
+}
+
+.incentive-claim-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.claim-status {
+  font-size: 12px;
+  font-weight: 600;
+  font-family: var(--font-mono), monospace;
+  border-radius: 6px;
+  padding: 4px 10px;
+}
+
+.status-credited {
+  background: rgba(122, 155, 126, 0.15);
+  color: var(--honey-deep);
+}
+
+.status-pending {
+  background: rgba(107, 91, 115, 0.12);
+  color: var(--plum);
+}
+
+/* Claim modal overrides */
+.incentive-modal {
+  max-width: 440px;
+}
+
+.incentive-modal-header {
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.incentive-modal-icon {
+  font-size: 36px;
+}
+
+.incentive-proof-field {
+  margin-bottom: 14px;
+}
+
+.incentive-proof-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 6px;
+  font-family: var(--font-mono), monospace;
+}
+
+.incentive-proof-input {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-size: 14px;
+  color: var(--ink);
+  background: var(--cream);
+  box-sizing: border-box;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.incentive-proof-input:focus {
+  border-color: var(--honey);
+}
+
+.incentive-success {
+  text-align: center;
+  padding: 8px 0 4px;
+}
+
+.incentive-success-icon {
+  font-size: 40px;
+  margin-bottom: 12px;
+}
+
+.incentive-success-title {
+  font-family: var(--font-lora), serif;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: 8px;
+}
+
+.incentive-success-sub {
+  font-size: 14px;
+  color: var(--ink-soft);
+  margin: 0;
+}

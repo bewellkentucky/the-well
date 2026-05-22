@@ -32,10 +32,11 @@ model User {
   balance      Int @default(0)   // earned drops, redeemable
   givingBalance Int @default(100) // drops available to give; resets monthly
 
-  kudosGiven    Kudo[]       @relation("KudoFrom")
-  kudosReceived Kudo[]       @relation("KudoTo")
+  kudosGiven    Kudo[]           @relation("KudoFrom")
+  kudosReceived Kudo[]           @relation("KudoTo")
   redemptions   Redemption[]
   reactions     Reaction[]
+  incentiveClaims IncentiveClaim[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -121,4 +122,39 @@ model IntegrationSync {
   recordsProcessed Int
   errors           Int      @default(0)
   notes            String?
+}
+
+model Incentive {
+  id          String   @id
+  title       String
+  description String
+  reward      Int
+  verification String  // "self" | "admin"
+  cap         String   // "once" | "monthly" | "quarterly" | "unlimited"
+  icon        String
+  color       String
+  proofPrompt String?
+  active      Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  startsAt    DateTime?
+  endsAt      DateTime?
+
+  claims IncentiveClaim[]
+}
+
+model IncentiveClaim {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+  incentiveId String
+  incentive   Incentive @relation(fields: [incentiveId], references: [id])
+  status      String    @default("pending") // "pending"|"approved"|"credited"|"declined"
+  note        String?
+  proofLink   String?
+  createdAt   DateTime  @default(now())
+  decidedAt   DateTime?
+  decidedById String?
+
+  @@index([userId, incentiveId])
+  @@index([status])
 }
