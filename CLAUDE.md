@@ -72,6 +72,7 @@ See `docs/build-plan.md` for the full spec. Summary of the intended path:
   (goes to an approvals queue; supports link + screenshot proof upload).
 - **Reactions are NOT synced between the app and Google Chat** (v1). Two separate pools.
   See `docs/chat-integration.md` for the reasoning.
+- **Company values (exactly six, exact names):** Compassion, Ownership, Curiosity, Team-First, Excellence, Above & Beyond. Use these verbatim everywhere — in the composer, kudo cards, seed data, and any admin UI. Do not substitute synonyms or add new ones.
 - **No app store.** It's a PWA — people add it to their home screen. App name "The Well".
 - **HIPAA posture:** The Well is not a PHI system, but staff could write patient details into
   a kudo. Composer carries a "no patient details" notice; never log message content in
