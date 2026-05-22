@@ -8,6 +8,7 @@ import {
   setIncentiveActive,
   type IncentiveFormData,
 } from "@/app/actions/adminIncentives"
+import EmojiPicker from "@/app/components/ui/EmojiPicker"
 
 export type IncentiveAdminRow = {
   id:           string
@@ -384,33 +385,29 @@ export default function IncentivesPanel({
                   />
                 </div>
 
-                {/* Icon + Color */}
-                <div className="inc-form-row">
-                  <div className="inc-form-field" style={{ flex: "0 0 88px" }}>
-                    <label className="adj-label">Icon</label>
-                    <input
-                      className="adj-input"
-                      value={form.icon}
-                      onChange={(e) => setField("icon", e.target.value)}
-                      placeholder="⭐"
-                      maxLength={4}
-                      style={{ textAlign: "center", fontSize: 20 }}
-                    />
-                  </div>
-                  <div className="inc-form-field" style={{ flex: 1 }}>
-                    <label className="adj-label">Color</label>
-                    <div className="inc-color-swatches">
-                      {COLORS.map((c) => (
-                        <button
-                          key={c.value}
-                          type="button"
-                          className={`inc-color-swatch${form.color === c.value ? " selected" : ""}`}
-                          style={{ background: c.value }}
-                          title={c.label}
-                          onClick={() => setField("color", c.value)}
-                        />
-                      ))}
-                    </div>
+                {/* Icon */}
+                <div className="inc-form-field">
+                  <label className="adj-label">Icon</label>
+                  <EmojiPicker
+                    value={form.icon}
+                    onChange={(v) => setField("icon", v)}
+                  />
+                </div>
+
+                {/* Color */}
+                <div className="inc-form-field">
+                  <label className="adj-label">Color</label>
+                  <div className="inc-color-swatches">
+                    {COLORS.map((c) => (
+                      <button
+                        key={c.value}
+                        type="button"
+                        className={`inc-color-swatch${form.color === c.value ? " selected" : ""}`}
+                        style={{ background: c.value }}
+                        title={c.label}
+                        onClick={() => setField("color", c.value)}
+                      />
+                    ))}
                   </div>
                 </div>
 
