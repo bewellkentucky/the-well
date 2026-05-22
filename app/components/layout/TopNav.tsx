@@ -29,9 +29,9 @@ export default async function TopNav() {
             <Image
               src="/Be_Well_Icon_Color.png"
               alt="Be Well Kentucky"
-              width={36}
-              height={36}
-              style={{ display: "block", transform: "scale(2)", transformOrigin: "center" }}
+              width={58}
+              height={58}
+              style={{ display: "block" }}
               priority
             />
           </div>
