@@ -660,6 +660,105 @@ img.avatar  { object-fit: cover; }
   border-top: none;
 }
 
+/* ── Top nav shell ───────────────────────────────────────── */
+.tnav {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: var(--ink);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.tnav-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 24px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+/* ── Brand mark ──────────────────────────────────────────── */
+.tnav-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+/* Cream tile so the navy mountain logo reads on the dark nav */
+.tnav-mark {
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
+  background: var(--cream);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.tnav-wordmark {
+  line-height: 1.1;
+}
+
+.tnav-name {
+  font-family: var(--font-lora), Georgia, serif;
+  font-weight: 600;
+  font-size: 18px;
+  letter-spacing: -0.01em;
+  color: var(--cream);
+}
+
+.tnav-parent {
+  font-family: var(--font-mono), monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--cream);
+  opacity: 0.65;
+  margin-top: 2px;
+}
+
+/* ── User chip ───────────────────────────────────────────── */
+.tnav-user {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.tnav-user-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(244, 241, 236, 0.8);
+}
+
+.tnav-signout {
+  font-size: 12px;
+  color: rgba(244, 241, 236, 0.4);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: color 0.12s, background 0.12s;
+  font-family: var(--font-inter), sans-serif;
+}
+
+.tnav-signout:hover {
+  color: rgba(244, 241, 236, 0.8);
+  background: rgba(244, 241, 236, 0.09);
+}
+
+@media (max-width: 640px) {
+  .tnav-user-name { display: none; }
+  .tnav-parent    { display: none; }
+  .tnav-signout   { display: none; }
+}
+
 /* ── Desktop nav links (inside TopNav) ───────────────────── */
 .desktop-nav {
   display: flex;
