@@ -47,7 +47,10 @@ async function bamboo(path: string): Promise<any> {
     await new Promise((r) => setTimeout(r, 30_000))
     return bamboo(path)
   }
-  if (!res.ok) throw new Error(`BambooHR ${res.status}: ${await res.text()}`)
+  if (!res.ok) {
+    const body = await res.text()
+    throw new Error(`BambooHR ${res.status}: ${body || "(empty body)"}`)
+  }
   return res.json()
 }
 
@@ -62,15 +65,19 @@ async function getLastSyncDate(): Promise<Date | undefined> {
 export async function syncBambooHR(opts: { since?: Date; force?: boolean } = {}) {
   const since = opts.force ? undefined : (opts.since ?? await getLastSyncDate())
 
+  // BambooHR /employees/changed requires YYYY-MM-DDTHH:MM:SSZ — no milliseconds.
+  // toISOString() produces ...000Z which BambooHR rejects with 400.
+  const sinceIso = since?.toISOString().replace(/\.\d{3}Z$/, "Z")
+
   const employeeIds: string[] = since
     ? Object.keys(
-        (await bamboo(`/employees/changed?since=${since.toISOString()}&type=updated`))
+        (await bamboo(`/employees/changed?since=${sinceIso}&type=updated`))
           .employees ?? {}
       )
     : (await bamboo("/employees/directory")).employees.map((e: any) => String(e.id))
 
   console.log(
-    `BambooHR sync: ${since ? `incremental since ${since.toISOString()}` : "full"} — ${employeeIds.length} employees`
+    `BambooHR sync: ${sinceIso ? `incremental since ${sinceIso}` : "full"} — ${employeeIds.length} employees`
   )
 
   let enriched = 0
@@ -134,7 +141,7 @@ export async function syncBambooHR(opts: { since?: Date; force?: boolean } = {})
       lastRunAt:        new Date(),
       recordsProcessed: enriched,
       errors,
-      notes:            since ? `incremental since ${since.toISOString()}` : "full sync",
+      notes:            sinceIso ? `incremental since ${sinceIso}` : "full sync",
     },
   })
 
