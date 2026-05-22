@@ -24,14 +24,16 @@ export default async function Home() {
     <PageShell>
       <main className="home-layout mx-auto" style={{ maxWidth: 1100, padding: "32px 24px 100px" }}>
 
-        {/* Full-width topbar spanning both grid columns */}
-        <div className="feed-topbar">
-          <div>
-            <h1 className="feed-topbar-title">Recognize the work.</h1>
-            <p className="feed-topbar-subtitle">
-              Send kudos, give drops, celebrate your team. Be Well Kentucky.
-            </p>
-          </div>
+        {/* Title — grid column 1, row 1 */}
+        <div className="feed-title-col">
+          <h1 className="feed-topbar-title">Recognize the work.</h1>
+          <p className="feed-topbar-subtitle">
+            Send kudos, give drops, celebrate your team. Be Well Kentucky.
+          </p>
+        </div>
+
+        {/* Balance widget — grid column 2, row 1, desktop only */}
+        <div className="feed-widget-col">
           <div className="drops-balance">
             <div className="drops-pool">
               <div className="balance-amount">{user?.givingBalance ?? 0}d</div>
@@ -41,7 +43,7 @@ export default async function Home() {
             <div className="drops-pool">
               <div className="balance-amount">{user?.balance ?? 0}d</div>
               <div className="balance-label" style={{ color: "rgba(244,241,236,0.5)" }}>
-                Earned&nbsp;&middot;&nbsp;yours to spend
+                Yours to spend
               </div>
             </div>
           </div>

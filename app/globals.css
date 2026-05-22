@@ -448,20 +448,21 @@ img.avatar  { object-fit: cover; }
 .reaction-choice:hover { background: var(--cream-2); }
 
 /* ── Home page layout ────────────────────────────────────── */
-/* ── Feed topbar ─────────────────────────────────────────── */
-.feed-topbar {
-  grid-column: 1 / -1;
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 24px;
-  margin-bottom: 8px;
-  flex-wrap: wrap;
+/* ── Feed topbar — two separate grid children ────────────── */
+
+/* Column 1: page title, bottom-aligned */
+.feed-title-col {
+  align-self: end;
+  padding-bottom: 8px;
+  min-width: 0;
 }
 
-.feed-topbar > div:first-child {
-  min-width: 0;
-  flex: 1;
+/* Column 2: balance widget, bottom-aligned, right-aligned */
+.feed-widget-col {
+  align-self: end;
+  display: flex;
+  justify-content: flex-end;
+  padding-bottom: 8px;
 }
 
 .feed-topbar-title {
@@ -484,13 +485,12 @@ img.avatar  { object-fit: cover; }
 .drops-balance {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 16px;
   background: var(--ink);
   color: var(--paper);
-  padding: 14px 22px;
+  padding: 14px 18px;
   border-radius: 14px;
   box-shadow: var(--shadow-md);
-  flex-shrink: 0;
 }
 
 .drops-pool {
@@ -501,7 +501,7 @@ img.avatar  { object-fit: cover; }
 
 .drops-balance-divider {
   width: 1px;
-  height: 38px;
+  height: 36px;
   background: rgba(244, 241, 236, 0.15);
   flex-shrink: 0;
 }
@@ -515,17 +515,16 @@ img.avatar  { object-fit: cover; }
 
 .balance-label {
   font-family: var(--font-mono), monospace;
-  font-size: 10px;
+  font-size: 9px;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   color: var(--honey);
   margin-top: 4px;
   white-space: nowrap;
 }
 
 @media (max-width: 768px) {
-  .feed-topbar .drops-balance { display: none; }
-  .feed-topbar { margin-bottom: 4px; }
+  .feed-widget-col { display: none; }
   .feed-topbar-title { font-size: 28px; }
 }
 
