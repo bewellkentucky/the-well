@@ -2833,3 +2833,91 @@ img.avatar  { object-fit: cover; }
   border-top: 1px solid var(--line);
   margin-top: 4px;
 }
+
+/* ── Featured incentives strip (home feed) ───────────────── */
+.featured-incentives-strip {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin: 16px 0;
+}
+
+.featured-incentive {
+  background: linear-gradient(
+    135deg,
+    var(--paper) 0%,
+    color-mix(in srgb, var(--fi-accent, var(--honey)) 8%, var(--paper)) 100%
+  );
+  border: 1px solid color-mix(in srgb, var(--fi-accent, var(--honey)) 20%, var(--line));
+  border-radius: 12px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  text-decoration: none;
+  transition: transform 0.13s, box-shadow 0.13s;
+}
+
+.featured-incentive:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+  text-decoration: none;
+}
+
+.featured-incentive-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: var(--fi-accent, var(--honey));
+  display: grid;
+  place-items: center;
+  font-size: 22px;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.featured-incentive-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.featured-incentive-eyebrow {
+  font-family: var(--font-mono), monospace;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--honey-deep);
+  margin-bottom: 3px;
+}
+
+.featured-incentive-title {
+  font-family: var(--font-lora), Georgia, serif;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--ink);
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.featured-incentive-reward {
+  font-family: var(--font-lora), Georgia, serif;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--honey-deep);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+@media (max-width: 560px) {
+  .featured-incentives-strip {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    margin: 12px 0;
+  }
+  .featured-incentive-icon { width: 38px; height: 38px; font-size: 19px; }
+  .featured-incentive-title { font-size: 14px; }
+  .featured-incentive-reward { font-size: 15px; }
+}

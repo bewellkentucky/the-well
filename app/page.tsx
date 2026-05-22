@@ -4,6 +4,7 @@ import { db } from "@/lib/db"
 import PageShell from "@/app/components/layout/PageShell"
 import ComposerWrapper from "@/app/components/composer/ComposerWrapper"
 import Feed from "@/app/components/feed/Feed"
+import FeaturedIncentives from "@/app/components/feed/FeaturedIncentives"
 import Leaderboard from "@/app/components/rail/Leaderboard"
 import ComingUp from "@/app/components/rail/ComingUp"
 import OutToday from "@/app/components/rail/OutToday"
@@ -15,10 +16,26 @@ export default async function Home() {
     return <SignInPage />
   }
 
-  const user = await db.user.findUnique({
-    where: { id: session.user.id },
-    select: { givingBalance: true, balance: true },
-  })
+  const now = new Date()
+
+  const [user, featuredIncentives] = await Promise.all([
+    db.user.findUnique({
+      where:  { id: session.user.id },
+      select: { givingBalance: true, balance: true },
+    }),
+    db.incentive.findMany({
+      where: {
+        active: true,
+        AND: [
+          { OR: [{ startsAt: null }, { startsAt: { lte: now } }] },
+          { OR: [{ endsAt:   null }, { endsAt:   { gt:  now } }] },
+        ],
+      },
+      orderBy: { sortOrder: "asc" },
+      take:    2,
+      select:  { id: true, title: true, reward: true, icon: true, color: true },
+    }),
+  ])
 
   return (
     <PageShell>
@@ -32,9 +49,10 @@ export default async function Home() {
           </p>
         </div>
 
-        {/* Left column: composer + feed */}
+        {/* Left column: composer + featured incentives + feed */}
         <div>
           <ComposerWrapper />
+          <FeaturedIncentives incentives={featuredIncentives} />
           <Feed currentUserId={session.user.id} />
         </div>
 
