@@ -385,29 +385,29 @@ export default function IncentivesPanel({
                   />
                 </div>
 
-                {/* Icon */}
-                <div className="inc-form-field">
-                  <label className="adj-label">Icon</label>
-                  <EmojiPicker
-                    value={form.icon}
-                    onChange={(v) => setField("icon", v)}
-                  />
-                </div>
-
-                {/* Color */}
-                <div className="inc-form-field">
-                  <label className="adj-label">Color</label>
-                  <div className="inc-color-swatches">
-                    {COLORS.map((c) => (
-                      <button
-                        key={c.value}
-                        type="button"
-                        className={`inc-color-swatch${form.color === c.value ? " selected" : ""}`}
-                        style={{ background: c.value }}
-                        title={c.label}
-                        onClick={() => setField("color", c.value)}
-                      />
-                    ))}
+                {/* Icon + Color */}
+                <div className="inc-form-row">
+                  <div className="inc-form-field" style={{ flex: "0 0 auto" }}>
+                    <label className="adj-label">Icon</label>
+                    <EmojiPicker
+                      value={form.icon}
+                      onChange={(v) => setField("icon", v)}
+                    />
+                  </div>
+                  <div className="inc-form-field" style={{ flex: 1 }}>
+                    <label className="adj-label">Color</label>
+                    <div className="inc-color-swatches">
+                      {COLORS.map((c) => (
+                        <button
+                          key={c.value}
+                          type="button"
+                          className={`inc-color-swatch${form.color === c.value ? " selected" : ""}`}
+                          style={{ background: c.value }}
+                          title={c.label}
+                          onClick={() => setField("color", c.value)}
+                        />
+                      ))}
+                    </div>
                   </div>
                 </div>
 
