@@ -31,7 +31,7 @@ export default async function TopNav() {
               alt="Be Well Kentucky"
               width={68}
               height={68}
-              style={{ display: "block" }}
+              style={{ display: "block", width: 68, height: 68, maxWidth: "none" }}
               priority
             />
           </div>
