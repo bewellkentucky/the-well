@@ -43,7 +43,7 @@ export default async function Leaderboard() {
           <div className="leader-info">
             <div className="leader-name">{row.user.fullName}</div>
           </div>
-          <div className="leader-points">{row.amount}d</div>
+          <div className="leader-points">{row.amount}đ</div>
         </div>
       ))}
     </div>

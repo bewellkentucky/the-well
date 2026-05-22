@@ -84,7 +84,7 @@ function RewardCard({
       </div>
       <div className="reward-footer">
         <span className="reward-cost">
-          {reward.cost.toLocaleString()}<em>d</em>
+          {reward.cost.toLocaleString()}<em>đ</em>
         </span>
         {canAfford && !outOfStock ? (
           <button className="reward-btn" onClick={onRedeemClick}>
@@ -94,7 +94,7 @@ function RewardCard({
           <span className="reward-btn-cant">
             {outOfStock
               ? "Unavailable"
-              : `Need ${(reward.cost - balance).toLocaleString()}d more`}
+              : `Need ${(reward.cost - balance).toLocaleString()}đ more`}
           </span>
         )}
       </div>
@@ -152,7 +152,7 @@ export default function RewardsGrid({
         </div>
         <div className="balance-chip">
           <span className="balance-chip-label">Your drops</span>
-          <span className="balance-chip-amount">{balance.toLocaleString()}d</span>
+          <span className="balance-chip-amount">{balance.toLocaleString()}đ</span>
           <span className="balance-chip-sublabel">Earned&nbsp;&middot;&nbsp;yours to spend</span>
         </div>
       </div>
@@ -186,9 +186,9 @@ export default function RewardsGrid({
               <div className="reward-modal-title">{confirmingReward.title}</div>
               <p className="reward-modal-desc">{confirmingReward.description}</p>
               <div className="reward-modal-cost">
-                <span>{confirmingReward.cost.toLocaleString()}d</span>
+                <span>{confirmingReward.cost.toLocaleString()}đ</span>
                 <span style={{ color: "var(--ink-soft)", fontSize: 13 }}>
-                  &nbsp;from your {balance.toLocaleString()}d earned drops
+                  &nbsp;from your {balance.toLocaleString()}đ earned drops
                 </span>
               </div>
               {actionError && (

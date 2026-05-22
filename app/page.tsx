@@ -24,14 +24,16 @@ export default async function Home() {
     <PageShell>
       <main className="home-layout mx-auto" style={{ maxWidth: 1100, padding: "32px 24px 100px" }}>
 
-        {/* Left column: title + composer + feed */}
+        {/* Full-width header row — spans both columns */}
+        <div className="feed-title-col">
+          <h1 className="feed-topbar-title">Recognize the work.</h1>
+          <p className="feed-topbar-subtitle">
+            Send kudos, give drops, celebrate your team. Be Well Kentucky.
+          </p>
+        </div>
+
+        {/* Left column: composer + feed */}
         <div>
-          <div className="feed-title-col">
-            <h1 className="feed-topbar-title">Recognize the work.</h1>
-            <p className="feed-topbar-subtitle">
-              Send kudos, give drops, celebrate your team. Be Well Kentucky.
-            </p>
-          </div>
           <ComposerWrapper />
           <Feed currentUserId={session.user.id} />
         </div>
@@ -40,12 +42,12 @@ export default async function Home() {
         <aside className="home-rail">
           <div className="drops-balance rail-section">
             <div className="drops-pool">
-              <div className="balance-amount">{user?.givingBalance ?? 0}d</div>
+              <div className="balance-amount">{user?.givingBalance ?? 0}đ</div>
               <div className="balance-label">To give this month</div>
             </div>
             <div className="drops-balance-h-divider" />
             <div className="drops-pool">
-              <div className="balance-amount">{user?.balance ?? 0}d</div>
+              <div className="balance-amount">{user?.balance ?? 0}đ</div>
               <div className="balance-label" style={{ color: "rgba(244,241,236,0.5)" }}>
                 Earned&nbsp;&middot;&nbsp;yours to spend
               </div>

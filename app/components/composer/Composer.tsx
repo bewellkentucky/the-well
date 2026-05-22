@@ -86,7 +86,7 @@ export default function Composer({
     if (!selectedUser)          { setError("Pick a recipient first."); return }
     if (!message.trim())        { setError("Add a message — be specific!"); return }
     if (amount < 1)             { setError("Minimum 1 drop."); return }
-    if (amount > givingBalance) { setError(`You only have ${givingBalance}d to give.`); return }
+    if (amount > givingBalance) { setError(`You only have ${givingBalance}đ to give.`); return }
     if (selectedValues.size === 0) { setError("Select at least one value."); return }
 
     setError(null)
@@ -120,7 +120,7 @@ export default function Composer({
       <div className="composer-header">
         <div className="composer-title">Give kudos to a teammate</div>
         <div className="composer-balance">
-          <span className="composer-balance-amount">{givingBalance}d</span>
+          <span className="composer-balance-amount">{givingBalance}đ</span>
           <span className="composer-balance-label">to give</span>
         </div>
       </div>

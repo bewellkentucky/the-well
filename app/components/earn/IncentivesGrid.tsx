@@ -104,7 +104,7 @@ export default function IncentivesGrid({ incentives, claims }: Props) {
                 </div>
               </div>
               <div className="incentive-action">
-                <div className="incentive-reward">{inc.reward}d</div>
+                <div className="incentive-reward">{inc.reward}đ</div>
                 {badge ? (
                   <span className={`claim-status ${status === "pending" ? "status-pending" : "status-credited"}`}>
                     {badge}
@@ -155,7 +155,7 @@ export default function IncentivesGrid({ incentives, claims }: Props) {
                     <>
                       <div className="incentive-success-icon">💧</div>
                       <div className="incentive-success-title">
-                        {selected.reward}d added to your balance
+                        {selected.reward}đ added to your balance
                       </div>
                       <p className="incentive-success-sub">Nice work. Keep it up.</p>
                     </>
@@ -177,7 +177,7 @@ export default function IncentivesGrid({ incentives, claims }: Props) {
                   <div className="reward-modal-title">{selected.title}</div>
                   <p className="reward-modal-desc">{selected.description}</p>
                   <div className="reward-modal-cost">
-                    <span>{selected.reward}d</span> reward
+                    <span>{selected.reward}đ</span> reward
                     {selected.verification === "admin" && (
                       <span style={{ marginLeft: 12, fontSize: 12, color: "var(--ink-soft)", fontFamily: "var(--font-inter), sans-serif" }}>
                         pending admin review
@@ -225,7 +225,7 @@ export default function IncentivesGrid({ incentives, claims }: Props) {
                       {isPending
                         ? "Submitting..."
                         : selected.verification === "self"
-                          ? `Claim ${selected.reward}d`
+                          ? `Claim ${selected.reward}đ`
                           : "Submit for review"}
                     </button>
                     <button className="reward-btn-cancel" onClick={closeModal}>Cancel</button>

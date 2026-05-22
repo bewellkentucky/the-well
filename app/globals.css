@@ -450,6 +450,7 @@ img.avatar  { object-fit: cover; }
 /* ── Home page layout ────────────────────────────────────── */
 /* ── Feed page header (left column) ─────────────────────── */
 .feed-title-col {
+  grid-column: 1 / -1;
   margin-bottom: 20px;
 }
 
@@ -519,7 +520,8 @@ img.avatar  { object-fit: cover; }
 .home-layout {
   display: grid;
   grid-template-columns: 1fr 272px;
-  gap: 32px;
+  column-gap: 32px;
+  row-gap: 20px;
   align-items: start;
 }
 

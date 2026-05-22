@@ -91,7 +91,7 @@ export default function KudoCard({
           <span className="kudo-from">{kudo.from.fullName}</span>
           <span className="kudo-arrow">→</span>
           <span className="kudo-to">{kudo.to.fullName}</span>
-          <span className="kudo-amount">+{kudo.amount}d</span>
+          <span className="kudo-amount">+{kudo.amount}đ</span>
           {kudo.isPrivate && (
             <span className="kudo-private-badge">
               <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" aria-hidden>

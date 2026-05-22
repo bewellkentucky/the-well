@@ -93,7 +93,7 @@ function ClaimRow({ claim }: { claim: ApprovalClaim }) {
         <div className="approval-meta">{timeAgo(claim.createdAt)}</div>
       </div>
       <div className="approval-right">
-        <div className="approval-amount">{claim.incentive.reward}d</div>
+        <div className="approval-amount">{claim.incentive.reward}đ</div>
         <div className="approval-actions">
           <button
             className="approval-btn approve"
@@ -143,7 +143,7 @@ function RedemptionRow({ redemption }: { redemption: ApprovalRedemption }) {
         <div className="approval-meta">{timeAgo(redemption.createdAt)}</div>
       </div>
       <div className="approval-right">
-        <div className="approval-amount">{redemption.cost}d</div>
+        <div className="approval-amount">{redemption.cost}đ</div>
         <div className="approval-actions">
           <button
             className="approval-btn approve"
@@ -226,7 +226,7 @@ export default function ApprovalsPanel({
                   )}
                 </div>
                 <div className="approval-right">
-                  <div className="approval-amount" style={{ opacity: 0.6 }}>{d.incentive.reward}d</div>
+                  <div className="approval-amount" style={{ opacity: 0.6 }}>{d.incentive.reward}đ</div>
                   <span className={`claim-status ${d.status === "credited" ? "status-credited" : "status-declined"}`}>
                     {d.status === "credited" ? "Credited" : "Declined"}
                   </span>

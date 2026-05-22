@@ -42,7 +42,7 @@ export async function createKudo(params: Params): Promise<{ error: string } | un
   })
   if (!sender) return { error: "Sender not found." }
   if (amount > sender.givingBalance) {
-    return { error: `You only have ${sender.givingBalance}d to give.` }
+    return { error: `You only have ${sender.givingBalance}đ to give.` }
   }
 
   const recipient = await db.user.findUnique({

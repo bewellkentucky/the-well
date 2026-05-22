@@ -79,7 +79,7 @@ export default async function EarnPage() {
           {user && (
             <div className="balance-chip">
               <span className="balance-chip-label">Your drops</span>
-              <span className="balance-chip-amount">{user.balance}d</span>
+              <span className="balance-chip-amount">{user.balance}đ</span>
               <span className="balance-chip-sublabel">Earned&nbsp;&middot;&nbsp;yours to spend</span>
             </div>
           )}
