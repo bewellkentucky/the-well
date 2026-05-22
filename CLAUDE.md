@@ -105,6 +105,15 @@ See `docs/build-plan.md` for the full spec. Summary of the intended path:
   and updating the seed + avatarColor.ts to match.
 - **Company values (exactly six, exact names):** Compassion, Ownership, Curiosity, Team-First, Excellence, Above & Beyond. Use these verbatim everywhere — in the composer, kudo cards, seed data, and any admin UI. Do not substitute synonyms or add new ones.
 - **No app store.** It's a PWA — people add it to their home screen. App name "The Well".
+- **Giving-balance reset is unbuilt and the cadence is undecided.** The feed balance widget
+  shows "resets Mon" but this is aspirational — `givingBalance` never actually refills.
+  The reset cadence (weekly on Mondays vs. monthly on the 1st) was not decided before
+  building the UI; "Mon"/weekly is copied from the prototype as a placeholder. Do not treat
+  it as decided. The reset requires a scheduled cron job (Vercel Cron or similar) and
+  therefore only makes sense to build at deployment time — cron jobs don't run on localhost.
+  Decide cadence + build the reset logic (cron route + `AllowanceReset` ledger write +
+  `givingBalance` increment on all active users) together when deploying to production.
+  Until then, `givingBalance` stays at whatever it was last set to (default 100 from schema).
 - **Reward fulfillment is deferred.** Redeeming a reward currently records a `Redemption` row
   and deducts the user's `balance` — nothing else. No external API calls are made. The
   `Reward.provider` field (printful/tremendous/internal) and the `Redemption` status queue
