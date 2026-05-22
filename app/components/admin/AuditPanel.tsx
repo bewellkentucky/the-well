@@ -19,7 +19,12 @@ const FILTER_ACTIONS: Record<FilterTab, string[] | null> = {
   all:       null,
   approvals: ["approve_claim", "decline_claim", "approve_redemption", "decline_redemption"],
   grants:    ["adjust_balance"],
-  config:    ["change_role", "create_incentive", "edit_incentive", "disable_incentive", "enable_incentive"],
+  config:    [
+    "change_role",
+    "create_incentive", "edit_incentive", "disable_incentive", "enable_incentive",
+    "create_reward",    "edit_reward",    "disable_reward",    "enable_reward",
+    "sync_bamboo",
+  ],
 }
 
 const ACTION_LABELS: Record<string, string> = {
@@ -33,6 +38,11 @@ const ACTION_LABELS: Record<string, string> = {
   edit_incentive:     "edited an incentive",
   disable_incentive:  "disabled an incentive",
   enable_incentive:   "enabled an incentive",
+  create_reward:      "created a reward",
+  edit_reward:        "edited a reward",
+  disable_reward:     "disabled a reward",
+  enable_reward:      "enabled a reward",
+  sync_bamboo:        "ran a BambooHR sync",
 }
 
 const ACTION_CATEGORY: Record<string, FilterTab> = {
@@ -46,6 +56,11 @@ const ACTION_CATEGORY: Record<string, FilterTab> = {
   edit_incentive:     "config",
   disable_incentive:  "config",
   enable_incentive:   "config",
+  create_reward:      "config",
+  edit_reward:        "config",
+  disable_reward:     "config",
+  enable_reward:      "config",
+  sync_bamboo:        "config",
 }
 
 function timeAgo(iso: string): string {

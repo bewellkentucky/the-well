@@ -25,6 +25,12 @@ import IncentivesPanel, {
   type IncentiveAdminRow,
   type ClaimHistoryRow,
 } from "@/app/components/admin/IncentivesPanel"
+import RewardsPanel, {
+  type RewardAdminRow,
+} from "@/app/components/admin/RewardsPanel"
+import IntegrationsPanel, {
+  type BambooSyncStatus,
+} from "@/app/components/admin/IntegrationsPanel"
 import { ADMIN_TABS, type AdminTabId } from "@/lib/adminTabsConfig"
 
 const TAB_IDS = ADMIN_TABS.map((t) => t.id)
@@ -253,6 +259,29 @@ export default async function AdminPage({
     }))
   }
 
+  // ── Rewards tab data ───────────────────────────────────────
+  let rewards: RewardAdminRow[] = []
+
+  if (activeTab === "rewards") {
+    const rawRewards = await db.reward.findMany({
+      orderBy: [{ active: "desc" }, { title: "asc" }],
+      include: { _count: { select: { redemptions: true } } },
+    })
+
+    rewards = rawRewards.map((r) => ({
+      id:              r.id,
+      title:           r.title,
+      description:     r.description,
+      cost:            r.cost,
+      category:        r.category,
+      inventory:       r.inventory,
+      icon:            r.icon,
+      color:           r.color,
+      active:          r.active,
+      redemptionCount: r._count.redemptions,
+    }))
+  }
+
   // ── Incentives tab data ────────────────────────────────────
   let incentives: IncentiveAdminRow[] = []
   let claimHistory: ClaimHistoryRow[] = []
@@ -304,6 +333,30 @@ export default async function AdminPage({
       rewardSnapshot:  c.rewardSnapshot,
       incentiveReward: c.incentive.reward,
     }))
+  }
+
+  // ── Integrations tab data ──────────────────────────────────
+  let bambooLastSync: BambooSyncStatus | null = null
+  let workspaceUserCount = 0
+
+  if (activeTab === "integrations") {
+    const [lastSync, userCount] = await Promise.all([
+      db.integrationSync.findFirst({
+        where:   { source: "bamboohr" },
+        orderBy: { lastRunAt: "desc" },
+      }),
+      db.user.count(),
+    ])
+    bambooLastSync = lastSync
+      ? {
+          id:               lastSync.id,
+          lastRunAt:        lastSync.lastRunAt.toISOString(),
+          recordsProcessed: lastSync.recordsProcessed,
+          errors:           lastSync.errors,
+          notes:            lastSync.notes,
+        }
+      : null
+    workspaceUserCount = userCount
   }
 
   // ── Audit tab data ─────────────────────────────────────────
@@ -414,6 +467,13 @@ export default async function AdminPage({
             locationStats={locationStats}
             healthStats={healthStats}
             categoryStats={categoryStats}
+          />
+        ) : activeTab === "rewards" ? (
+          <RewardsPanel rewards={rewards} />
+        ) : activeTab === "integrations" ? (
+          <IntegrationsPanel
+            bambooLastSync={bambooLastSync}
+            userCount={workspaceUserCount}
           />
         ) : activeTab === "incentives" ? (
           <IncentivesPanel
