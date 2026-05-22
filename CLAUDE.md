@@ -81,7 +81,10 @@ See `docs/build-plan.md` for the full spec. Summary of the intended path:
   built, so entity attribution is intentional and accurate from day one. Until then the
   `entity` column defaults to "BWK" and is set manually if needed.
 - **Incentives** have two verification modes: self-attest (instant credit) and admin-verify
-  (goes to an approvals queue; supports link + screenshot proof upload).
+  (goes to an approvals queue). Proof currently supports a link or text description only.
+  Screenshot/photo upload is deferred until file storage (Vercel Blob or Supabase Storage)
+  is set up — that work pairs naturally with production deployment. The modal shows a
+  "coming soon" note so the link-only UI reads as intentional.
 - **Reactions are NOT synced between the app and Google Chat** (v1). Two separate pools.
   See `docs/chat-integration.md` for the reasoning.
 - **The sidebar leaderboard ranks GIVERS, not receivers.** This is deliberate: celebrating

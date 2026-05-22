@@ -1235,6 +1235,13 @@ img.avatar  { object-fit: cover; }
   border-color: var(--honey);
 }
 
+.incentive-proof-hint {
+  font-size: 11px;
+  color: var(--ink-soft);
+  opacity: 0.7;
+  margin: 5px 0 0;
+}
+
 .incentive-success {
   text-align: center;
   padding: 8px 0 4px;

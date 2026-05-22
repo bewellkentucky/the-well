@@ -195,6 +195,9 @@ export default function IncentivesGrid({ incentives, claims }: Props) {
                         value={proofLink}
                         onChange={(e) => setProofLink(e.target.value)}
                       />
+                      {selected.verification === "admin" && (
+                        <p className="incentive-proof-hint">Photo/screenshot upload coming soon.</p>
+                      )}
                     </div>
                   )}
 
