@@ -2178,3 +2178,135 @@ img.avatar  { object-fit: cover; }
   .alert-row { flex-direction: column; }
   .overview-actions-card { flex: unset; width: 100%; }
 }
+
+/* ── Admin Audit log tab ─────────────────────────────────────── */
+.audit-filter-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 20px;
+  border-bottom: 1.5px solid var(--line);
+  padding-bottom: 0;
+}
+
+.audit-filter-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-soft);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1.5px;
+  cursor: pointer;
+  border-radius: 6px 6px 0 0;
+  transition: color 0.12s;
+}
+.audit-filter-tab:hover { color: var(--ink); }
+.audit-filter-tab.active {
+  color: var(--ink);
+  border-bottom-color: var(--honey-deep);
+  font-weight: 600;
+}
+
+.audit-tab-count {
+  font-size: 11px;
+  font-weight: 600;
+  font-family: var(--font-mono), monospace;
+  color: var(--ink-soft);
+  opacity: 0.65;
+}
+
+.audit-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.audit-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+.audit-row:last-child { border-bottom: none; }
+
+.audit-dot {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-top: 6px;
+}
+.audit-dot-approvals { background: var(--ink-soft); opacity: 0.5; }
+.audit-dot-grants    { background: var(--honey-deep); }
+.audit-dot-config    { background: var(--plum, #6b5b73); }
+
+.audit-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.audit-main {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 5px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.audit-actor {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.audit-verb {
+  color: var(--ink-soft);
+}
+
+.audit-target {
+  color: var(--ink);
+}
+
+.audit-amount {
+  font-family: var(--font-mono), monospace;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+.audit-amount.positive {
+  color: var(--honey-deep);
+  background: color-mix(in srgb, var(--honey-deep) 10%, transparent);
+}
+.audit-amount.negative {
+  color: var(--coral, #c97b5c);
+  background: color-mix(in srgb, var(--coral, #c97b5c) 10%, transparent);
+}
+
+.audit-sub {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--ink-soft);
+  margin-top: 2px;
+  opacity: 0.75;
+}
+
+.audit-reason {
+  font-style: italic;
+}
+
+.audit-time {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-family: var(--font-mono), monospace;
+  color: var(--ink-soft);
+  opacity: 0.55;
+  padding-top: 3px;
+  white-space: nowrap;
+}

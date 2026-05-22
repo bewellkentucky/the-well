@@ -215,11 +215,15 @@ Other staff referenced in mock data: Melissa Gibson (Clinical Director), Hayley 
   pooler works fine for runtime queries but the migration path fails. The direct DB host
   (`db.{ref}.supabase.co`) is IPv6-only and returns `ENOTFOUND` on this machine.
   **Workaround for schema changes:**
-  1. `npx prisma migrate diff --from-empty --to-schema-datamodel prisma/schema.prisma --script > migration.sql`
-     (or `--from-schema-datasource` to diff against the live schema for incremental changes)
+  1. Hand-write or derive the delta SQL for the new table/column (see AuditLog migration
+     as a reference — Prisma 7's `--from-config-datasource` flag also hangs on this network).
   2. Paste and run the SQL in the Supabase SQL Editor.
   3. `npx prisma generate` to regenerate the client.
   Runtime queries via `DATABASE_URL` (pooled connection) work fine — this is a migration-only issue.
+- **`BalanceAdjustment` table is deprecated and orphaned.** All balance adjustment
+  writes now go to `AuditLog` (action: `"adjust_balance"`). The `BalanceAdjustment`
+  model is kept in `schema.prisma` to avoid a destructive migration, but nothing reads
+  or writes it anymore. Candidate to drop at the next planned schema migration.
 - **Prisma 7: connection URLs live in `prisma.config.ts`, NOT `schema.prisma`.** The
   `datasource db` block in `schema.prisma` only has `provider = "postgresql"`. Both `url`
   (pooled `DATABASE_URL`) and `directUrl` (`DIRECT_URL`) are set in `prisma.config.ts`

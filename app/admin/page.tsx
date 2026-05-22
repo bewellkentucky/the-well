@@ -18,6 +18,9 @@ import ReportsPanel, {
 import OverviewPanel, {
   type OverviewData,
 } from "@/app/components/admin/OverviewPanel"
+import AuditPanel, {
+  type AuditLogEntry,
+} from "@/app/components/admin/AuditPanel"
 import { ADMIN_TABS, type AdminTabId } from "@/lib/adminTabsConfig"
 
 const TAB_IDS = ADMIN_TABS.map((t) => t.id)
@@ -80,13 +83,10 @@ export default async function AdminPage({
         },
         orderBy: { fullName: "asc" },
       }),
-      db.balanceAdjustment.findMany({
-        include: {
-          user:  { select: { fullName: true } },
-          actor: { select: { fullName: true } },
-        },
+      db.auditLog.findMany({
+        where:   { action: "adjust_balance" },
         orderBy: { createdAt: "desc" },
-        take: 10,
+        take:    10,
       }),
     ])
 
@@ -97,10 +97,10 @@ export default async function AdminPage({
 
     recentAdjustments = rawAdj.map((a) => ({
       id:        a.id,
-      userName:  a.user.fullName,
-      actorName: a.actor.fullName,
-      amount:    a.amount,
-      reason:    a.reason,
+      userName:  a.targetName ?? "Unknown",
+      actorName: a.actorName,
+      amount:    a.amount ?? 0,
+      reason:    a.reason ?? "",
       createdAt: a.createdAt.toISOString(),
     }))
   }
@@ -249,6 +249,26 @@ export default async function AdminPage({
     }))
   }
 
+  // ── Audit tab data ─────────────────────────────────────────
+  let auditLogs: AuditLogEntry[] = []
+
+  if (activeTab === "audit") {
+    const rows = await db.auditLog.findMany({
+      orderBy: { createdAt: "desc" },
+      take:    100,
+    })
+    auditLogs = rows.map((r) => ({
+      id:         r.id,
+      createdAt:  r.createdAt.toISOString(),
+      actorName:  r.actorName,
+      targetName: r.targetName,
+      action:     r.action,
+      details:    r.details,
+      amount:     r.amount,
+      reason:     r.reason,
+    }))
+  }
+
   // ── Overview tab data ──────────────────────────────────────
   let overviewData: OverviewData = {
     totalUsers:        0,
@@ -338,6 +358,8 @@ export default async function AdminPage({
             healthStats={healthStats}
             categoryStats={categoryStats}
           />
+        ) : activeTab === "audit" ? (
+          <AuditPanel logs={auditLogs} />
         ) : (
           <div className="card" style={{ maxWidth: 560 }}>
             <div className="card-header">

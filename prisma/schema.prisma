@@ -39,6 +39,8 @@ model User {
   incentiveClaims IncentiveClaim[]
   balanceAdjustmentsReceived BalanceAdjustment[] @relation("AdjustedUser")
   balanceAdjustmentsGiven    BalanceAdjustment[] @relation("AdjustedBy")
+  auditLogsAsActor  AuditLog[] @relation("AuditActor")
+  auditLogsAsTarget AuditLog[] @relation("AuditTarget")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -144,6 +146,9 @@ model Incentive {
   claims IncentiveClaim[]
 }
 
+// Deprecated — superseded by AuditLog (action: "adjust_balance").
+// Kept in schema to avoid a destructive migration; no new writes.
+// Candidate to drop at next planned migration once pre-launch test data is no longer needed.
 model BalanceAdjustment {
   id        String   @id @default(cuid())
   userId    String
@@ -157,6 +162,25 @@ model BalanceAdjustment {
 
   @@index([userId])
   @@index([createdAt])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  createdAt  DateTime @default(now())
+  actorId    String
+  actor      User     @relation("AuditActor",  fields: [actorId],  references: [id])
+  targetId   String?
+  target     User?    @relation("AuditTarget", fields: [targetId], references: [id])
+  action     String   // approve_claim | decline_claim | approve_redemption | decline_redemption | adjust_balance | change_role
+  actorName  String   // denormalized — display survives user rename
+  targetName String?  // denormalized
+  details    String?  // freetext written at action time: incentive title, role change string, etc.
+  amount     Int?     // drops relevant to the action (signed)
+  reason     String?  // required for adjust_balance; optional note elsewhere
+
+  @@index([createdAt(sort: Desc)])
+  @@index([action])
+  @@index([actorId])
 }
 
 model IncentiveClaim {

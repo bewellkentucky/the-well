@@ -28,14 +28,14 @@ export async function changeRole(
     await db.$transaction(async (tx) => {
       const actor = await tx.user.findUnique({
         where: { id: session.user!.id! },
-        select: { role: true },
+        select: { role: true, fullName: true },
       })
       if (!actor || actor.role !== "owner")
         throw new Error("Only owners can change roles.")
 
       const target = await tx.user.findUnique({
         where: { id: targetId },
-        select: { role: true },
+        select: { role: true, fullName: true },
       })
       if (!target) throw new Error("User not found.")
 
@@ -45,6 +45,16 @@ export async function changeRole(
       }
 
       await tx.user.update({ where: { id: targetId }, data: { role: newRole } })
+      await tx.auditLog.create({
+        data: {
+          actorId:    session.user!.id!,
+          targetId,
+          action:     "change_role",
+          actorName:  actor.fullName,
+          targetName: target.fullName,
+          details:    `Role: ${target.role} → ${newRole}`,
+        },
+      })
     })
 
     revalidatePath("/admin")
@@ -79,14 +89,14 @@ export async function adjustBalance(
     await db.$transaction(async (tx) => {
       const actor = await tx.user.findUnique({
         where: { id: session.user!.id! },
-        select: { role: true },
+        select: { role: true, fullName: true },
       })
       if (!actor || (actor.role !== "owner" && actor.role !== "admin"))
         throw new Error("Insufficient permissions.")
 
       const target = await tx.user.findUnique({
         where: { id: targetId },
-        select: { id: true, balance: true },
+        select: { id: true, balance: true, fullName: true },
       })
       if (!target) throw new Error("User not found.")
 
@@ -99,12 +109,15 @@ export async function adjustBalance(
         where: { id: targetId },
         data: { balance: { increment: amount } },
       })
-      await tx.balanceAdjustment.create({
+      await tx.auditLog.create({
         data: {
-          userId:  targetId,
-          actorId: session.user!.id!,
+          actorId:    session.user!.id!,
+          targetId,
+          action:     "adjust_balance",
+          actorName:  actor.fullName,
+          targetName: target.fullName,
           amount,
-          reason:  trimmedReason,
+          reason:     trimmedReason,
         },
       })
     })
