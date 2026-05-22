@@ -69,6 +69,18 @@ See `docs/build-plan.md` for the full spec. Summary of the intended path:
   "Honeycomb" with "nectar" — all of that is gone. Do not reintroduce bee/honey/nectar in
   user-facing text. (Note: internal CSS color variables are still named `--honey`/`--honey-deep`
   — those are just the sage-green palette names, never user-visible, fine to leave.)
+- **The two-pool balance model must be labeled explicitly everywhere.** There are two separate
+  pools: (1) the **giving allowance** (`givingBalance`) — a monthly budget for recognizing
+  teammates that depletes as you give and refills on reset. Label it "To give this month" in
+  giving contexts (feed widget, composer). (2) the **earned wallet** (`balance`) — drops the
+  user has received or earned, permanently theirs to redeem. Label it "Your drops" /
+  "Earned · yours to spend" in spending contexts (rewards, earn pages). Both are shown
+  side-by-side in the feed widget so the distinction is visible at a glance. **Never show a
+  bare number with just "d" — always label which pool it is.** This framing was a deliberate
+  fix: the two pools look like the same currency in two accounts, which caused confusion even
+  for the owner who designed the system. That's a strong signal the labels must do the work.
+  Do not revert to "balance" / "Your balance" / "Drops to give balance" without explicit
+  discussion.
 - **Public/private kudo toggle.** Public (default) posts to #kudos + the feed. Private goes
   only to the recipient's DM, visible to sender + recipient + Owner only.
 - **Entity field (BWK/LCED/Both) is back-office only.** Removed from the Feed and Team
