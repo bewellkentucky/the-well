@@ -27,7 +27,7 @@ export default async function TopNav() {
         <div className="tnav-brand">
           <div className="tnav-mark">
             <Image
-              src="/brand-icon.png"
+              src="/Be_Well_Icon_Color.png"
               alt="Be Well Kentucky"
               width={30}
               height={30}
