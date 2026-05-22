@@ -35,6 +35,7 @@
 }
 .avatar.sm  { width: 24px; height: 24px; font-size: 10px; }
 .avatar.lg  { width: 48px; height: 48px; font-size: 16px; }
+img.avatar  { object-fit: cover; }
 .avatar.olive { background: linear-gradient(135deg, var(--olive), var(--sage)); }
 .avatar.plum  { background: linear-gradient(135deg, var(--plum), var(--coral)); }
 .avatar.ink   { background: linear-gradient(135deg, var(--ink-soft), var(--olive)); }

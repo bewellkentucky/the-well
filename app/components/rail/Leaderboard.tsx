@@ -1,9 +1,5 @@
 import { db } from "@/lib/db"
-import { avatarColor } from "@/lib/avatarColor"
-
-function initials(name: string): string {
-  return name.split(" ").filter(Boolean).map((n) => n[0]).join("").slice(0, 2).toUpperCase()
-}
+import Avatar from "@/app/components/ui/Avatar"
 
 export default async function Leaderboard() {
   const startOfMonth = new Date()
@@ -22,7 +18,7 @@ export default async function Leaderboard() {
 
   const users = await db.user.findMany({
     where: { id: { in: totals.map((t) => t.fromId) } },
-    select: { id: true, fullName: true, title: true, email: true },
+    select: { id: true, fullName: true, title: true, email: true, thumbnailUrl: true },
   })
   const byId = Object.fromEntries(users.map((u) => [u.id, u]))
 
@@ -38,9 +34,12 @@ export default async function Leaderboard() {
       {rows.map((row, i) => (
         <div key={row.user.id} className="leaderboard-item">
           <div className={`rank${i < 3 ? " top" : ""}`}>{i + 1}</div>
-          <div className={`avatar sm ${avatarColor(row.user.email)}`}>
-            {initials(row.user.fullName)}
-          </div>
+          <Avatar
+            name={row.user.fullName}
+            email={row.user.email}
+            thumbnailUrl={row.user.thumbnailUrl}
+            size="sm"
+          />
           <div className="leader-info">
             <div className="leader-name">{row.user.fullName}</div>
             <div className="leader-meta">{row.user.title ?? ""}</div>

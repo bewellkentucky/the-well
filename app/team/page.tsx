@@ -19,6 +19,7 @@ export default async function TeamPage() {
       title: true,
       department: true,
       role: true,
+      thumbnailUrl: true,
     },
   })
 

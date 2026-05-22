@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { avatarColor } from "@/lib/avatarColor"
+import Avatar from "@/app/components/ui/Avatar"
 
 export type DirectoryUser = {
   id: string
@@ -10,23 +10,15 @@ export type DirectoryUser = {
   title: string | null
   department: string | null
   role: string
-}
-
-const ROLE_ORDER: Record<string, number> = { owner: 0, admin: 1, member: 2 }
-
-function initials(name: string): string {
-  return name.split(" ").filter(Boolean).map((n) => n[0]).join("").slice(0, 2).toUpperCase()
+  thumbnailUrl: string | null
 }
 
 function PersonCard({ user }: { user: DirectoryUser }) {
-  const color = avatarColor(user.email)
   const titleLine = [user.title, user.department].filter(Boolean).join(" · ")
 
   return (
     <div className="person-card">
-      <div className={`avatar lg ${color}`.trim()}>
-        {initials(user.fullName)}
-      </div>
+      <Avatar name={user.fullName} email={user.email} thumbnailUrl={user.thumbnailUrl} size="lg" />
       <div className="person-info">
         <div className="person-name">{user.fullName}</div>
         {titleLine && <div className="person-title">{titleLine}</div>}

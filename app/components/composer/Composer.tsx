@@ -2,13 +2,14 @@
 
 import { useState, useTransition, useRef, useEffect } from "react"
 import { createKudo } from "@/app/actions/createKudo"
-import { avatarColor } from "@/lib/avatarColor"
+import Avatar from "@/app/components/ui/Avatar"
 
 type User = {
   id: string
   fullName: string
   email: string
   title: string | null
+  thumbnailUrl: string | null
 }
 
 const VALUES = [
@@ -19,10 +20,6 @@ const VALUES = [
   { label: "Excellence",     emoji: "✨" },
   { label: "Above & Beyond", emoji: "🌟" },
 ] as const
-
-function initials(name: string) {
-  return name.split(" ").filter(Boolean).map((n) => n[0]).join("").slice(0, 2).toUpperCase()
-}
 
 export default function Composer({
   users,
@@ -147,7 +144,7 @@ export default function Composer({
             <div className="suggestions">
               {filtered.slice(0, 8).map((u) => (
                 <div key={u.id} className="suggestion" onMouseDown={() => selectUser(u)}>
-                  <div className={`avatar sm ${avatarColor(u.email)}`}>{initials(u.fullName)}</div>
+                  <Avatar name={u.fullName} email={u.email} thumbnailUrl={u.thumbnailUrl} size="sm" />
                   <div className="suggestion-info">
                     <div className="suggestion-name">{u.fullName}</div>
                     {u.title && <div className="suggestion-title">{u.title}</div>}

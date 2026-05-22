@@ -1,16 +1,11 @@
 import Image from "next/image"
 import { auth, signOut } from "@/auth"
 import NavLinks from "./NavLinks"
+import Avatar from "@/app/components/ui/Avatar"
 
 export default async function TopNav() {
   const session = await auth()
   const name = session?.user?.name ?? ""
-  const initials = name
-    .split(" ")
-    .map((n: string) => n[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase()
 
   return (
     <header
@@ -43,9 +38,12 @@ export default async function TopNav() {
         {/* User + sign out */}
         <div className="flex items-center gap-3">
           <span style={{ fontSize: 13, color: "rgba(244,241,236,0.7)" }}>{name}</span>
-          <div className="avatar sm" style={{ flexShrink: 0 }}>
-            {initials}
-          </div>
+          <Avatar
+            name={name}
+            email={session?.user?.email ?? ""}
+            thumbnailUrl={session?.user?.image ?? null}
+            size="sm"
+          />
           <form
             action={async () => {
               "use server"

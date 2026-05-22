@@ -9,7 +9,7 @@ export default async function ComposerWrapper() {
   const [users, sender] = await Promise.all([
     db.user.findMany({
       where: { active: true },
-      select: { id: true, fullName: true, email: true, title: true },
+      select: { id: true, fullName: true, email: true, title: true, thumbnailUrl: true },
       orderBy: { fullName: "asc" },
     }),
     db.user.findUnique({

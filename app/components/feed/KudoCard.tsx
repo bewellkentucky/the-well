@@ -1,24 +1,20 @@
 "use client"
 
 import { useState, useOptimistic, useTransition, useEffect, useRef } from "react"
-import { avatarColor } from "@/lib/avatarColor"
 import { toggleReaction } from "@/app/actions/toggleReaction"
+import Avatar from "@/app/components/ui/Avatar"
 import type { Kudo, User, Reaction } from "@/app/generated/prisma/client"
 
 const REACTION_CHOICES = ["💧", "💛", "🙌", "🎉", "👏", "🔥", "💯", "🙏", "✨", "❤️"]
 
 type KudoWithRelations = Omit<Kudo, "createdAt"> & {
   createdAt: string | Date
-  from: Pick<User, "id" | "fullName" | "email">
-  to: Pick<User, "id" | "fullName" | "email">
+  from: Pick<User, "id" | "fullName" | "email" | "thumbnailUrl">
+  to: Pick<User, "id" | "fullName" | "email" | "thumbnailUrl">
   reactions: (Reaction & { user: Pick<User, "id"> })[]
 }
 
 type ReactionSummary = { emoji: string; count: number; reacted: boolean }[]
-
-function initials(name: string): string {
-  return name.split(" ").filter(Boolean).map((n) => n[0]).join("").slice(0, 2).toUpperCase()
-}
 
 function timeAgo(date: string | Date): string {
   const secs = Math.floor((Date.now() - new Date(date).getTime()) / 1000)
@@ -42,7 +38,6 @@ export default function KudoCard({
   kudo: KudoWithRelations
   currentUserId: string
 }) {
-  const color = avatarColor(kudo.from.email)
   const [pickerOpen, setPickerOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
   const pickerRef = useRef<HTMLDivElement>(null)
@@ -85,9 +80,11 @@ export default function KudoCard({
 
   return (
     <div className={`kudo${kudo.isPrivate ? " kudo-private" : ""}`}>
-      <div className={`avatar ${color}`.trim()}>
-        {initials(kudo.from.fullName)}
-      </div>
+      <Avatar
+        name={kudo.from.fullName}
+        email={kudo.from.email}
+        thumbnailUrl={kudo.from.thumbnailUrl}
+      />
 
       <div className="kudo-content">
         <div className="kudo-header">

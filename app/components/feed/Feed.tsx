@@ -146,8 +146,8 @@ export default async function Feed({ currentUserId }: { currentUserId: string })
       ],
     },
     include: {
-      from: { select: { id: true, fullName: true, email: true } },
-      to:   { select: { id: true, fullName: true, email: true } },
+      from: { select: { id: true, fullName: true, email: true, thumbnailUrl: true } },
+      to:   { select: { id: true, fullName: true, email: true, thumbnailUrl: true } },
       reactions: { include: { user: { select: { id: true } } } },
     },
   })
