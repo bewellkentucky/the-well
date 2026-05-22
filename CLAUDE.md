@@ -88,6 +88,18 @@ See `docs/build-plan.md` for the full spec. Summary of the intended path:
   who gives the most recognition encourages generosity and avoids turning the feed into a
   popularity contest, which matters in a behavioral health setting. Do not flip this to
   receivers without explicit discussion.
+- **Recognition UI is hierarchy-agnostic.** Do not show job titles in celebration or ranking
+  contexts (leaderboard, kudos feed, reaction lists). Titles are fine in the Team directory
+  and the Dates/tenure list where they provide useful context, but surfacing them alongside
+  recognition scores reintroduces hierarchy the platform is designed to stay neutral about.
+- **BambooHR workEmail is the canonical join key and must match Google primaryEmail exactly.**
+  Mismatches (maiden vs. married name, nickname vs. legal name) cause silent sync failures:
+  the employee appears in BambooHR's directory but gets skipped with no error, leaving their
+  User row un-enriched (bambooId stays null). When a user fails to enrich after a full sync,
+  compare their DB email against `GET /employees/directory` workEmail fields — the mismatch
+  will be obvious. Fix by updating the email in whichever system is wrong (usually Bamboo),
+  then updating the DB row by user ID (not by email) to preserve kudo/reaction foreign keys,
+  and updating the seed + avatarColor.ts to match.
 - **Company values (exactly six, exact names):** Compassion, Ownership, Curiosity, Team-First, Excellence, Above & Beyond. Use these verbatim everywhere — in the composer, kudo cards, seed data, and any admin UI. Do not substitute synonyms or add new ones.
 - **No app store.** It's a PWA — people add it to their home screen. App name "The Well".
 - **Reward fulfillment is deferred.** Redeeming a reward currently records a `Redemption` row
