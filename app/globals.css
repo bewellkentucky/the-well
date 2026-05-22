@@ -607,8 +607,87 @@ img.avatar  { object-fit: cover; }
   color: var(--honey);
 }
 
+.desktop-nav-divider {
+  width: 1px;
+  height: 18px;
+  background: rgba(244, 241, 236, 0.15);
+  margin: 0 6px;
+  flex-shrink: 0;
+}
+
+.desktop-nav-link-admin {
+  color: rgba(244, 241, 236, 0.45);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.desktop-nav-link-admin:hover {
+  color: rgba(244, 241, 236, 0.85);
+}
+
+.desktop-nav-link-admin.active {
+  background: rgba(107, 91, 115, 0.25);
+  color: #c8b8d0;
+}
+
 @media (max-width: 640px) {
   .desktop-nav { display: none; }
+}
+
+/* ── Admin portal ────────────────────────────────────────── */
+.admin-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 28px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.admin-tabs::-webkit-scrollbar { display: none; }
+
+.admin-tab {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 10px 14px;
+  font-family: var(--font-inter), sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-soft);
+  cursor: pointer;
+  white-space: nowrap;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: -1px;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.admin-tab:hover { color: var(--ink); }
+
+.admin-tab.active {
+  color: var(--ink);
+  border-bottom-color: var(--honey-deep);
+  font-weight: 600;
+}
+
+.admin-tab-badge {
+  background: var(--coral);
+  color: white;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 10px;
+  font-family: var(--font-mono), monospace;
+}
+
+.admin-pane-shell {
+  animation: fadeIn 0.15s ease;
 }
 
 /* ── Mobile bottom nav ───────────────────────────────────── */

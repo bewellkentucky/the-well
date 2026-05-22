@@ -1,11 +1,17 @@
 import Image from "next/image"
 import { auth, signOut } from "@/auth"
+import { db } from "@/lib/db"
 import NavLinks from "./NavLinks"
 import Avatar from "@/app/components/ui/Avatar"
 
 export default async function TopNav() {
   const session = await auth()
   const name = session?.user?.name ?? ""
+
+  const role = session?.user?.id
+    ? (await db.user.findUnique({ where: { id: session.user.id }, select: { role: true } }))?.role
+    : undefined
+  const showAdmin = role === "owner" || role === "admin"
 
   return (
     <header
@@ -33,7 +39,7 @@ export default async function TopNav() {
         </div>
 
         {/* Desktop nav tabs */}
-        <NavLinks />
+        <NavLinks showAdmin={showAdmin} />
 
         {/* User + sign out */}
         <div className="flex items-center gap-3">

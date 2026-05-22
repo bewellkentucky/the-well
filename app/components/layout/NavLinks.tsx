@@ -64,7 +64,7 @@ export const NAV_TABS = [
 ] as const
 
 /** Desktop header links — hidden on mobile. */
-export default function NavLinks() {
+export default function NavLinks({ showAdmin = false }: { showAdmin?: boolean }) {
   const pathname = usePathname()
   return (
     <nav className="desktop-nav">
@@ -76,6 +76,17 @@ export default function NavLinks() {
           </Link>
         )
       })}
+      {showAdmin && (
+        <>
+          <span className="desktop-nav-divider" />
+          <Link
+            href="/admin"
+            className={`desktop-nav-link desktop-nav-link-admin${pathname.startsWith("/admin") ? " active" : ""}`}
+          >
+            Admin
+          </Link>
+        </>
+      )}
     </nav>
   )
 }
