@@ -21,6 +21,10 @@ import OverviewPanel, {
 import AuditPanel, {
   type AuditLogEntry,
 } from "@/app/components/admin/AuditPanel"
+import IncentivesPanel, {
+  type IncentiveAdminRow,
+  type ClaimHistoryRow,
+} from "@/app/components/admin/IncentivesPanel"
 import { ADMIN_TABS, type AdminTabId } from "@/lib/adminTabsConfig"
 
 const TAB_IDS = ADMIN_TABS.map((t) => t.id)
@@ -249,6 +253,59 @@ export default async function AdminPage({
     }))
   }
 
+  // ── Incentives tab data ────────────────────────────────────
+  let incentives: IncentiveAdminRow[] = []
+  let claimHistory: ClaimHistoryRow[] = []
+
+  if (activeTab === "incentives") {
+    const [rawIncentives, rawClaims] = await Promise.all([
+      db.incentive.findMany({
+        orderBy: [{ sortOrder: "asc" }, { title: "asc" }],
+        include: { _count: { select: { claims: true } } },
+      }),
+      db.incentiveClaim.findMany({
+        include: {
+          user:      { select: { fullName: true, email: true, thumbnailUrl: true } },
+          incentive: { select: { title: true, icon: true, color: true, reward: true } },
+        },
+        orderBy: { createdAt: "desc" },
+        take: 200,
+      }),
+    ])
+
+    incentives = rawIncentives.map((i) => ({
+      id:           i.id,
+      title:        i.title,
+      description:  i.description,
+      reward:       i.reward,
+      verification: i.verification,
+      cap:          i.cap,
+      icon:         i.icon,
+      color:        i.color,
+      proofPrompt:  i.proofPrompt,
+      active:       i.active,
+      sortOrder:    i.sortOrder,
+      startsAt:     i.startsAt?.toISOString() ?? null,
+      endsAt:       i.endsAt?.toISOString()   ?? null,
+      claimCount:   i._count.claims,
+    }))
+
+    claimHistory = rawClaims.map((c) => ({
+      id:              c.id,
+      createdAt:       c.createdAt.toISOString(),
+      userName:        c.user.fullName,
+      userEmail:       c.user.email,
+      userThumbnail:   c.user.thumbnailUrl,
+      incentiveTitle:  c.incentive.title,
+      incentiveIcon:   c.incentive.icon,
+      incentiveColor:  c.incentive.color,
+      status:          c.status,
+      decidedById:     c.decidedById,
+      rewardSnapshot:  c.rewardSnapshot,
+      incentiveReward: c.incentive.reward,
+    }))
+  }
+
   // ── Audit tab data ─────────────────────────────────────────
   let auditLogs: AuditLogEntry[] = []
 
@@ -357,6 +414,11 @@ export default async function AdminPage({
             locationStats={locationStats}
             healthStats={healthStats}
             categoryStats={categoryStats}
+          />
+        ) : activeTab === "incentives" ? (
+          <IncentivesPanel
+            incentives={incentives}
+            claimHistory={claimHistory}
           />
         ) : activeTab === "audit" ? (
           <AuditPanel logs={auditLogs} />

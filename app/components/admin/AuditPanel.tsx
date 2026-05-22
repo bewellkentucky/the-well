@@ -19,7 +19,7 @@ const FILTER_ACTIONS: Record<FilterTab, string[] | null> = {
   all:       null,
   approvals: ["approve_claim", "decline_claim", "approve_redemption", "decline_redemption"],
   grants:    ["adjust_balance"],
-  config:    ["change_role"],
+  config:    ["change_role", "create_incentive", "edit_incentive", "disable_incentive", "enable_incentive"],
 }
 
 const ACTION_LABELS: Record<string, string> = {
@@ -29,6 +29,10 @@ const ACTION_LABELS: Record<string, string> = {
   decline_redemption: "declined a redemption",
   adjust_balance:     "adjusted balance",
   change_role:        "changed role",
+  create_incentive:   "created an incentive",
+  edit_incentive:     "edited an incentive",
+  disable_incentive:  "disabled an incentive",
+  enable_incentive:   "enabled an incentive",
 }
 
 const ACTION_CATEGORY: Record<string, FilterTab> = {
@@ -38,6 +42,10 @@ const ACTION_CATEGORY: Record<string, FilterTab> = {
   decline_redemption: "approvals",
   adjust_balance:     "grants",
   change_role:        "config",
+  create_incentive:   "config",
+  edit_incentive:     "config",
+  disable_incentive:  "config",
+  enable_incentive:   "config",
 }
 
 function timeAgo(iso: string): string {

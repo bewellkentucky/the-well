@@ -220,6 +220,10 @@ Other staff referenced in mock data: Melissa Gibson (Clinical Director), Hayley 
   2. Paste and run the SQL in the Supabase SQL Editor.
   3. `npx prisma generate` to regenerate the client.
   Runtime queries via `DATABASE_URL` (pooled connection) work fine — this is a migration-only issue.
+- **`IncentiveClaim.rewardSnapshot`** stores the incentive's drop reward at the moment
+  a claim is submitted. `approveIncentiveClaim` uses this value (falling back to
+  `incentive.reward` for pre-snapshot claims) so editing an incentive's reward after
+  a claim is submitted does not change what the claimant receives upon approval.
 - **`BalanceAdjustment` table is deprecated and orphaned.** All balance adjustment
   writes now go to `AuditLog` (action: `"adjust_balance"`). The `BalanceAdjustment`
   model is kept in `schema.prisma` to avoid a destructive migration, but nothing reads

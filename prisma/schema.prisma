@@ -129,7 +129,7 @@ model IntegrationSync {
 }
 
 model Incentive {
-  id          String   @id
+  id          String   @id @default(cuid())
   title       String
   description String
   reward      Int
@@ -184,17 +184,18 @@ model AuditLog {
 }
 
 model IncentiveClaim {
-  id          String    @id @default(cuid())
-  userId      String
-  user        User      @relation(fields: [userId], references: [id])
-  incentiveId String
-  incentive   Incentive @relation(fields: [incentiveId], references: [id])
-  status      String    @default("pending") // "pending"|"approved"|"credited"|"declined"
-  note        String?
-  proofLink   String?
-  createdAt   DateTime  @default(now())
-  decidedAt   DateTime?
-  decidedById String?
+  id             String    @id @default(cuid())
+  userId         String
+  user           User      @relation(fields: [userId], references: [id])
+  incentiveId    String
+  incentive      Incentive @relation(fields: [incentiveId], references: [id])
+  status         String    @default("pending") // "pending"|"approved"|"credited"|"declined"
+  note           String?
+  proofLink      String?
+  rewardSnapshot Int?      // snapshot of incentive.reward at claim-submission time
+  createdAt      DateTime  @default(now())
+  decidedAt      DateTime?
+  decidedById    String?
 
   @@index([userId, incentiveId])
   @@index([status])

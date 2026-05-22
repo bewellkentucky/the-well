@@ -35,10 +35,11 @@ export async function approveIncentiveClaim(claimId: string): Promise<{ error?: 
       const current = await tx.incentiveClaim.findUnique({
         where: { id: claimId },
         select: {
-          status:    true,
-          userId:    true,
-          incentiveId: true,
-          user:      { select: { fullName: true } },
+          status:         true,
+          userId:         true,
+          incentiveId:    true,
+          rewardSnapshot: true,
+          user:           { select: { fullName: true } },
         },
       })
       if (!current) throw new Error("Claim not found.")
@@ -56,13 +57,16 @@ export async function approveIncentiveClaim(claimId: string): Promise<{ error?: 
       ])
       if (!incentive) throw new Error("Incentive not found.")
 
+      // Use snapshot if available; fall back to live reward for pre-snapshot claims
+      const rewardAmount = current.rewardSnapshot ?? incentive.reward
+
       await tx.incentiveClaim.update({
         where: { id: claimId },
         data: { status: "credited", decidedAt: new Date(), decidedById: actorId },
       })
       await tx.user.update({
         where: { id: current.userId },
-        data: { balance: { increment: incentive.reward } },
+        data: { balance: { increment: rewardAmount } },
       })
       await tx.auditLog.create({
         data: {
@@ -71,7 +75,7 @@ export async function approveIncentiveClaim(claimId: string): Promise<{ error?: 
           action:     "approve_claim",
           actorName:  actor!.fullName,
           targetName: current.user.fullName,
-          amount:     incentive.reward,
+          amount:     rewardAmount,
           details:    `Approved claim: ${incentive.title}`,
         },
       })

@@ -49,7 +49,7 @@ export async function claimIncentive(
     // Instant credit
     await db.$transaction([
       db.incentiveClaim.create({
-        data: { userId, incentiveId, status: "credited", note, proofLink },
+        data: { userId, incentiveId, status: "credited", note, proofLink, rewardSnapshot: incentive.reward },
       }),
       db.user.update({
         where: { id: userId },
@@ -59,7 +59,7 @@ export async function claimIncentive(
   } else {
     // Admin-verify: create pending claim, no balance change yet
     await db.incentiveClaim.create({
-      data: { userId, incentiveId, status: "pending", note, proofLink },
+      data: { userId, incentiveId, status: "pending", note, proofLink, rewardSnapshot: incentive.reward },
     })
   }
 
