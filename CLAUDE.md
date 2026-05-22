@@ -138,6 +138,52 @@ See `docs/build-plan.md` for the full spec. Summary of the intended path:
   plaintext to error trackers. Vercel/Supabase free tiers have no BAA; Google Cloud Run +
   Cloud SQL is the documented fallback if formal BAA coverage is ever needed.
 
+## Planned features (designed, not yet built)
+
+### Kudo pile-on / boost drops
+
+On an existing feed kudo, alongside emoji reactions, a "+đ" button lets other staff
+add drops from their own giving allowance to amplify that recognition. Core decisions:
+
+- **Source pool:** piler's `givingBalance` (giving allowance), same as original kudos. Not
+  earned wallet. Giving allowance already caps total giving naturally, so no separate
+  per-kudo or per-piler cap is needed.
+- **Destination pool:** original recipient's `balance` (earned wallet) — same as received kudos.
+- **Giver-credit:** the piler gets leaderboard credit as a giver (same `amount` counted in the
+  monthly giving sum), because they routed real currency. This rewards breadth of generosity.
+- **Mechanics:** atomic transaction — decrement piler's `givingBalance`, increment recipient's
+  `balance`, record a `KudoBoost` row (or similar) linking piler + kudo + amount. Same
+  two-pool accounting and giver-credit pattern as `createKudo`, just attached to an existing
+  kudo rather than a new post.
+- **Display:** aggregate on the kudo card — "+45đ from 6 people" — below the message, near
+  reactions. Individual piler names shown on expand or hover (open design Q).
+- **Rationale:** frictionless co-signing of recognition you already agree with; amplifies
+  genuine moments into collective celebration; stronger signal than emoji (routes real
+  currency); rewards breadth of recognition on the giver leaderboard. On-brand with the
+  generosity/team-first ethos. Reuses all existing patterns.
+
+**Open design questions for when this is built:**
+- Fixed presets (+5/+10/+25) vs. free-amount input (or both).
+- Whether the piler's name appears in the feed card inline or only on expand.
+- Whether to show a "+đ" affordance on every kudo or only on kudos the viewer didn't send.
+
+**Schema sketch (not applied yet):**
+```
+model KudoBoost {
+  id        String   @id @default(cuid())
+  kudoId    String
+  fromId    String               // piler (givingBalance decremented)
+  amount    Int
+  createdAt DateTime @default(now())
+
+  kudo Kudo @relation(fields: [kudoId], references: [id])
+  from User @relation(fields: [fromId], references: [id])
+
+  @@unique([kudoId, fromId])     // one boost per piler per kudo (or remove for multiple)
+}
+```
+Add `boosts KudoBoost[]` to `Kudo` and `boostedKudos KudoBoost[]` to `User`.
+
 ## Brand
 
 - **Name:** The Well. Tagline context: "by Be Well Kentucky".

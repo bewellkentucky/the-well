@@ -6,6 +6,10 @@ import ApprovalsPanel, {
   type ApprovalRedemption,
   type DecidedClaim,
 } from "@/app/components/admin/ApprovalsPanel"
+import PeoplePanel, {
+  type PersonRow,
+  type RecentAdjustment,
+} from "@/app/components/admin/PeoplePanel"
 import { ADMIN_TABS, type AdminTabId } from "@/lib/adminTabsConfig"
 
 const TAB_IDS = ADMIN_TABS.map((t) => t.id)
@@ -46,6 +50,52 @@ export default async function AdminPage({
     db.incentiveClaim.count({ where: { status: "pending", incentive: { verification: "admin" } } }),
     db.redemption.count({ where: { status: "pending" } }),
   ]).then(([claims, redemptions]) => claims + redemptions)
+
+  // ── People tab data ────────────────────────────────────────
+  let people: PersonRow[] = []
+  let recentAdjustments: RecentAdjustment[] = []
+
+  if (activeTab === "people") {
+    const rolePriority: Record<string, number> = { owner: 0, admin: 1, member: 2 }
+
+    const [rawPeople, rawAdj] = await Promise.all([
+      db.user.findMany({
+        select: {
+          id: true,
+          fullName: true,
+          email: true,
+          thumbnailUrl: true,
+          role: true,
+          balance: true,
+          givingBalance: true,
+          employmentStatus: true,
+        },
+        orderBy: { fullName: "asc" },
+      }),
+      db.balanceAdjustment.findMany({
+        include: {
+          user:  { select: { fullName: true } },
+          actor: { select: { fullName: true } },
+        },
+        orderBy: { createdAt: "desc" },
+        take: 10,
+      }),
+    ])
+
+    people = rawPeople.sort((a, b) => {
+      const rp = (rolePriority[a.role] ?? 3) - (rolePriority[b.role] ?? 3)
+      return rp !== 0 ? rp : a.fullName.localeCompare(b.fullName)
+    })
+
+    recentAdjustments = rawAdj.map((a) => ({
+      id:        a.id,
+      userName:  a.user.fullName,
+      actorName: a.actor.fullName,
+      amount:    a.amount,
+      reason:    a.reason,
+      createdAt: a.createdAt.toISOString(),
+    }))
+  }
 
   // ── Approvals tab data ──────────────────────────────────────
   let pendingClaims: ApprovalClaim[] = []
@@ -132,6 +182,13 @@ export default async function AdminPage({
             pendingClaims={pendingClaims}
             pendingRedemptions={pendingRedemptions}
             recentDecisions={recentDecisions}
+          />
+        ) : activeTab === "people" ? (
+          <PeoplePanel
+            people={people}
+            actorId={session!.user!.id!}
+            actorRole={user?.role ?? "member"}
+            recentAdjustments={recentAdjustments}
           />
         ) : (
           <div className="card" style={{ maxWidth: 560 }}>
