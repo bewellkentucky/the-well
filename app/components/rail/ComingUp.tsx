@@ -32,15 +32,15 @@ export default async function ComingUp() {
 
   for (const u of users) {
     if (u.birthday) {
-      const next = nextOccurrence(u.birthday.getMonth(), u.birthday.getDate(), today)
+      const next = nextOccurrence(u.birthday.getUTCMonth(), u.birthday.getUTCDate(), today)
       if (next <= windowEnd) {
         events.push({ key: `${u.id}-bday`, fullName: u.fullName, type: "Birthday", date: next, years: null })
       }
     }
     if (u.hireDate) {
-      const next = nextOccurrence(u.hireDate.getMonth(), u.hireDate.getDate(), today)
+      const next = nextOccurrence(u.hireDate.getUTCMonth(), u.hireDate.getUTCDate(), today)
       if (next <= windowEnd) {
-        const years = next.getFullYear() - u.hireDate.getFullYear()
+        const years = next.getFullYear() - u.hireDate.getUTCFullYear()
         if (years > 0) {
           events.push({ key: `${u.id}-anni`, fullName: u.fullName, type: "Work anniversary", date: next, years })
         }

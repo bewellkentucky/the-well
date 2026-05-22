@@ -12,6 +12,14 @@ function getDb(): PrismaClient {
   return _db
 }
 
+// Parse a date-only string "YYYY-MM-DD" as noon UTC so no timezone ever shifts
+// the day. new Date("YYYY-MM-DD") parses as UTC midnight which becomes the previous
+// day in US timezones — storing at noon UTC is safe everywhere.
+function parseBambooDate(s: string): Date {
+  const [y, m, d] = s.split("-").map(Number)
+  return new Date(Date.UTC(y, m - 1, d, 12, 0, 0))
+}
+
 // Field aliases confirmed via /v1/meta/fields on 2026-05-22
 const FIELDS = [
   "id", "workEmail", "firstName", "lastName", "preferredName",
@@ -107,8 +115,8 @@ export async function syncBambooHR(opts: { since?: Date; force?: boolean } = {})
           department:       emp.department                                || undefined,
           location:         emp.location                                  || undefined,
           reportsTo,
-          hireDate:         emp.hireDate    ? new Date(emp.hireDate)    : undefined,
-          birthday:         emp.dateOfBirth ? new Date(emp.dateOfBirth) : undefined,
+          hireDate:         emp.hireDate    ? parseBambooDate(emp.hireDate)    : undefined,
+          birthday:         emp.dateOfBirth ? parseBambooDate(emp.dateOfBirth) : undefined,
           employmentStatus: emp.employmentHistoryStatus                   || undefined,
         },
       })
