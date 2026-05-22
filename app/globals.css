@@ -551,6 +551,36 @@ img.avatar  { object-fit: cover; }
   flex-shrink: 0;
 }
 
+/* ── Dates page ──────────────────────────────────────────── */
+.dates-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  align-items: start;
+}
+@media (max-width: 768px) {
+  .dates-grid { grid-template-columns: 1fr; }
+}
+
+.dates-month-group { margin-bottom: 8px; }
+.dates-month-group:last-child { margin-bottom: 0; }
+
+.dates-month-header {
+  font-family: var(--font-mono), monospace;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--ink-soft);
+  opacity: 0.6;
+  padding: 12px 0 4px;
+  border-top: 1px solid var(--line);
+}
+.dates-month-group:first-child .dates-month-header {
+  padding-top: 0;
+  border-top: none;
+}
+
 /* ── Desktop nav links (inside TopNav) ───────────────────── */
 .desktop-nav {
   display: flex;
