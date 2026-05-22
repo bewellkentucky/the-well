@@ -20,26 +20,32 @@ for a small behavioral-health practice.
 
 There is a complete, working **HTML/JS prototype** at `prototype/the-well-prototype.html`
 (~6000 lines, single file, mock data). It demonstrates every feature and is the source of
-truth for product behavior and visual design. The real build does not exist yet — the next
-job is turning the prototype into a real Next.js app.
+truth for product behavior and visual design.
 
-**We are at the very start of the real build.** Google OAuth credentials have been created
-(Internal consent screen + Web OAuth client). Nothing else is built yet.
+**What's built and working in the real app:**
+- Google OAuth sign-in (Auth.js v5), domain-locked to `@bewellkentucky.com`
+- Supabase Postgres + Prisma schema (User, Kudo, Reaction, Reward, Redemption, AllowanceReset)
+- User upsert on first sign-in (Google data → DB)
+- Kudos feed (public + private visibility rules, reactions, optimistic UI)
+- Kudo composer (recipient picker, value tags, drop amount, public/private toggle, server-side auth guard, balance deduction in a single transaction)
+- Reactions: 10-emoji picker led by 💧, toggle on/off, persisted, optimistic UI
+- Right sidebar: "This month" leaderboard (top givers), "Coming up" (birthdays + anniversaries, 60-day rolling window)
+- Seed data for 10 staff users + 6 kudos, idempotent via stable IDs + upsert
+- Navigation: 5 tabs (Feed `/`, Team `/team`, Rewards `/rewards`, Dates `/dates`, Earn `/earn`). Desktop: links in the TopNav header. Mobile: fixed bottom nav. Both use `usePathname()` from shared `NavLinks.tsx`. `PageShell` wraps every authenticated page.
 
 ## The build, in order
 
 See `docs/build-plan.md` for the full spec. Summary of the intended path:
 
-1. **Google auth** (DONE in console — OAuth client created, Internal consent screen).
-   Credentials go in `.env.local` (see `.env.local.template`).
-2. **Next.js app scaffold** + Auth.js (NextAuth v5) Google sign-in, domain-locked to
-   `@bewellkentucky.com`. THIS IS THE NEXT CODING STEP.
-3. **Postgres database** (Supabase) + Prisma schema. Users created on first login.
-4. **Directory sync** (optional) — Google Workspace service account to pre-populate users.
-5. **BambooHR integration** — HR enrichment (hire date, birthday, supervisor, entity,
-   time-off). See `docs/bamboohr-integration.md`.
-6. **Google Chat integration** — kudos posted to #kudos space + DMs. See `docs/chat-integration.md`.
-7. **Reward fulfillment** — Tremendous (gift cards), Printful (swag), internal (PTO/CEU).
+1. **Google auth** ✅ — OAuth client + Internal consent screen created; Auth.js v5 wired up.
+2. **Next.js scaffold + auth** ✅ — App Router, domain-locked Google sign-in, user upsert.
+3. **Postgres + Prisma** ✅ — Supabase DB, full schema, migrations applied.
+4. **Feed, composer, reactions, sidebar** ✅ — Home page complete.
+5. **Directory sync** (optional) — Google Workspace service account to pre-populate users.
+6. **BambooHR integration** — HR enrichment (hire date, birthday, supervisor, entity,
+   time-off). See `docs/bamboohr-integration.md`. Sidebar "Out today" card wires up here.
+7. **Google Chat integration** — kudos posted to #kudos space + DMs. See `docs/chat-integration.md`.
+8. **Reward fulfillment** — Tremendous (gift cards), Printful (swag), internal (PTO/CEU).
    See `docs/fulfillment-integration.md`.
 
 ## Tech stack (decided)
@@ -72,6 +78,10 @@ See `docs/build-plan.md` for the full spec. Summary of the intended path:
   (goes to an approvals queue; supports link + screenshot proof upload).
 - **Reactions are NOT synced between the app and Google Chat** (v1). Two separate pools.
   See `docs/chat-integration.md` for the reasoning.
+- **The sidebar leaderboard ranks GIVERS, not receivers.** This is deliberate: celebrating
+  who gives the most recognition encourages generosity and avoids turning the feed into a
+  popularity contest, which matters in a behavioral health setting. Do not flip this to
+  receivers without explicit discussion.
 - **Company values (exactly six, exact names):** Compassion, Ownership, Curiosity, Team-First, Excellence, Above & Beyond. Use these verbatim everywhere — in the composer, kudo cards, seed data, and any admin UI. Do not substitute synonyms or add new ones.
 - **No app store.** It's a PWA — people add it to their home screen. App name "The Well".
 - **HIPAA posture:** The Well is not a PHI system, but staff could write patient details into
@@ -104,11 +114,41 @@ Other staff referenced in mock data: Melissa Gibson (Clinical Director), Hayley 
 (Associate Director), Tom Bivona (Therapist), Bryn Krivashei (Therapist), Emily Swartz
 (new LCED hire). (Skyler Mitchell was removed from all data.)
 
+## Database / Prisma gotchas
+
+- **`prisma db push` and `prisma migrate` hang on this network.** The Supabase session
+  pooler works fine for runtime queries but the migration path fails. The direct DB host
+  (`db.{ref}.supabase.co`) is IPv6-only and returns `ENOTFOUND` on this machine.
+  **Workaround for schema changes:**
+  1. `npx prisma migrate diff --from-empty --to-schema-datamodel prisma/schema.prisma --script > migration.sql`
+     (or `--from-schema-datasource` to diff against the live schema for incremental changes)
+  2. Paste and run the SQL in the Supabase SQL Editor.
+  3. `npx prisma generate` to regenerate the client.
+  Runtime queries via `DATABASE_URL` (pooled connection) work fine — this is a migration-only issue.
+- **`schema.prisma` must keep both `url` and `directUrl`** — `url` = pooled `DATABASE_URL`
+  for runtime, `directUrl` = `DIRECT_URL` for migrations from environments that can reach
+  the direct connection (e.g. Vercel CI). Don't remove `directUrl`.
+- **Seed data uses stable string IDs + upsert for idempotency.** Seed kudos have IDs like
+  `seed-kudo-0`. The kudo seed is guarded by a count check so it only runs once. User
+  upserts run every request (they're idempotent) so new fields added to SEED_USERS (like
+  birthday/hireDate) automatically backfill via a `updateMany WHERE birthday IS NULL`
+  after each upsert. This is BambooHR-safe: once Bamboo sets the dates, the null check
+  fails and the seed no longer touches them. Adding new seed fields to `update:` alone is
+  NOT enough — they must also go in the `updateMany` backfill block.
+- **Adding new fields to SEED_USERS won't populate them on pre-existing rows.** User rows
+  are created once via the `create:` block of the upsert. If you add a new field to the
+  seed after users already exist, the `create:` block never fires for those rows. You must
+  either (a) run a manual `UPDATE` in the Supabase SQL Editor, or (b) add a null-safe
+  `updateMany` backfill in the seed (as done for birthday/hireDate). Re-running the seed
+  alone does nothing for existing rows unless an explicit backfill is wired up.
+
 ## Conventions
 
 - Email format: `firstname.lastname@bewellkentucky.com`
 - Don't commit `.env.local`. Copy `.env.local.template` → `.env.local` and fill in.
 - When in doubt about a feature's intended behavior, open the prototype and match it.
+- **Keep this file current.** Whenever a notable decision is made or a gotcha is hit,
+  update CLAUDE.md as part of that same piece of work. It is the project's living memory.
 
 ## How to help
 

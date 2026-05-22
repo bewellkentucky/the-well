@@ -3,18 +3,24 @@ import KudoCard from "./KudoCard"
 
 // Mirrors the Workspace directory — same data shape the sync job will write.
 // role: "owner" | "admin" | "member"
-const SEED_USERS = [
-  { email: "justin.wallen@bewellkentucky.com",   fullName: "Justin Wallen",   title: "Business Manager",       role: "owner" },
-  { email: "alecia.williams@bewellkentucky.com", fullName: "Alecia Williams", title: "Administrator",           role: "admin" },
-  { email: "callie.ernspiker@bewellkentucky.com",fullName: "Callie Ernspiker",title: "Practice Administrator",  role: "admin" },
-  { email: "megan.abrams@bewellkentucky.com",    fullName: "Megan Abrams",    title: "Administrator",           role: "admin" },
-  { email: "brenda.arellano@bewellkentucky.com", fullName: "Brenda Arellano", title: "Employee Engagement Lead",role: "admin" },
-  { email: "melissa.gibson@bewellkentucky.com",  fullName: "Melissa Gibson",  title: "Clinical Director",       role: "member" },
-  { email: "hayley.meadows@bewellkentucky.com",  fullName: "Hayley Meadows",  title: "Associate Director",      role: "member" },
-  { email: "tom.bivona@bewellkentucky.com",      fullName: "Tom Bivona",      title: "Therapist",               role: "member" },
-  { email: "bryn.krivashei@bewellkentucky.com",  fullName: "Bryn Krivashei",  title: "Therapist",               role: "member" },
-  { email: "emily.swartz@bewellkentucky.com",    fullName: "Emily Swartz",    title: "Clinician",               role: "member" },
-] as const
+// birthday/hireDate: placeholder values until BambooHR integration runs.
+// These only apply on first create — the update block never touches them so
+// real BambooHR values are never overwritten by this seed.
+const SEED_USERS: Array<{
+  email: string; fullName: string; title: string; role: string
+  birthday?: Date; hireDate?: Date
+}> = [
+  { email: "justin.wallen@bewellkentucky.com",   fullName: "Justin Wallen",   title: "Business Manager",        role: "owner",  birthday: new Date("1984-07-10"), hireDate: new Date("2015-03-01") },
+  { email: "alecia.williams@bewellkentucky.com", fullName: "Alecia Williams", title: "Administrator",            role: "admin",  birthday: new Date("1990-08-22"), hireDate: new Date("2018-06-15") },
+  { email: "callie.ernspiker@bewellkentucky.com",fullName: "Callie Ernspiker",title: "Practice Administrator",   role: "admin",  birthday: new Date("1988-06-01"), hireDate: new Date("2019-01-07") },
+  { email: "megan.abrams@bewellkentucky.com",    fullName: "Megan Abrams",    title: "Administrator",            role: "admin",  birthday: new Date("1993-12-15"), hireDate: new Date("2021-08-09") },
+  { email: "brenda.arellano@bewellkentucky.com", fullName: "Brenda Arellano", title: "Employee Engagement Lead", role: "admin",  birthday: new Date("1985-09-30"), hireDate: new Date("2020-06-22") },
+  { email: "melissa.gibson@bewellkentucky.com",  fullName: "Melissa Gibson",  title: "Clinical Director",        role: "member", birthday: new Date("1979-05-28"), hireDate: new Date("2017-02-13") },
+  { email: "hayley.meadows@bewellkentucky.com",  fullName: "Hayley Meadows",  title: "Associate Director",       role: "member", birthday: new Date("1991-03-17"), hireDate: new Date("2022-07-05") },
+  { email: "tom.bivona@bewellkentucky.com",      fullName: "Tom Bivona",      title: "Therapist",                role: "member", birthday: new Date("1986-07-14"), hireDate: new Date("2023-09-11") },
+  { email: "bryn.krivashei@bewellkentucky.com",  fullName: "Bryn Krivashei",  title: "Therapist",                role: "member", birthday: new Date("1994-11-03"), hireDate: new Date("2024-01-22") },
+  { email: "emily.swartz@bewellkentucky.com",    fullName: "Emily Swartz",    title: "Clinician",                role: "member", birthday: new Date("1998-06-08"), hireDate: new Date("2025-04-14") },
+]
 
 const SEED_KUDOS = [
   {
@@ -62,18 +68,39 @@ const SEED_KUDOS = [
 ] as const
 
 async function seedIfNeeded() {
-  // Fast-exit optimisation — real guard is the upsert below.
-  if (await db.kudo.count() > 0) return
-
-  // Upsert staff users. create= full row; update= only display fields,
-  // so a real Google sign-in (googleId, thumbnailUrl) is never overwritten.
+  // User upserts run every time — they're idempotent and need to backfill
+  // new fields (birthday, hireDate) on existing rows without a full reseed.
+  // create= full row on first insert
+  // update= display fields + null-safe date backfill (never overwrites BambooHR data)
   for (const u of SEED_USERS) {
     await db.user.upsert({
       where: { email: u.email },
-      create: { email: u.email, fullName: u.fullName, title: u.title, role: u.role, domain: "bewellkentucky.com" },
+      create: {
+        email: u.email, fullName: u.fullName, title: u.title, role: u.role,
+        domain: "bewellkentucky.com",
+        ...(u.birthday && { birthday: u.birthday }),
+        ...(u.hireDate && { hireDate: u.hireDate }),
+      },
       update: { fullName: u.fullName, title: u.title },
     })
+    // Backfill dates only when both are still null — safe once BambooHR runs.
+    if (u.birthday || u.hireDate) {
+      await db.user.updateMany({
+        where: {
+          email: u.email,
+          birthday: null,
+          hireDate: null,
+        },
+        data: {
+          ...(u.birthday && { birthday: u.birthday }),
+          ...(u.hireDate && { hireDate: u.hireDate }),
+        },
+      })
+    }
   }
+
+  // Kudo seed is guarded — only runs once on a fresh database.
+  if (await db.kudo.count() > 0) return
 
   // Build email → id map
   const users = await db.user.findMany({

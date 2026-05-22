@@ -1,8 +1,11 @@
 import Image from "next/image"
 import { auth, signIn, signOut } from "@/auth"
-import TopNav from "@/app/components/layout/TopNav"
+import PageShell from "@/app/components/layout/PageShell"
 import ComposerWrapper from "@/app/components/composer/ComposerWrapper"
 import Feed from "@/app/components/feed/Feed"
+import Leaderboard from "@/app/components/rail/Leaderboard"
+import ComingUp from "@/app/components/rail/ComingUp"
+import OutToday from "@/app/components/rail/OutToday"
 
 export default async function Home() {
   const session = await auth()
@@ -12,18 +15,19 @@ export default async function Home() {
   }
 
   return (
-    <div style={{ minHeight: "100vh", background: "var(--cream)" }}>
-      <TopNav />
-      <main
-        className="mx-auto"
-        style={{ maxWidth: 1100, padding: "32px 24px" }}
-      >
-        <div style={{ maxWidth: 680 }}>
+    <PageShell>
+      <main className="home-layout mx-auto" style={{ maxWidth: 1100, padding: "32px 24px 100px" }}>
+        <div>
           <ComposerWrapper />
           <Feed currentUserId={session.user.id} />
         </div>
+        <aside className="home-rail">
+          <Leaderboard />
+          <ComingUp />
+          <OutToday />
+        </aside>
       </main>
-    </div>
+    </PageShell>
   )
 }
 

@@ -1,5 +1,6 @@
 import Image from "next/image"
 import { auth, signOut } from "@/auth"
+import NavLinks from "./NavLinks"
 
 export default async function TopNav() {
   const session = await auth()
@@ -35,6 +36,9 @@ export default async function TopNav() {
             The Well
           </span>
         </div>
+
+        {/* Desktop nav tabs */}
+        <NavLinks />
 
         {/* User + sign out */}
         <div className="flex items-center gap-3">
