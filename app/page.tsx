@@ -24,36 +24,33 @@ export default async function Home() {
     <PageShell>
       <main className="home-layout mx-auto" style={{ maxWidth: 1100, padding: "32px 24px 100px" }}>
 
-        {/* Title — grid column 1, row 1 */}
-        <div className="feed-title-col">
-          <h1 className="feed-topbar-title">Recognize the work.</h1>
-          <p className="feed-topbar-subtitle">
-            Send kudos, give drops, celebrate your team. Be Well Kentucky.
-          </p>
+        {/* Left column: title + composer + feed */}
+        <div>
+          <div className="feed-title-col">
+            <h1 className="feed-topbar-title">Recognize the work.</h1>
+            <p className="feed-topbar-subtitle">
+              Send kudos, give drops, celebrate your team. Be Well Kentucky.
+            </p>
+          </div>
+          <ComposerWrapper />
+          <Feed currentUserId={session.user.id} />
         </div>
 
-        {/* Balance widget — grid column 2, row 1, desktop only */}
-        <div className="feed-widget-col">
-          <div className="drops-balance">
+        {/* Right column: balance widget → top givers → coming up */}
+        <aside className="home-rail">
+          <div className="drops-balance rail-section">
             <div className="drops-pool">
               <div className="balance-amount">{user?.givingBalance ?? 0}d</div>
               <div className="balance-label">To give this month</div>
             </div>
-            <div className="drops-balance-divider" />
+            <div className="drops-balance-h-divider" />
             <div className="drops-pool">
               <div className="balance-amount">{user?.balance ?? 0}d</div>
               <div className="balance-label" style={{ color: "rgba(244,241,236,0.5)" }}>
-                Yours to spend
+                Earned&nbsp;&middot;&nbsp;yours to spend
               </div>
             </div>
           </div>
-        </div>
-
-        <div>
-          <ComposerWrapper />
-          <Feed currentUserId={session.user.id} />
-        </div>
-        <aside className="home-rail">
           <Leaderboard />
           <ComingUp />
           <OutToday />

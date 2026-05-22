@@ -448,21 +448,9 @@ img.avatar  { object-fit: cover; }
 .reaction-choice:hover { background: var(--cream-2); }
 
 /* ── Home page layout ────────────────────────────────────── */
-/* ── Feed topbar — two separate grid children ────────────── */
-
-/* Column 1: page title, bottom-aligned */
+/* ── Feed page header (left column) ─────────────────────── */
 .feed-title-col {
-  align-self: end;
-  padding-bottom: 8px;
-  min-width: 0;
-}
-
-/* Column 2: balance widget, bottom-aligned, right-aligned */
-.feed-widget-col {
-  align-self: end;
-  display: flex;
-  justify-content: flex-end;
-  padding-bottom: 8px;
+  margin-bottom: 20px;
 }
 
 .feed-topbar-title {
@@ -482,28 +470,33 @@ img.avatar  { object-fit: cover; }
   margin: 0;
 }
 
+@media (max-width: 768px) {
+  .feed-topbar-title { font-size: 28px; }
+}
+
+/* ── Balance widget (right rail, top card) ───────────────── */
 .drops-balance {
   display: flex;
-  align-items: center;
-  gap: 16px;
+  flex-direction: column;
+  gap: 14px;
   background: var(--ink);
   color: var(--paper);
-  padding: 14px 18px;
-  border-radius: 14px;
+  padding: 18px 20px;
+  border-radius: 16px;
   box-shadow: var(--shadow-md);
 }
 
 .drops-pool {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
+  gap: 3px;
 }
 
-.drops-balance-divider {
-  width: 1px;
-  height: 36px;
-  background: rgba(244, 241, 236, 0.15);
-  flex-shrink: 0;
+.drops-balance-h-divider {
+  width: 100%;
+  height: 1px;
+  background: rgba(244, 241, 236, 0.12);
 }
 
 .balance-amount {
@@ -515,17 +508,11 @@ img.avatar  { object-fit: cover; }
 
 .balance-label {
   font-family: var(--font-mono), monospace;
-  font-size: 9px;
+  font-size: 10px;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   color: var(--honey);
-  margin-top: 4px;
-  white-space: nowrap;
-}
-
-@media (max-width: 768px) {
-  .feed-widget-col { display: none; }
-  .feed-topbar-title { font-size: 28px; }
+  margin-top: 2px;
 }
 
 /* ── Home grid ───────────────────────────────────────────── */
