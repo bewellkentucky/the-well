@@ -63,12 +63,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (session.user?.email) {
         const user = await db.user.findUnique({
           where: { email: session.user.email },
-          select: { id: true, role: true, entity: true, active: true },
+          select: { id: true, role: true, entity: true, active: true, thumbnailUrl: true },
         })
         if (!user?.active) return session
         session.user.id = user.id
         session.user.role = user.role
         session.user.entity = user.entity
+        session.user.image = user.thumbnailUrl ?? session.user.image ?? null
       }
       return session
     },

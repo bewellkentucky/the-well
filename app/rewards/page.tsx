@@ -1,22 +1,32 @@
 import { auth } from "@/auth"
 import { redirect } from "next/navigation"
+import { db } from "@/lib/db"
+import { seedRewards } from "@/lib/seedRewards"
 import PageShell from "@/app/components/layout/PageShell"
+import RewardsGrid from "@/app/components/rewards/RewardsGrid"
 
 export default async function RewardsPage() {
   const session = await auth()
   if (!session?.user?.id) redirect("/")
 
+  await seedRewards()
+
+  const [rewards, user] = await Promise.all([
+    db.reward.findMany({
+      where: { active: true },
+      orderBy: { cost: "asc" },
+      select: { id: true, title: true, description: true, cost: true, category: true, inventory: true },
+    }),
+    db.user.findUnique({
+      where: { id: session.user.id },
+      select: { balance: true },
+    }),
+  ])
+
   return (
     <PageShell>
       <main style={{ maxWidth: 1100, margin: "0 auto", padding: "32px 24px 100px" }}>
-        <div className="card" style={{ maxWidth: 560 }}>
-          <h1 style={{ fontFamily: "var(--font-lora), serif", fontSize: 24, fontWeight: 600, marginBottom: 8 }}>
-            Rewards
-          </h1>
-          <p style={{ fontSize: 14, color: "var(--ink-soft)" }}>
-            Redeem your drops for swag, gift cards, and gifted PTO. Coming here soon.
-          </p>
-        </div>
+        <RewardsGrid rewards={rewards} balance={user?.balance ?? 0} />
       </main>
     </PageShell>
   )

@@ -25,9 +25,12 @@ export default function Avatar({
   const sizeClass = size === "md" ? "" : size
 
   if (thumbnailUrl && !failed) {
+    const src = thumbnailUrl.startsWith("https://lh3.googleusercontent.com/")
+      ? `/api/avatar?url=${encodeURIComponent(thumbnailUrl)}`
+      : thumbnailUrl
     return (
       <img
-        src={thumbnailUrl}
+        src={src}
         alt={name}
         className={`avatar ${sizeClass}`.trim()}
         referrerPolicy="no-referrer"

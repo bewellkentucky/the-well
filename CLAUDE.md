@@ -84,6 +84,13 @@ See `docs/build-plan.md` for the full spec. Summary of the intended path:
   receivers without explicit discussion.
 - **Company values (exactly six, exact names):** Compassion, Ownership, Curiosity, Team-First, Excellence, Above & Beyond. Use these verbatim everywhere — in the composer, kudo cards, seed data, and any admin UI. Do not substitute synonyms or add new ones.
 - **No app store.** It's a PWA — people add it to their home screen. App name "The Well".
+- **Reward fulfillment is deferred.** Redeeming a reward currently records a `Redemption` row
+  and deducts the user's `balance` — nothing else. No external API calls are made. The
+  `Reward.provider` field (printful/tremendous/internal) and the `Redemption` status queue
+  anticipate fulfillment but don't drive it yet. Fulfillment should come AFTER the admin
+  portal (redemptions get reviewed and approved in an admin queue before any money moves).
+  See `docs/fulfillment-integration.md` for the planned Tremendous + Printful wiring. Do not
+  add Tremendous or Printful API calls until the admin approval queue exists.
 - **HIPAA posture:** The Well is not a PHI system, but staff could write patient details into
   a kudo. Composer carries a "no patient details" notice; never log message content in
   plaintext to error trackers. Vercel/Supabase free tiers have no BAA; Google Cloud Run +
