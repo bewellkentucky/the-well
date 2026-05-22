@@ -10,6 +10,11 @@ import PeoplePanel, {
   type PersonRow,
   type RecentAdjustment,
 } from "@/app/components/admin/PeoplePanel"
+import ReportsPanel, {
+  type LocationStat,
+  type HealthStats,
+  type CategoryStat,
+} from "@/app/components/admin/ReportsPanel"
 import { ADMIN_TABS, type AdminTabId } from "@/lib/adminTabsConfig"
 
 const TAB_IDS = ADMIN_TABS.map((t) => t.id)
@@ -95,6 +100,84 @@ export default async function AdminPage({
       reason:    a.reason,
       createdAt: a.createdAt.toISOString(),
     }))
+  }
+
+  // ── Reports tab data ───────────────────────────────────────
+  let locationStats: LocationStat[] = []
+  let healthStats: HealthStats = {
+    activeUserCount: 0, uniqueGivers: 0, participationRate: 0,
+    totalKudos: 0, avgKudosPerGiver: 0, totalDropsGiven: 0,
+    allowanceUtilization: 0, totalEarned: 0, totalRedeemed: 0,
+    redemptionRate: 0, usersWithLocation: 0,
+  }
+  let categoryStats: CategoryStat[] = []
+
+  if (activeTab === "reports") {
+    const [rawUsers, rawKudos, rawRedemptions] = await Promise.all([
+      db.user.findMany({
+        select: { id: true, location: true, balance: true },
+      }),
+      db.kudo.findMany({ select: { fromId: true, amount: true } }),
+      db.redemption.findMany({
+        where: { status: { not: "declined" } },
+        select: {
+          cost: true,
+          user:   { select: { location: true } },
+          reward: { select: { category: true } },
+        },
+      }),
+    ])
+
+    // ── Location stats ─────────────────────────────────────
+    const locMap = new Map<string, { redeemed: number; userCount: number }>()
+    for (const u of rawUsers) {
+      const loc = u.location ?? "No location set"
+      const e = locMap.get(loc) ?? { redeemed: 0, userCount: 0 }
+      e.userCount++
+      locMap.set(loc, e)
+    }
+    for (const r of rawRedemptions) {
+      const loc = r.user.location ?? "No location set"
+      const e = locMap.get(loc) ?? { redeemed: 0, userCount: 0 }
+      e.redeemed += r.cost
+      locMap.set(loc, e)
+    }
+    locationStats = Array.from(locMap.entries())
+      .map(([location, s]) => ({ location, ...s }))
+      .sort((a, b) => b.redeemed - a.redeemed || b.userCount - a.userCount)
+
+    // ── Health stats ───────────────────────────────────────
+    const activeUserCount  = rawUsers.length
+    const uniqueGiverSet   = new Set(rawKudos.map((k) => k.fromId))
+    const uniqueGivers     = uniqueGiverSet.size
+    const totalKudos       = rawKudos.length
+    const totalDropsGiven  = rawKudos.reduce((s, k) => s + k.amount, 0)
+    const totalRedeemed    = rawRedemptions.reduce((s, r) => s + r.cost, 0)
+    const currentBalances  = rawUsers.reduce((s, u) => s + u.balance, 0)
+    const totalEarned      = currentBalances + totalRedeemed
+
+    healthStats = {
+      activeUserCount,
+      uniqueGivers,
+      participationRate:    activeUserCount > 0 ? uniqueGivers / activeUserCount : 0,
+      totalKudos,
+      avgKudosPerGiver:     uniqueGivers > 0 ? totalKudos / uniqueGivers : 0,
+      totalDropsGiven,
+      allowanceUtilization: activeUserCount > 0 ? totalDropsGiven / (activeUserCount * 100) : 0,
+      totalEarned,
+      totalRedeemed,
+      redemptionRate:       totalEarned > 0 ? totalRedeemed / totalEarned : 0,
+      usersWithLocation:    rawUsers.filter((u) => u.location !== null).length,
+    }
+
+    // ── Category stats ─────────────────────────────────────
+    const catMap = new Map<string, number>()
+    for (const r of rawRedemptions) {
+      catMap.set(r.reward.category, (catMap.get(r.reward.category) ?? 0) + r.cost)
+    }
+    categoryStats = Array.from(catMap.entries())
+      .map(([category, redeemed]) => ({ category, redeemed }))
+      .sort((a, b) => b.redeemed - a.redeemed)
   }
 
   // ── Approvals tab data ──────────────────────────────────────
@@ -189,6 +272,12 @@ export default async function AdminPage({
             actorId={session!.user!.id!}
             actorRole={user?.role ?? "member"}
             recentAdjustments={recentAdjustments}
+          />
+        ) : activeTab === "reports" ? (
+          <ReportsPanel
+            locationStats={locationStats}
+            healthStats={healthStats}
+            categoryStats={categoryStats}
           />
         ) : (
           <div className="card" style={{ maxWidth: 560 }}>
