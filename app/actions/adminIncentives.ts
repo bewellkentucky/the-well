@@ -67,6 +67,7 @@ export async function createIncentive(
 
       const incentive = await tx.incentive.create({
         data: {
+          id:           crypto.randomUUID(),
           title:        data.title.trim(),
           description:  data.description.trim(),
           reward:       data.reward,
