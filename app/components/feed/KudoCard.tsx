@@ -1,34 +1,38 @@
+"use client"
+
+import { useState, useOptimistic, useTransition, useEffect, useRef } from "react"
 import { avatarColor } from "@/lib/avatarColor"
+import { toggleReaction } from "@/app/actions/toggleReaction"
 import type { Kudo, User, Reaction } from "@/app/generated/prisma/client"
 
-type KudoWithRelations = Kudo & {
+const REACTION_CHOICES = ["💧", "💛", "🙌", "🎉", "👏", "🔥", "💯", "🙏", "✨", "❤️"]
+
+type KudoWithRelations = Omit<Kudo, "createdAt"> & {
+  createdAt: string | Date
   from: Pick<User, "id" | "fullName" | "email">
   to: Pick<User, "id" | "fullName" | "email">
   reactions: (Reaction & { user: Pick<User, "id"> })[]
 }
 
+type ReactionSummary = { emoji: string; count: number; reacted: boolean }[]
+
 function initials(name: string): string {
-  return name
-    .split(" ")
-    .filter(Boolean)
-    .map((n) => n[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase()
+  return name.split(" ").filter(Boolean).map((n) => n[0]).join("").slice(0, 2).toUpperCase()
 }
 
-function timeAgo(date: Date): string {
-  const secs = Math.floor((Date.now() - date.getTime()) / 1000)
+function timeAgo(date: string | Date): string {
+  const secs = Math.floor((Date.now() - new Date(date).getTime()) / 1000)
   if (secs < 60) return "just now"
   if (secs < 3600) return `${Math.floor(secs / 60)}m ago`
   if (secs < 86400) return `${Math.floor(secs / 3600)}h ago`
   return `${Math.floor(secs / 86400)}d ago`
 }
 
-function groupReactions(reactions: KudoWithRelations["reactions"]) {
-  const map = new Map<string, number>()
-  for (const r of reactions) map.set(r.emoji, (map.get(r.emoji) ?? 0) + 1)
-  return map
+function summarize(reactions: KudoWithRelations["reactions"], currentUserId: string): ReactionSummary {
+  const counts = new Map<string, number>()
+  const mine = new Set(reactions.filter((r) => r.user.id === currentUserId).map((r) => r.emoji))
+  for (const r of reactions) counts.set(r.emoji, (counts.get(r.emoji) ?? 0) + 1)
+  return [...counts.entries()].map(([emoji, count]) => ({ emoji, count, reacted: mine.has(emoji) }))
 }
 
 export default function KudoCard({
@@ -39,10 +43,45 @@ export default function KudoCard({
   currentUserId: string
 }) {
   const color = avatarColor(kudo.from.email)
-  const reactionMap = groupReactions(kudo.reactions)
-  const myReactions = new Set(
-    kudo.reactions.filter((r) => r.user.id === currentUserId).map((r) => r.emoji)
+  const [pickerOpen, setPickerOpen] = useState(false)
+  const [isPending, startTransition] = useTransition()
+  const pickerRef = useRef<HTMLDivElement>(null)
+
+  const [optimistic, applyOptimistic] = useOptimistic(
+    summarize(kudo.reactions, currentUserId),
+    (prev: ReactionSummary, emoji: string) => {
+      const existing = prev.find((r) => r.emoji === emoji)
+      if (existing) {
+        return prev
+          .map((r) =>
+            r.emoji === emoji
+              ? { ...r, count: r.reacted ? r.count - 1 : r.count + 1, reacted: !r.reacted }
+              : r
+          )
+          .filter((r) => r.count > 0)
+      }
+      return [...prev, { emoji, count: 1, reacted: true }]
+    }
   )
+
+  useEffect(() => {
+    if (!pickerOpen) return
+    function handleClick(e: MouseEvent) {
+      if (pickerRef.current && !pickerRef.current.contains(e.target as Node)) {
+        setPickerOpen(false)
+      }
+    }
+    document.addEventListener("mousedown", handleClick)
+    return () => document.removeEventListener("mousedown", handleClick)
+  }, [pickerOpen])
+
+  function handleReact(emoji: string) {
+    setPickerOpen(false)
+    startTransition(async () => {
+      applyOptimistic(emoji)
+      await toggleReaction(kudo.id, emoji)
+    })
+  }
 
   return (
     <div className={`kudo${kudo.isPrivate ? " kudo-private" : ""}`}>
@@ -78,17 +117,36 @@ export default function KudoCard({
         )}
 
         <div className="kudo-actions">
-          {[...reactionMap.entries()].map(([emoji, count]) => (
+          {optimistic.map(({ emoji, count, reacted }) => (
             <button
               key={emoji}
-              className={`react-btn${myReactions.has(emoji) ? " reacted" : ""}`}
-              disabled
+              className={`react-btn${reacted ? " reacted" : ""}`}
+              onClick={() => handleReact(emoji)}
+              disabled={isPending}
             >
               <span>{emoji}</span>
               <span className="count">{count}</span>
             </button>
           ))}
-          <button className="react-btn" disabled title="Reactions coming soon">+</button>
+          <div className="reaction-picker-wrap" ref={pickerRef}>
+            <button
+              className="react-btn"
+              onClick={() => setPickerOpen((v) => !v)}
+              aria-label="Add reaction"
+              disabled={isPending}
+            >
+              +
+            </button>
+            {pickerOpen && (
+              <div className="reaction-picker">
+                {REACTION_CHOICES.map((e) => (
+                  <button key={e} className="reaction-choice" onClick={() => handleReact(e)}>
+                    {e}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
