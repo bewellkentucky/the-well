@@ -62,7 +62,6 @@ img.avatar  { object-fit: cover; }
   font-weight: 600;
   color: var(--ink);
 }
-
 /* ── Kudo card ───────────────────────────────────────────── */
 .kudo {
   display: flex;

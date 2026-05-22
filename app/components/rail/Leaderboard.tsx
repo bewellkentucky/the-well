@@ -29,7 +29,7 @@ export default async function Leaderboard() {
   return (
     <div className="card rail-section">
       <div className="card-header">
-        <h2 className="card-title">This month</h2>
+        <h2 className="card-title">Top givers this month</h2>
       </div>
       {rows.map((row, i) => (
         <div key={row.user.id} className="leaderboard-item">
