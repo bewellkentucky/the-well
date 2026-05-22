@@ -690,6 +690,129 @@ img.avatar  { object-fit: cover; }
   animation: fadeIn 0.15s ease;
 }
 
+/* ── Admin approval rows ─────────────────────────────────── */
+.approval-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.approval-row:last-child { border-bottom: none; }
+
+.approval-row.decided { opacity: 0.75; }
+
+.approval-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.approval-who {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-bottom: 4px;
+  font-size: 13px;
+}
+
+.approval-name { font-weight: 600; color: var(--ink); }
+
+.approval-arrow { color: var(--ink-soft); font-size: 12px; }
+
+.approval-item { color: var(--ink); }
+
+.approval-detail {
+  font-size: 12px;
+  color: var(--ink-soft);
+  line-height: 1.45;
+  margin-bottom: 4px;
+  word-break: break-word;
+}
+
+.approval-link {
+  color: var(--honey-deep);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.approval-link:hover { color: var(--honey); }
+
+.approval-meta {
+  font-size: 11px;
+  color: var(--ink-soft);
+  opacity: 0.65;
+  font-family: var(--font-mono), monospace;
+}
+
+.approval-error {
+  font-size: 12px;
+  color: var(--coral);
+  margin: 3px 0;
+}
+
+.approval-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.approval-amount {
+  font-family: var(--font-mono), monospace;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--honey-deep);
+}
+
+.approval-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.approval-btn {
+  border: none;
+  border-radius: 7px;
+  padding: 5px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s;
+  font-family: var(--font-inter), sans-serif;
+}
+
+.approval-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.approval-btn.approve {
+  background: rgba(90, 125, 94, 0.15);
+  color: var(--honey-deep);
+}
+
+.approval-btn.approve:hover:not(:disabled) {
+  background: rgba(90, 125, 94, 0.25);
+}
+
+.approval-btn.decline {
+  background: rgba(42, 52, 65, 0.07);
+  color: var(--ink-soft);
+}
+
+.approval-btn.decline:hover:not(:disabled) {
+  background: rgba(42, 52, 65, 0.13);
+  color: var(--ink);
+}
+
+/* status-declined for recently decided section */
+.status-declined {
+  background: rgba(42, 52, 65, 0.08);
+  color: var(--ink-soft);
+}
+
 /* ── Mobile bottom nav ───────────────────────────────────── */
 .bottom-nav {
   display: none;
