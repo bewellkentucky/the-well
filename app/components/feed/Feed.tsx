@@ -13,7 +13,7 @@ const SEED_USERS: Array<{
   { email: "justin.wallen@bewellkentucky.com",   fullName: "Justin Wallen",   title: "Business Manager",        role: "owner",  birthday: new Date("1984-07-10"), hireDate: new Date("2015-03-01") },
   { email: "alecia.williams@bewellkentucky.com", fullName: "Alecia Williams", title: "Administrator",            role: "admin",  birthday: new Date("1990-08-22"), hireDate: new Date("2018-06-15") },
   { email: "callie.ernspiker@bewellkentucky.com",fullName: "Callie Ernspiker",title: "Practice Administrator",   role: "admin",  birthday: new Date("1988-06-01"), hireDate: new Date("2019-01-07") },
-  { email: "megan.stewart@bewellkentucky.com",   fullName: "Megan Abrams",    title: "Administrator",            role: "admin",  birthday: new Date("1993-12-15"), hireDate: new Date("2021-08-09") },
+  { email: "megan.abrams@bewellkentucky.com",   fullName: "Megan Abrams",    title: "Administrator",            role: "admin",  birthday: new Date("1993-12-15"), hireDate: new Date("2021-08-09") },
   { email: "brenda.bruckner@bewellkentucky.com", fullName: "Brenda Bruckner", title: "Employee Engagement Lead", role: "admin",  birthday: new Date("1985-09-30"), hireDate: new Date("2020-06-22") },
   { email: "melissa.gibson@bewellkentucky.com",  fullName: "Melissa Gibson",  title: "Clinical Director",        role: "member", birthday: new Date("1979-05-28"), hireDate: new Date("2017-02-13") },
   { email: "hayley.meadows@bewellkentucky.com",  fullName: "Hayley Meadows",  title: "Associate Director",       role: "member", birthday: new Date("1991-03-17"), hireDate: new Date("2022-07-05") },

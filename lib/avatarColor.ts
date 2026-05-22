@@ -4,7 +4,7 @@ const AVATAR_COLORS: Record<string, string> = {
   "justin.wallen@bewellkentucky.com":   "",
   "alecia.williams@bewellkentucky.com": "",
   "callie.ernspiker@bewellkentucky.com": "",
-  "megan.stewart@bewellkentucky.com":   "",
+  "megan.abrams@bewellkentucky.com":   "",
   "brenda.bruckner@bewellkentucky.com": "",
   "melissa.gibson@bewellkentucky.com":  "plum",
   "hayley.meadows@bewellkentucky.com":  "olive",
