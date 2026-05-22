@@ -151,8 +151,9 @@ export default function RewardsGrid({
           <p className="page-subtitle">Spend what you've earned.</p>
         </div>
         <div className="balance-chip">
-          <span className="balance-chip-label">Your balance</span>
+          <span className="balance-chip-label">Your drops</span>
           <span className="balance-chip-amount">{balance.toLocaleString()}d</span>
+          <span className="balance-chip-sublabel">Earned&nbsp;&middot;&nbsp;yours to spend</span>
         </div>
       </div>
 
@@ -187,7 +188,7 @@ export default function RewardsGrid({
               <div className="reward-modal-cost">
                 <span>{confirmingReward.cost.toLocaleString()}d</span>
                 <span style={{ color: "var(--ink-soft)", fontSize: 13 }}>
-                  &nbsp;from your {balance.toLocaleString()}d balance
+                  &nbsp;from your {balance.toLocaleString()}d earned drops
                 </span>
               </div>
               {actionError && (

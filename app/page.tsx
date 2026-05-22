@@ -17,7 +17,7 @@ export default async function Home() {
 
   const user = await db.user.findUnique({
     where: { id: session.user.id },
-    select: { givingBalance: true },
+    select: { givingBalance: true, balance: true },
   })
 
   return (
@@ -33,10 +33,16 @@ export default async function Home() {
             </p>
           </div>
           <div className="drops-balance">
-            <div className="balance-icon">d</div>
-            <div>
-              <div className="balance-amount">{user?.givingBalance ?? 0}</div>
-              <div className="balance-label">Drops to give&nbsp;&middot;&nbsp;resets Mon</div>
+            <div className="drops-pool">
+              <div className="balance-amount">{user?.givingBalance ?? 0}d</div>
+              <div className="balance-label">To give this month</div>
+            </div>
+            <div className="drops-balance-divider" />
+            <div className="drops-pool">
+              <div className="balance-amount">{user?.balance ?? 0}d</div>
+              <div className="balance-label" style={{ color: "rgba(244,241,236,0.5)" }}>
+                Earned&nbsp;&middot;&nbsp;yours to spend
+              </div>
             </div>
           </div>
         </div>

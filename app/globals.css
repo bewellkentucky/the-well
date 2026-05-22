@@ -484,26 +484,26 @@ img.avatar  { object-fit: cover; }
 .drops-balance {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 20px;
   background: var(--ink);
   color: var(--paper);
-  padding: 14px 20px;
+  padding: 14px 22px;
   border-radius: 14px;
   box-shadow: var(--shadow-md);
   flex-shrink: 0;
 }
 
-.balance-icon {
-  width: 36px;
-  height: 36px;
-  background: var(--honey);
-  border-radius: 8px;
-  display: grid;
-  place-items: center;
-  font-family: var(--font-lora), serif;
-  font-size: 20px;
-  font-weight: 600;
-  color: var(--paper);
+.drops-pool {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.drops-balance-divider {
+  width: 1px;
+  height: 38px;
+  background: rgba(244, 241, 236, 0.15);
+  flex-shrink: 0;
 }
 
 .balance-amount {
@@ -517,9 +517,10 @@ img.avatar  { object-fit: cover; }
   font-family: var(--font-mono), monospace;
   font-size: 10px;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.08em;
   color: var(--honey);
-  margin-top: 3px;
+  margin-top: 4px;
+  white-space: nowrap;
 }
 
 @media (max-width: 768px) {
@@ -1248,6 +1249,15 @@ img.avatar  { object-fit: cover; }
   font-size: 22px;
   font-weight: 700;
   color: var(--honey-deep);
+}
+
+.balance-chip-sublabel {
+  font-size: 10px;
+  color: var(--ink-soft);
+  opacity: 0.65;
+  font-family: var(--font-mono), monospace;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
 }
 
 /* Redeem modal */
