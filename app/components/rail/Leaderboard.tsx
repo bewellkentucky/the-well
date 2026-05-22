@@ -18,7 +18,7 @@ export default async function Leaderboard() {
 
   const users = await db.user.findMany({
     where: { id: { in: totals.map((t) => t.fromId) } },
-    select: { id: true, fullName: true, title: true, email: true, thumbnailUrl: true },
+    select: { id: true, fullName: true, email: true, thumbnailUrl: true },
   })
   const byId = Object.fromEntries(users.map((u) => [u.id, u]))
 
@@ -42,7 +42,6 @@ export default async function Leaderboard() {
           />
           <div className="leader-info">
             <div className="leader-name">{row.user.fullName}</div>
-            <div className="leader-meta">{row.user.title ?? ""}</div>
           </div>
           <div className="leader-points">{row.amount}d</div>
         </div>
