@@ -722,41 +722,100 @@ img.avatar  { object-fit: cover; }
   margin-top: 2px;
 }
 
-/* ── User chip ───────────────────────────────────────────── */
-.tnav-user {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+/* ── User avatar dropdown ────────────────────────────────── */
+.user-dd-wrap {
+  position: relative;
   flex-shrink: 0;
 }
 
-.tnav-user-name {
-  font-size: 13px;
-  font-weight: 500;
-  color: rgba(244, 241, 236, 0.8);
+.user-dd-trigger {
+  display: flex;
+  align-items: center;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  border-radius: 50%;
+  transition: opacity 0.13s;
 }
 
-.tnav-signout {
-  font-size: 12px;
-  color: rgba(244, 241, 236, 0.4);
+.user-dd-trigger:hover  { opacity: 0.82; }
+.user-dd-trigger:focus-visible {
+  outline: 2px solid rgba(244, 241, 236, 0.5);
+  outline-offset: 2px;
+}
+
+.user-dd-panel {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 10px);
+  width: 256px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+  z-index: 200;
+}
+
+.user-dd-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  border-bottom: 1px solid var(--line);
+  background: var(--cream);
+}
+
+.user-dd-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.user-dd-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.user-dd-email {
+  font-size: 11px;
+  color: var(--ink-soft);
+  opacity: 0.7;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 2px;
+  font-family: var(--font-mono), monospace;
+}
+
+.user-dd-items {
+  padding: 6px;
+}
+
+.user-dd-item {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 9px 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: var(--font-inter), sans-serif;
+  color: var(--ink);
   background: none;
   border: none;
   cursor: pointer;
-  padding: 4px 8px;
-  border-radius: 6px;
-  transition: color 0.12s, background 0.12s;
-  font-family: var(--font-inter), sans-serif;
+  text-align: left;
+  transition: background 0.12s;
 }
 
-.tnav-signout:hover {
-  color: rgba(244, 241, 236, 0.8);
-  background: rgba(244, 241, 236, 0.09);
-}
+.user-dd-item:hover { background: var(--cream-2); }
 
 @media (max-width: 640px) {
-  .tnav-user-name { display: none; }
-  .tnav-parent    { display: none; }
-  .tnav-signout   { display: none; }
+  .tnav-parent { display: none; }
 }
 
 /* ── Desktop nav links (inside TopNav) ───────────────────── */

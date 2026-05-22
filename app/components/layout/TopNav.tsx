@@ -1,8 +1,8 @@
 import Image from "next/image"
-import { auth, signOut } from "@/auth"
+import { auth } from "@/auth"
 import { db } from "@/lib/db"
 import NavLinks from "./NavLinks"
-import Avatar from "@/app/components/ui/Avatar"
+import UserDropdown from "./UserDropdown"
 
 export default async function TopNav() {
   const session = await auth()
@@ -14,9 +14,10 @@ export default async function TopNav() {
       })
     : null
 
-  const showAdmin = dbUser?.role === "owner" || dbUser?.role === "admin"
-  const displayName = dbUser?.fullName ?? session?.user?.name ?? ""
-  const firstName = displayName.split(" ")[0]
+  const showAdmin    = dbUser?.role === "owner" || dbUser?.role === "admin"
+  const displayName  = dbUser?.fullName ?? session?.user?.name ?? ""
+  const email        = session?.user?.email ?? ""
+  const thumbnailUrl = session?.user?.image ?? null
 
   return (
     <header className="tnav">
@@ -43,26 +44,12 @@ export default async function TopNav() {
         {/* ── Desktop nav tabs ───────────────────────────────── */}
         <NavLinks showAdmin={showAdmin} />
 
-        {/* ── User chip ──────────────────────────────────────── */}
-        <div className="tnav-user">
-          <Avatar
-            name={displayName}
-            email={session?.user?.email ?? ""}
-            thumbnailUrl={session?.user?.image ?? null}
-            size="sm"
-          />
-          <span className="tnav-user-name">{firstName}</span>
-          <form
-            action={async () => {
-              "use server"
-              await signOut({ redirectTo: "/" })
-            }}
-          >
-            <button type="submit" className="tnav-signout">
-              Sign out
-            </button>
-          </form>
-        </div>
+        {/* ── User avatar → dropdown ─────────────────────────── */}
+        <UserDropdown
+          name={displayName}
+          email={email}
+          thumbnailUrl={thumbnailUrl}
+        />
 
       </div>
     </header>
