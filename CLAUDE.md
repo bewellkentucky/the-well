@@ -74,6 +74,12 @@ See `docs/build-plan.md` for the full spec. Summary of the intended path:
 - **Entity field (BWK/LCED/Both) is back-office only.** Removed from the Feed and Team
   directory because staff overlap so much the distinction is meaningless for recognition.
   KEPT in Admin → Reports for cost attribution (which org's books a reward cost lands on).
+  **Entity is NOT synced from BambooHR yet and will not be until Admin Reports is built.**
+  BambooHR's `Division` field (id 1355) is job-function, not org. `Location` could proxy
+  for entity (Louisville = BWK, Lexington = LCED) but can't express "Both" for dual-org
+  staff. The right path is a BambooHR custom field set up deliberately when Reports is
+  built, so entity attribution is intentional and accurate from day one. Until then the
+  `entity` column defaults to "BWK" and is set manually if needed.
 - **Incentives** have two verification modes: self-attest (instant credit) and admin-verify
   (goes to an approvals queue; supports link + screenshot proof upload).
 - **Reactions are NOT synced between the app and Google Chat** (v1). Two separate pools.
@@ -132,9 +138,10 @@ Other staff referenced in mock data: Melissa Gibson (Clinical Director), Hayley 
   2. Paste and run the SQL in the Supabase SQL Editor.
   3. `npx prisma generate` to regenerate the client.
   Runtime queries via `DATABASE_URL` (pooled connection) work fine — this is a migration-only issue.
-- **`schema.prisma` must keep both `url` and `directUrl`** — `url` = pooled `DATABASE_URL`
-  for runtime, `directUrl` = `DIRECT_URL` for migrations from environments that can reach
-  the direct connection (e.g. Vercel CI). Don't remove `directUrl`.
+- **Prisma 7: connection URLs live in `prisma.config.ts`, NOT `schema.prisma`.** The
+  `datasource db` block in `schema.prisma` only has `provider = "postgresql"`. Both `url`
+  (pooled `DATABASE_URL`) and `directUrl` (`DIRECT_URL`) are set in `prisma.config.ts`
+  under `datasource`. Don't put them back in `schema.prisma` — Prisma 7 will reject it.
 - **Seed data uses stable string IDs + upsert for idempotency.** Seed kudos have IDs like
   `seed-kudo-0`. The kudo seed is guarded by a count check so it only runs once. User
   upserts run every request (they're idempotent) so new fields added to SEED_USERS (like
@@ -148,6 +155,32 @@ Other staff referenced in mock data: Melissa Gibson (Clinical Director), Hayley 
   either (a) run a manual `UPDATE` in the Supabase SQL Editor, or (b) add a null-safe
   `updateMany` backfill in the seed (as done for birthday/hireDate). Re-running the seed
   alone does nothing for existing rows unless an explicit backfill is wired up.
+
+## BambooHR field map (confirmed via /v1/meta/fields, subdomain: bewellkentucky)
+
+These are the real field aliases and IDs for this tenant. Use aliases in API requests,
+not numeric IDs (aliases are stable; IDs are internal).
+
+| Purpose | Alias | ID | Notes |
+|---|---|---|---|
+| Work email (join key) | `workEmail` | 15 | Join on `User.email` |
+| First name | `firstName` | — | Standard field |
+| Last name | `lastName` | — | Standard field |
+| Preferred name | `preferredName` | 1358 | Use for `fullName` if set |
+| Job title | `jobTitle` | 17 | → `User.title` |
+| Department | `department` | 4 | → `User.department` |
+| Location | `location` | 18 | → `User.location` (Louisville/Lexington etc.) |
+| Manager | `reportsTo` | 91 | → `User.reportsTo` (display name string). BambooHR calls this "Reporting to", NOT "supervisor" |
+| Hire date | `hireDate` | 3 | → `User.hireDate` |
+| Date of birth | `dateOfBirth` | 6 | → `User.birthday` |
+| Employment status | `employmentHistoryStatus` | 16 | → `User.employmentStatus` |
+
+**No custom fields exist in this account yet.** `customField_5021` from the doc is a
+placeholder — the entity custom field doesn't exist yet and won't be created until
+Admin Reports is built. When it is created, run `/v1/meta/fields` again to get its ID.
+
+The `reportsTo` response is an object `{ "id": "123", "displayName": "Jane Smith" }` —
+extract `.displayName` for storing in `User.reportsTo`.
 
 ## Conventions
 

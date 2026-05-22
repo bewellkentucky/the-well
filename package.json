@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "sync-bamboo": "tsx --tsconfig tsconfig.json scripts/sync-bamboohr.ts",
+    "sync-bamboo:full": "tsx --tsconfig tsconfig.json scripts/sync-bamboohr.ts --full"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.8.0",
@@ -27,6 +29,7 @@
     "eslint-config-next": "16.2.6",
     "pg": "^8.21.0",
     "tailwindcss": "^4",
+    "tsx": "^4.22.3",
     "typescript": "^5"
   }
 }

@@ -4,9 +4,7 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider = "postgresql"
 }
 
 model User {
@@ -16,13 +14,19 @@ model User {
   fullName     String
   title        String?
   department   String?
+  location     String?
   domain       String    // bewellkentucky.com
-  entity       String    @default("BWK") // BWK | LCED | Both
+  entity       String    @default("BWK") // BWK | LCED | Both — not synced from Bamboo yet; set manually until Admin Reports is built
   thumbnailUrl String?
   hireDate     DateTime?
   birthday     DateTime?
   active       Boolean   @default(true)
   role         String    @default("member") // member | admin | owner
+
+  // BambooHR enrichment
+  bambooId         String?  @unique
+  reportsTo        String?  // manager display name from Bamboo reportsTo field
+  employmentStatus String?  // Full-Time | Part-Time | Terminated etc.
 
   // Drop balances
   balance      Int @default(0)   // earned drops, redeemable
@@ -97,4 +101,24 @@ model AllowanceReset {
   userId  String
   amount  Int
   resetAt DateTime @default(now())
+}
+
+model TimeOff {
+  id               String   @id @default(cuid())
+  bambooEmployeeId String
+  name             String
+  start            DateTime
+  end              DateTime
+  type             String   // "timeOff" | "holiday"
+
+  @@index([start, end])
+}
+
+model IntegrationSync {
+  id               String   @id @default(cuid())
+  source           String   // "workspace" | "bamboohr"
+  lastRunAt        DateTime @default(now())
+  recordsProcessed Int
+  errors           Int      @default(0)
+  notes            String?
 }
