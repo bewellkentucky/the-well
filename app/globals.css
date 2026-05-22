@@ -1670,7 +1670,12 @@ img.avatar  { object-fit: cover; }
   text-underline-offset: 2px;
 }
 
-.role-change-btn:hover { color: var(--ink); }
+.role-change-btn:hover:not(:disabled) { color: var(--ink); }
+.role-change-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  text-decoration: none;
+}
 
 /* Role options in modal */
 .role-options { display: flex; flex-direction: column; gap: 8px; }

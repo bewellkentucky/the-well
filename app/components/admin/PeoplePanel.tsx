@@ -152,6 +152,7 @@ export default function PeoplePanel({
   }
 
   const isOwner = actorRole === "owner"
+  const ownerCount = people.filter((p) => p.role === "owner").length
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -195,14 +196,19 @@ export default function PeoplePanel({
                   <span className={`role-badge role-badge-${person.role}`}>
                     {person.role}
                   </span>
-                  {isOwner && (
-                    <button
-                      className="role-change-btn"
-                      onClick={() => openRoleModal(person)}
-                    >
-                      Change
-                    </button>
-                  )}
+                  {isOwner && (() => {
+                    const lastOwner = person.role === "owner" && ownerCount <= 1
+                    return (
+                      <button
+                        className="role-change-btn"
+                        onClick={() => !lastOwner && openRoleModal(person)}
+                        disabled={lastOwner}
+                        title={lastOwner ? "Can't change the only owner's role" : undefined}
+                      >
+                        Change
+                      </button>
+                    )
+                  })()}
                 </div>
                 <div className="people-balance-col">
                   <span className="people-bal-amount">
