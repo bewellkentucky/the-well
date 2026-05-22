@@ -1,5 +1,6 @@
 import Image from "next/image"
 import { auth, signIn, signOut } from "@/auth"
+import { db } from "@/lib/db"
 import PageShell from "@/app/components/layout/PageShell"
 import ComposerWrapper from "@/app/components/composer/ComposerWrapper"
 import Feed from "@/app/components/feed/Feed"
@@ -14,9 +15,32 @@ export default async function Home() {
     return <SignInPage />
   }
 
+  const user = await db.user.findUnique({
+    where: { id: session.user.id },
+    select: { givingBalance: true },
+  })
+
   return (
     <PageShell>
       <main className="home-layout mx-auto" style={{ maxWidth: 1100, padding: "32px 24px 100px" }}>
+
+        {/* Full-width topbar spanning both grid columns */}
+        <div className="feed-topbar">
+          <div>
+            <h1 className="feed-topbar-title">Recognize the work.</h1>
+            <p className="feed-topbar-subtitle">
+              Send kudos, give drops, celebrate your team. Be Well Kentucky.
+            </p>
+          </div>
+          <div className="drops-balance">
+            <div className="balance-icon">d</div>
+            <div>
+              <div className="balance-amount">{user?.givingBalance ?? 0}</div>
+              <div className="balance-label">Drops to give&nbsp;&middot;&nbsp;resets Mon</div>
+            </div>
+          </div>
+        </div>
+
         <div>
           <ComposerWrapper />
           <Feed currentUserId={session.user.id} />
