@@ -184,6 +184,41 @@ model KudoBoost {
 ```
 Add `boosts KudoBoost[]` to `Kudo` and `boostedKudos KudoBoost[]` to `User`.
 
+### Incentive proof via file upload
+
+Currently, incentive proof is link-only. A "require a photo/document" option was
+intentionally deferred because file upload needs a storage backend that isn't set up yet.
+
+**Dependencies (must land together):**
+1. **File storage** — Supabase Storage or Vercel Blob. Needs a deployed environment with
+   env vars (`SUPABASE_STORAGE_URL` or `BLOB_READ_WRITE_TOKEN`) to test meaningfully;
+   localhost testing is awkward. Vercel Blob is the simplest path given Vercel hosting.
+2. **Upload widget on the Earn page** — replace/augment the `proofLink` text input in the
+   staff claim modal with a file picker that uploads to storage and returns a URL stored
+   in a new `IncentiveClaim.proofUrl` field (or reuses `proofLink` if the URL is sufficient).
+3. **Proof type option in the incentive editor** — add a "Proof required" field to the
+   incentive create/edit form: `none` (current default) / `link` / `file` / `either`.
+   Store as `Incentive.proofType String @default("none")`. The Earn page claim modal
+   renders the appropriate input based on this field. Adding the editor option before the
+   upload pipeline exists is misleading, so build them together.
+4. **Uploaded file visible in admin approvals** — the ApprovalsPanel claim row needs a
+   "View proof" link/thumbnail next to the claim. Currently `proofLink` is shown as text;
+   `proofUrl` (the uploaded file) would render as a clickable thumbnail or download link.
+
+**Schema sketch (not applied yet):**
+```
+// On Incentive:
+proofType String @default("none") // "none" | "link" | "file" | "either"
+
+// On IncentiveClaim:
+proofUrl String? // signed URL or path to uploaded file in storage
+```
+
+**Sequencing note:** build in order — storage config → upload widget → proof type field in
+editor → admin approvals view. The editor option is the last piece because it's meaningless
+without the upload pipeline behind it. Pairs naturally with the production deployment work
+since storage setup requires deployed env vars.
+
 ## Brand
 
 - **Name:** The Well. Tagline context: "by Be Well Kentucky".
