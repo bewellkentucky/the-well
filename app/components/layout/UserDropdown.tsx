@@ -51,10 +51,7 @@ export default function UserDropdown({
           {/* User info header */}
           <div className="user-dd-header">
             <Avatar name={name} email={email} thumbnailUrl={thumbnailUrl} size="lg" />
-            <div className="user-dd-info">
-              <div className="user-dd-name">{name}</div>
-              <div className="user-dd-email">{email}</div>
-            </div>
+            <div className="user-dd-name">{name}</div>
           </div>
 
           {/* Menu items */}
