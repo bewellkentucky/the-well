@@ -17,10 +17,14 @@ export default async function Home() {
 
   const now = new Date()
 
-  const [user, featuredIncentives] = await Promise.all([
+  const [user, featuredSetting, candidateIncentives] = await Promise.all([
     db.user.findUnique({
       where:  { id: session.user.id },
       select: { givingBalance: true, balance: true },
+    }),
+    db.appSetting.findUnique({
+      where:  { key: "featuredCount" },
+      select: { value: true },
     }),
     db.incentive.findMany({
       where: {
@@ -30,11 +34,13 @@ export default async function Home() {
           { OR: [{ endsAt:   null }, { endsAt:   { gt:  now } }] },
         ],
       },
-      orderBy: { sortOrder: "asc" },
-      take:    2,
+      orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
+      take:    10,
       select:  { id: true, title: true, reward: true, icon: true, color: true },
     }),
   ])
+  const featuredCount = Math.max(0, parseInt(featuredSetting?.value ?? "2", 10) || 2)
+  const featuredIncentives = candidateIncentives.slice(0, featuredCount)
 
   return (
     <PageShell>

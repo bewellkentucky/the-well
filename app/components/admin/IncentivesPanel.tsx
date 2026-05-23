@@ -114,6 +114,7 @@ const EMPTY_FORM = {
   icon:         "⭐",
   color:        "#7a9b7e",
   proofPrompt:  "",
+  sortOrder:    "0",
   startsAt:     "",
   endsAt:       "",
 }
@@ -130,6 +131,7 @@ function rowToForm(inc: IncentiveAdminRow): FormState {
     icon:         inc.icon,
     color:        inc.color,
     proofPrompt:  inc.proofPrompt ?? "",
+    sortOrder:    String(inc.sortOrder),
     startsAt:     inc.startsAt ? inc.startsAt.slice(0, 10) : "",
     endsAt:       inc.endsAt   ? inc.endsAt.slice(0, 10)   : "",
   }
@@ -175,6 +177,12 @@ export default function IncentivesPanel({
       return
     }
 
+    const sortOrderNum = parseInt(form.sortOrder, 10)
+    if (isNaN(sortOrderNum) || sortOrderNum < 0) {
+      setFormError("Sort order must be a non-negative whole number.")
+      return
+    }
+
     const data: IncentiveFormData = {
       title:        form.title,
       description:  form.description,
@@ -184,6 +192,7 @@ export default function IncentivesPanel({
       icon:         form.icon || "⭐",
       color:        form.color,
       proofPrompt:  form.proofPrompt || null,
+      sortOrder:    sortOrderNum,
       startsAt:     form.startsAt || null,
       endsAt:       form.endsAt   || null,
     }
@@ -411,18 +420,29 @@ export default function IncentivesPanel({
                   </div>
                 </div>
 
-                {/* Reward */}
-                <div className="inc-form-field">
-                  <label className="adj-label">Reward (đ)</label>
-                  <input
-                    className="adj-input"
-                    type="number"
-                    min={1}
-                    max={10000}
-                    value={form.reward}
-                    onChange={(e) => setField("reward", e.target.value)}
-                    style={{ width: 120 }}
-                  />
+                {/* Reward + Sort order */}
+                <div className="inc-form-row">
+                  <div className="inc-form-field" style={{ flex: 1 }}>
+                    <label className="adj-label">Reward (đ)</label>
+                    <input
+                      className="adj-input"
+                      type="number"
+                      min={1}
+                      max={10000}
+                      value={form.reward}
+                      onChange={(e) => setField("reward", e.target.value)}
+                    />
+                  </div>
+                  <div className="inc-form-field" style={{ flex: "0 0 120px" }}>
+                    <label className="adj-label">Sort order</label>
+                    <input
+                      className="adj-input"
+                      type="number"
+                      min={0}
+                      value={form.sortOrder}
+                      onChange={(e) => setField("sortOrder", e.target.value)}
+                    />
+                  </div>
                 </div>
 
                 {/* Verification */}

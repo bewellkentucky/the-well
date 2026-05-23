@@ -30,7 +30,7 @@ export default async function EarnPage() {
           },
         ],
       },
-      orderBy: { sortOrder: "asc" },
+      orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
     }),
     db.incentiveClaim.findMany({
       where: {

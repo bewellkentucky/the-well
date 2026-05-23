@@ -291,7 +291,7 @@ export default async function AdminPage({
   if (activeTab === "incentives") {
     const [rawIncentives, rawClaims] = await Promise.all([
       db.incentive.findMany({
-        orderBy: [{ sortOrder: "asc" }, { title: "asc" }],
+        orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
         include: { _count: { select: { claims: true } } },
       }),
       db.incentiveClaim.findMany({

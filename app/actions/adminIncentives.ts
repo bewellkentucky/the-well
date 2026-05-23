@@ -25,6 +25,7 @@ export type IncentiveFormData = {
   icon:         string
   color:        string
   proofPrompt:  string | null
+  sortOrder:    number
   startsAt:     string | null  // YYYY-MM-DD or null
   endsAt:       string | null  // YYYY-MM-DD or null
 }
@@ -34,6 +35,8 @@ function validate(data: IncentiveFormData): string | null {
   if (!data.description.trim()) return "Description is required."
   if (!Number.isInteger(data.reward) || data.reward <= 0)
     return "Reward must be a positive whole number."
+  if (!Number.isInteger(data.sortOrder) || data.sortOrder < 0)
+    return "Sort order must be a non-negative whole number."
   if (!["self", "admin"].includes(data.verification))
     return "Invalid verification mode."
   if (!["once", "monthly", "quarterly", "unlimited"].includes(data.cap))
@@ -77,7 +80,7 @@ export async function createIncentive(
           color:        data.color,
           proofPrompt:  data.proofPrompt?.trim() || null,
           active:       true,
-          sortOrder:    0,
+          sortOrder:    data.sortOrder,
           startsAt:     data.startsAt ? new Date(data.startsAt) : null,
           endsAt:       data.endsAt   ? new Date(data.endsAt)   : null,
         },
@@ -98,6 +101,7 @@ export async function createIncentive(
 
   revalidatePath("/admin")
   revalidatePath("/earn")
+  revalidatePath("/")
   return {}
 }
 
@@ -124,8 +128,7 @@ export async function updateIncentive(
       if (!actor || (actor.role !== "owner" && actor.role !== "admin"))
         throw new Error("Not authorized.")
 
-      // active and sortOrder are intentionally NOT updated here —
-      // active is managed by setIncentiveActive; sortOrder is not exposed in the UI
+      // active is managed separately by setIncentiveActive
       await tx.incentive.update({
         where: { id },
         data: {
@@ -137,6 +140,7 @@ export async function updateIncentive(
           icon:         data.icon || "⭐",
           color:        data.color,
           proofPrompt:  data.proofPrompt?.trim() || null,
+          sortOrder:    data.sortOrder,
           startsAt:     data.startsAt ? new Date(data.startsAt) : null,
           endsAt:       data.endsAt   ? new Date(data.endsAt)   : null,
         },
@@ -157,6 +161,7 @@ export async function updateIncentive(
 
   revalidatePath("/admin")
   revalidatePath("/earn")
+  revalidatePath("/")
   return {}
 }
 
