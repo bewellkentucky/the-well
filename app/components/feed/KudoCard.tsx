@@ -3,12 +3,14 @@
 import { useState, useOptimistic, useTransition, useEffect, useRef } from "react"
 import { toggleReaction } from "@/app/actions/toggleReaction"
 import { makeItRain } from "@/app/actions/makeItRain"
-
-const RAIN_STEP = 5
-const RAIN_CAP  = 25
 import { avatarColor } from "@/lib/avatarColor"
 import Avatar from "@/app/components/ui/Avatar"
 import type { Kudo, User, Reaction } from "@/app/generated/prisma/client"
+
+// Mirrored from makeItRain.ts — kept here as plain constants so they never
+// touch the "use server" file (non-function exports break that module).
+const RAIN_STEP = 5
+const RAIN_CAP  = 25
 
 const REACTION_CHOICES = ["💧", "💛", "🙌", "🎉", "👏", "🔥", "💯", "🙏", "✨", "❤️"]
 
@@ -79,10 +81,10 @@ export default function KudoCard({
 }) {
   const [pickerOpen, setPickerOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
-  const [isRainPending, startRainTransition] = useTransition()
-  const [rainAnimKey, setRainAnimKey] = useState(0)
+  const [isCommitPending, startCommitTransition] = useTransition()
   const pickerRef = useRef<HTMLDivElement>(null)
 
+  // Reaction optimistic state — unchanged
   const [optimistic, applyOptimistic] = useOptimistic(
     summarize(kudo.reactions, currentUserId),
     (prev: ReactionSummary, emoji: string) => {
@@ -100,18 +102,15 @@ export default function KudoCard({
     }
   )
 
-  const myRain = kudo.rains.find((r) => r.userId === currentUserId)
-  const serverTotal = kudo.rains.reduce((s, r) => s + r.amount, 0)
-
-  const [optimisticRain, applyOptimisticRain] = useOptimistic(
-    { myAmount: myRain?.amount ?? 0, totalAmount: serverTotal, rainerCount: kudo.rains.length, iAmNew: false },
-    (prev) => ({
-      myAmount:     Math.min(prev.myAmount + RAIN_STEP, RAIN_CAP),
-      totalAmount:  prev.totalAmount + RAIN_STEP,
-      rainerCount:  prev.myAmount === 0 ? prev.rainerCount + 1 : prev.rainerCount,
-      iAmNew:       prev.myAmount === 0,
-    })
-  )
+  // Rain — stage-then-commit model.
+  // staged:   local drops queued but not yet sent (no DB write until commit).
+  // committed: drops already sent on prior commits for this kudo (from server).
+  const committed = kudo.rains.find((r) => r.userId === currentUserId)?.amount ?? 0
+  const headroom  = RAIN_CAP - committed            // how much more can be staged
+  const [staged, setStaged]           = useState(0)
+  const [commitError, setCommitError] = useState<string | null>(null)
+  const [rainAnimKey, setRainAnimKey]     = useState(0)  // small tap animation
+  const [commitAnimKey, setCommitAnimKey] = useState(0)  // big commit animation
 
   useEffect(() => {
     if (!pickerOpen) return
@@ -137,18 +136,38 @@ export default function KudoCard({
     kudo.from.id !== currentUserId &&
     kudo.to.id !== currentUserId
 
-  function handleRain() {
-    if (!canRain || optimisticRain.myAmount >= RAIN_CAP || isRainPending) return
+  const canStageMore = staged < headroom && !isCommitPending
+
+  function handleStage() {
+    if (!canStageMore) return
     setRainAnimKey((k) => k + 1)
-    startRainTransition(async () => {
-      applyOptimisticRain(undefined)
-      await makeItRain(kudo.id)
+    setStaged((s) => Math.min(s + RAIN_STEP, headroom))
+    setCommitError(null)
+  }
+
+  function handleClear() {
+    setStaged(0)
+    setCommitError(null)
+  }
+
+  function handleCommit() {
+    if (staged === 0 || isCommitPending) return
+    const toCommit = staged
+    startCommitTransition(async () => {
+      const result = await makeItRain(kudo.id, toCommit)
+      if (result.error) {
+        setCommitError(result.error)
+      } else {
+        setStaged(0)
+        setCommitError(null)
+        setCommitAnimKey((k) => k + 1)
+      }
     })
   }
 
-  const isCapped   = optimisticRain.myAmount >= RAIN_CAP
-  const showStrip  = optimisticRain.totalAmount > 0 || kudo.rains.length > 0
-  const stripCount = optimisticRain.rainerCount
+  const serverTotal = kudo.rains.reduce((s, r) => s + r.amount, 0)
+  const showStrip   = serverTotal > 0
+  const isStageCapped = staged >= headroom   // client-side cap guard
 
   return (
     <div className={`kudo${kudo.isPrivate ? " kudo-private" : ""}`}>
@@ -216,19 +235,54 @@ export default function KudoCard({
               </div>
             )}
           </div>
+        </div>
 
-          {canRain && (
+        {/* Rain staging controls — separated from emoji reactions */}
+        {canRain && (
+          <div className="kudo-rain-controls">
             <button
-              className={`kudo-rain-btn${isCapped ? " capped" : ""}`}
-              onClick={handleRain}
-              disabled={isCapped || isRainPending}
-              title={isCapped ? `You've reached the ${RAIN_CAP}đ limit` : `Add ${RAIN_STEP}đ from your giving balance`}
+              className={`kudo-rain-btn${isStageCapped ? " capped" : ""}`}
+              onClick={handleStage}
+              disabled={!canStageMore}
+              title={
+                isStageCapped
+                  ? `You've reached the ${RAIN_CAP}đ limit`
+                  : staged > 0
+                  ? `Add ${RAIN_STEP}đ more (${staged}đ staged)`
+                  : `Stage ${RAIN_STEP}đ — commit to send`
+              }
             >
               <span key={rainAnimKey} className={rainAnimKey > 0 ? "rain-pop" : ""}>💧</span>
-              <span>{isCapped ? "Maxed" : `+${RAIN_STEP}đ`}</span>
+              <span>{isStageCapped ? "Maxed" : `+${RAIN_STEP}đ`}</span>
+              {staged > 0 && <span className="rain-staged-badge">{staged}đ staged</span>}
             </button>
-          )}
-        </div>
+
+            {staged > 0 && (
+              <>
+                <button
+                  className="kudo-rain-commit-btn"
+                  onClick={handleCommit}
+                  disabled={isCommitPending}
+                >
+                  <span key={commitAnimKey} className={commitAnimKey > 0 ? "rain-commit-pop" : ""}>
+                    {isCommitPending ? "Sending…" : `Send ${staged}đ`}
+                  </span>
+                </button>
+                <button
+                  className="kudo-rain-cancel-btn"
+                  onClick={handleClear}
+                  disabled={isCommitPending}
+                >
+                  Cancel
+                </button>
+              </>
+            )}
+
+            {commitError && (
+              <span className="kudo-rain-error">{commitError}</span>
+            )}
+          </div>
+        )}
 
         {showStrip && (
           <div className="kudo-rain-strip">
@@ -238,8 +292,8 @@ export default function KudoCard({
               ))}
             </div>
             <span>
-              +{optimisticRain.totalAmount}đ from {stripCount}{" "}
-              {stripCount === 1 ? "person" : "people"}
+              +{serverTotal}đ from {kudo.rains.length}{" "}
+              {kudo.rains.length === 1 ? "person" : "people"}
             </span>
           </div>
         )}

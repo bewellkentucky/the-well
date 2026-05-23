@@ -140,49 +140,123 @@ See `docs/build-plan.md` for the full spec. Summary of the intended path:
 
 ## Planned features (designed, not yet built)
 
-### Kudo pile-on / boost drops
+### Kudo pile-on / "Make it rain" ✅ BUILT (rework required before rollout)
 
-On an existing feed kudo, alongside emoji reactions, a "+đ" button lets other staff
-add drops from their own giving allowance to amplify that recognition. Core decisions:
+Shipped as the Rain mechanic. +5đ per tap, 25đ cap per person per kudo.
+`Rain` table: `@@unique([kudoId, userId])`, amount accumulates. Single sequential
+`$transaction` enforces all blocking rules with in-tx re-reads. Rain strip shows
+avatars + "+Xđ from N people" below the kudo card. Button hidden for sender,
+recipient, and private kudos. See `app/actions/makeItRain.ts`.
 
-- **Source pool:** piler's `givingBalance` (giving allowance), same as original kudos. Not
-  earned wallet. Giving allowance already caps total giving naturally, so no separate
-  per-kudo or per-piler cap is needed.
-- **Destination pool:** original recipient's `balance` (earned wallet) — same as received kudos.
-- **Giver-credit:** the piler gets leaderboard credit as a giver (same `amount` counted in the
-  monthly giving sum), because they routed real currency. This rewards breadth of generosity.
-- **Mechanics:** atomic transaction — decrement piler's `givingBalance`, increment recipient's
-  `balance`, record a `KudoBoost` row (or similar) linking piler + kudo + amount. Same
-  two-pool accounting and giver-credit pattern as `createKudo`, just attached to an existing
-  kudo rather than a new post.
-- **Display:** aggregate on the kudo card — "+45đ from 6 people" — below the message, near
-  reactions. Individual piler names shown on expand or hover (open design Q).
-- **Rationale:** frictionless co-signing of recognition you already agree with; amplifies
-  genuine moments into collective celebration; stronger signal than emoji (routes real
-  currency); rewards breadth of recognition on the giver leaderboard. On-brand with the
-  generosity/team-first ethos. Reuses all existing patterns.
+**HIGH PRIORITY — do before staff rollout. Money-integrity rework required.**
 
-**Open design questions for when this is built:**
-- Fixed presets (+5/+10/+25) vs. free-amount input (or both).
-- Whether the piler's name appears in the feed card inline or only on expand.
-- Whether to show a "+đ" affordance on every kudo or only on kudos the viewer didn't send.
+### Make it rain: rework to stage-then-commit (Variant 2)
 
-**Schema sketch (not applied yet):**
-```
-model KudoBoost {
-  id        String   @id @default(cuid())
-  kudoId    String
-  fromId    String               // piler (givingBalance decremented)
-  amount    Int
-  createdAt DateTime @default(now())
+The current spend-per-tap model has an accidental-compounding problem: a misfire
+spends 5đ immediately; tapping again to "fix" it doubles it. Must be reworked to
+stage-then-commit before the app goes live with real balances.
 
-  kudo Kudo @relation(fields: [kudoId], references: [id])
-  from User @relation(fields: [fromId], references: [id])
+**New interaction model:**
+- Each tap stages drops locally in client state only (5 → 10 → 15 → 20 → 25đ). No DB
+  writes on tap. Small rain animation plays on each tap to give haptic-equivalent feedback.
+- A "Send rain" commit button appears once any amount is staged. Tapping it fires ONE
+  atomic transaction for the full staged amount. Big animation plays on successful commit.
+- A "Cancel" / clear resets staged amount to 0. This is the undo — nothing moved until
+  commit, so cancel is a true no-op.
 
-  @@unique([kudoId, fromId])     // one boost per piler per kudo (or remove for multiple)
-}
-```
-Add `boosts KudoBoost[]` to `Kudo` and `boostedKudos KudoBoost[]` to `User`.
+**Money logic (server side — `app/actions/makeItRain.ts`):**
+- Single `$transaction`, all reads inside. Never trust the client-submitted staged amount.
+- Server re-validates the full amount against:
+  1. Actor's current `givingBalance` (must be ≥ staged amount).
+  2. The per-kudo 25đ cap — read the actor's existing `Rain.amount` row inside the tx and
+     add staged amount; total must be ≤ 25đ. The cap is a running total across all sessions
+     (already-committed rain counts toward it), not a per-session cap.
+- Keep `@@unique([kudoId, userId])` accumulating row: on commit, upsert — if row exists,
+  increment `amount`; if not, create with `amount = staged`.
+- Commit button disables immediately on first fire (client guard). In-tx re-read is the
+  backstop against rapid double-commit.
+
+**New double-spend vector to guard:** user stages 25đ, slow network, taps "Send" twice
+before first response. Client disable-on-fire is the first line; the in-tx cap re-read
+ensures the second commit fails gracefully if the first succeeded.
+
+**Tests to confirm before pushing:**
+1. Stage 25đ → commit → giver −25đ, recipient +25đ, Rain row shows 25đ.
+2. Already have 20đ committed → stage 10đ more → client blocks at 5đ (cap headroom = 5);
+   server rejects anything > 5đ even if client is bypassed.
+3. Insufficient giving allowance → server rejects; clear error returned.
+4. Stage any amount → clear → no DB writes, balances unchanged.
+5. Sender or recipient of the kudo → button never appears; server blocks if called directly.
+6. Rapid double-commit (disable-on-fire bypassed) → second tx sees cap already met, throws.
+7. Full flow on a private kudo → server blocks.
+
+**Implementation note:** The staged amount is pure `useState` in `KudoCard.tsx`. The
+server action signature changes from `makeItRain(kudoId)` to `makeItRain(kudoId, amount)`.
+Expand and read the full diff of the commit action before pushing (money logic + "use
+server" file — do not export non-function values from the server action module).
+
+**Design note (not a task yet — for when notifications are built):** Rain notifications
+must be delayed and batched ("3 people rained +35đ on your kudo") rather than firing
+per-tap or per-commit, to avoid notification storms. Align batching window with any
+future hold/commit window design.
+
+### Mobile TopNav wordmark ↔ balance swap (build after Variant 2 rain rework is green)
+
+On mobile, the center/left slot of the top nav swaps its text content based on page and
+scroll position. The logo icon (`.tnav-mark`) is always visible and always links to `/`.
+Only the wordmark text slot (`.tnav-wordmark`) changes.
+
+**Swap logic:**
+- **Show wordmark** ("The Well / BY BE WELL KENTUCKY"): when on the home page (`/`) AND
+  scrolled to the top (within ~8px of top). This is the resting / home state.
+- **Show balances** ("600đ give · 4950đ earned"): on any non-home page, OR on the home
+  page when scrolled down past the threshold. The balances are informational only —
+  non-clickable. The icon handles home navigation.
+
+**Hysteresis to prevent strobing:** use a small scroll hysteresis band (~16px) so
+micro-scrolls near the threshold don't rapidly toggle between the two states. Scroll
+down past 24px → switch to balances; scroll back up to ≤8px → switch back to wordmark.
+Implement with a ref tracking last-stable state; only update if the new scroll position
+clears the hysteresis gap from the last transition point.
+
+**Animation:** CSS crossfade (opacity transition, ~150ms) on the swap. The two states
+share the same slot; use `position: absolute` children inside a relative container sized
+to the taller of the two, or animate opacity on a single element that re-renders content.
+Avoid layout shift — the container height should be stable across both states.
+
+**Desktop:** no swap. Icon + wordmark + balances coexist. Balances live top-right near
+the avatar (exact placement TBD when building — match whatever looks balanced with the
+existing nav layout). No scroll listener needed on desktop.
+
+**Balance display format:** `{givingBalance}đ give · {balance}đ earned`. Use
+`font-family: var(--font-mono)` for the numbers to match the existing balance widget style.
+Align with the two-pool label convention from CLAUDE.md ("giving balance" vs "earned wallet").
+
+**Data / live-update wiring:**
+- Balances must reflect post-give and post-rain state without a full page reload. This
+  depends on the balance state architecture that Variant 2 of the rain rework is currently
+  settling. Build this feature AFTER the rain rework lands green and is verified in
+  production, so the wiring approach is clear.
+- Likely implementation: balance values passed as props from the server component (already
+  fetched in `app/page.tsx`), propagated through `PageShell` → `TopNav`. On give/rain,
+  `revalidatePath("/")` already triggers a server re-render; the nav picks up fresh values
+  automatically. If live-update without full re-render is needed later, a lightweight
+  client store (Zustand or React context) can be threaded through.
+
+**Implementation sketch:**
+- `TopNav` receives `givingBalance` and `balance` props (or fetches them; currently it
+  does a `db.user.findUnique` for role/name — add balance selects there).
+- On mobile, a `"use client"` wrapper around the wordmark slot handles the scroll listener
+  and page detection via `usePathname()` + `useScrollPosition()` (simple `useEffect` +
+  `window.scrollY`). The server-rendered nav structure stays intact; only the text slot
+  is a client island.
+- Crossfade: two absolutely-positioned `<span>`s inside a fixed-height container, toggled
+  by opacity. Or a single `<span>` whose content is swapped with a fade — simpler but
+  causes a content flash on swap. The two-span approach is cleaner.
+
+**Sequencing:** block on Variant 2 rain rework being merged and verified green on Vercel.
+Then build. The scroll/pathname listener is straightforward; the trickier part is threading
+the balance props without adding another DB call to a component that already calls auth().
 
 ### Incentive proof via file upload
 
@@ -232,6 +306,54 @@ This is an interim split: admin displays use emoji/color; the staff shop uses im
 drop imageUrl; (b) imageUrl everywhere (requires upload pipeline); (c) imageUrl for rewards
 that have one, emoji fallback otherwise. Make the decision when the staff shop UI is redesigned
 or when file storage is set up, whichever comes first.
+
+### Suggested giving prompts (Tier 3 — build after Team-profile + recipient-picker)
+
+Surface contextual nudges in the feed or a dedicated section so giving allowances
+actually get spent rather than sitting idle. This is the demand-side complement to the
+two-pool model.
+
+**Trigger types (in rough priority order):**
+1. **Upcoming birthday / work anniversary** — Dates tab data already exists; birthday and
+   hireDate are on the User model. A daily or per-render query finds anyone with a milestone
+   in the next 7 days and surfaces a prompt ("Hayley's 3-year anniversary is Friday — send
+   her some recognition"). Likely the quickest win because the data pipeline is done.
+2. **Person not recognized recently** — staff who have received no kudos in the past 30 days.
+   Surfaces as a gentle "It's been a while since [Name] was recognized — send them a kudo."
+3. **Current user not giving recently** — esp. useful in the week before the allowance reset.
+   "You have 80đ to give this month — it resets in 4 days." Pairs with the giving balance
+   widget already on the feed.
+4. **New-hire welcome prompts** — user whose hireDate is within the last 30 days. "Welcome
+   [Name] to the team — be the first to send them a kudo."
+5. **Value-coverage gaps** (optional / lower priority) — kudos in the past 30 days that lean
+   heavily on 1-2 values; suggest giving against an underused value like Curiosity or
+   Ownership. Adds nudge variety but requires more logic; defer until the simpler triggers
+   are in.
+
+**UI placement (open design question):**
+- A "Who to recognize" card in the right rail (alongside Leaderboard / Coming up), or
+- Inline prompts at the top of the feed composer area (below the composer, above the feed), or
+- Both: rail card for desktop, inline strip on mobile where the rail is hidden.
+
+**Key mechanic:** tapping a prompt opens the composer pre-filled with the suggested recipient
+(person chip already in the recipient field) and optionally a starter message. This is the
+same prefilled-composer + person-chip plumbing needed for Team-profile "send kudos" buttons.
+Build these together or directly after.
+
+**Rationale:** at a 28-person org, the recognition graph is sparse. A few people give
+actively; most hold their allowance through the month. Prompts convert passive allowance
+holders into active givers — the supply side of recognition is already there (the givingBalance
+model), prompts activate the demand side. On-brand: warm, specific, low-friction nudges fit
+the behavioral health ethos better than generic gamification.
+
+**Dependencies:**
+- Birthday/hireDate data: already on the User model, populated by BambooHR sync.
+- Prefilled-composer: needs the composer to accept an initial recipient prop (currently it
+  doesn't — the recipient picker is always blank on open). Build this for Team-profile CTA
+  buttons and reuse here.
+- Allowance reset date: the reset cadence is still undecided (see "Giving-balance reset is
+  unbuilt" above). The "allowance expiring soon" prompt needs a known reset date to compute
+  days-remaining. Build that trigger after the reset cron is live.
 
 ### Redemption.cost is always a snapshot
 
