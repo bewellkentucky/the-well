@@ -110,6 +110,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     return new NextResponse("Bad Request", { status: 400 })
   }
 
+  // TEMP DIAGNOSTIC — remove after round-trip confirmed
+  console.log("[chat] event.type:", event.type, "| space.type:", event.space?.type)
+
   // ── Step 5: Dispatch on event type.
   switch (event.type) {
     case "ADDED_TO_SPACE":
