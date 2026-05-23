@@ -1,3 +1,4 @@
+import Link from "next/link"
 import { auth } from "@/auth"
 import { db } from "@/lib/db"
 import NavLinks from "./NavLinks"
@@ -23,13 +24,13 @@ export default async function TopNav() {
       <div className="tnav-inner">
 
         {/* ── Brand ──────────────────────────────────────────── */}
-        <div className="tnav-brand">
+        <Link href="/" prefetch={false} className="tnav-brand">
           <div className="tnav-mark" role="img" aria-label="Be Well Kentucky" />
           <div className="tnav-wordmark">
             <div className="tnav-name">The Well</div>
             <div className="tnav-parent">by Be Well Kentucky</div>
           </div>
-        </div>
+        </Link>
 
         {/* ── Desktop nav tabs ───────────────────────────────── */}
         <NavLinks showAdmin={showAdmin} />

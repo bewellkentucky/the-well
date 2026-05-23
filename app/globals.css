@@ -767,6 +767,10 @@ img.avatar  { object-fit: cover; }
   align-items: center;
   gap: 10px;
   flex-shrink: 0;
+  text-decoration: none;
+  color: inherit;
+  touch-action: manipulation;
+  align-self: stretch;
 }
 
 .tnav-mark {
@@ -1145,10 +1149,11 @@ img.avatar  { object-fit: cover; }
   gap: 0;
   flex: 1;
   border-radius: 10px;
-  transition: all 0.15s ease;
+  transition: color 0.15s ease;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   position: relative;
+  touch-action: manipulation;
 }
 
 .mnav-icon-wrap {
@@ -1167,7 +1172,7 @@ img.avatar  { object-fit: cover; }
   display: block;
   color: var(--ink-soft);
   opacity: 0.65;
-  transition: all 0.15s ease;
+  transition: color 0.15s ease, opacity 0.15s ease;
 }
 .mnav-icon svg { width: 100%; height: 100%; display: block; }
 
