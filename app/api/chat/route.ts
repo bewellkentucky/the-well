@@ -7,8 +7,8 @@ export const maxDuration = 30
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-// The only valid issuer for Google Chat JWTs.
-const CHAT_ISSUER = "chat@system.gserviceaccount.com"
+// Google's standard OAuth issuer — what Chat HTTP endpoints receive.
+const CHAT_ISSUER = "https://accounts.google.com"
 
 // Module-level singleton. OAuth2Client internally caches the public certs it
 // fetches from Google, keyed by key-id, respecting cache-control. On a warm
@@ -57,9 +57,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   // ── Guard: env var must be present before any verification attempt.
   //    If audience is undefined, verifyIdToken skips the aud check entirely —
   //    that would silently accept any Google-signed JWT. Fail closed instead.
-  const projectNumber = process.env.GOOGLE_CLOUD_PROJECT_NUMBER
-  if (!projectNumber) {
-    console.error("GOOGLE_CLOUD_PROJECT_NUMBER is not configured")
+  const chatAudience = process.env.CHAT_AUDIENCE
+  if (!chatAudience) {
+    console.error("CHAT_AUDIENCE is not configured")
     return new NextResponse("Service Unavailable", { status: 503 })
   }
 
@@ -77,36 +77,27 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   //    verifies the RS256 signature against the cert matching the token's kid,
   //    and asserts that:
   //      • exp has not passed
-  //      • aud matches projectNumber (our Cloud project number)
+  //      • aud exactly matches our endpoint URL (CHAT_AUDIENCE)
   //    It throws on any failure — we treat all failures as 401.
   let payload: TokenPayload
   try {
     const ticket = await authClient.verifyIdToken({
       idToken:  token,
-      audience: projectNumber,
+      audience: chatAudience,
     })
     const raw = ticket.getPayload()
     if (!raw) throw new Error("empty payload")
     payload = raw
-  } catch (err) {
-    // TEMP DIAGNOSTIC — remove after root cause confirmed
-    console.error("[chat-auth] verifyIdToken threw:", err instanceof Error ? err.message : String(err))
-    try {
-      const rawPayload = JSON.parse(Buffer.from(token.split(".")[1], "base64url").toString("utf8"))
-      console.error("[chat-auth] token aud is:", rawPayload.aud, "| token iss is:", rawPayload.iss)
-    } catch {
-      console.error("[chat-auth] could not decode token payload")
-    }
+  } catch {
     return new NextResponse("Unauthorized", { status: 401 })
   }
 
   // ── Step 3: Pin the issuer.
-  //    verifyIdToken handles multiple Google issuers and does NOT enforce a
-  //    specific iss. We assert this explicitly so that a valid JWT from any
-  //    other Google service (e.g. Cloud Run invoker) cannot reach our logic.
+  //    verifyIdToken accepts multiple Google issuers; we assert this explicitly.
+  //    Since iss is now Google's standard OAuth issuer (shared across many
+  //    Google services), the aud check above is the primary discriminator —
+  //    only tokens minted for our exact endpoint URL pass both checks.
   if (payload.iss !== CHAT_ISSUER) {
-    // TEMP DIAGNOSTIC — remove after root cause confirmed
-    console.error("[chat-auth] issuer-pin failed — got iss:", payload.iss, "| got aud:", payload.aud, "| expected iss:", CHAT_ISSUER, "| expected aud:", projectNumber)
     return new NextResponse("Unauthorized", { status: 401 })
   }
 
