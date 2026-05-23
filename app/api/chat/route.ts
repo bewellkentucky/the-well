@@ -15,40 +15,46 @@ const CHAT_ISSUER = "https://accounts.google.com"
 // Vercel instance this means one cert fetch per cold start, not per request.
 const authClient = new OAuth2Client()
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+// ── Types (new Chat API event format) ─────────────────────────────────────────
+//
+// Google Chat now sends events under body.chat with a payload key that
+// indicates the event kind — there is NO top-level "type" field.
+//
+// body.chat.messagePayload        → a user sent a message
+// body.chat.addedToSpacePayload   → app added to a space
+// body.chat.removedFromSpacePayload → app removed from a space
 
-type ChatUser = {
-  name:        string   // "users/{userId}"
-  displayName: string
-  email:       string
-  type:        "HUMAN" | "BOT"
+type NewChatUser = {
+  email:        string
+  displayName?: string
+  name?:        string
 }
 
-type ChatSpace = {
-  name:         string
-  type:         "DM" | "ROOM" | "SPACE"
+type NewChatMessage = {
+  sender: NewChatUser
+  text:   string
+  name?:  string
+}
+
+type NewChatSpace = {
+  spaceType:    string   // e.g. "DIRECT_MESSAGE" | "SPACE"
+  name?:        string
   displayName?: string
 }
 
-type ChatMessage = {
-  name:          string
-  sender:        ChatUser
-  text:          string
-  slashCommand?: { commandId: number }
+type MessagePayload = {
+  message: NewChatMessage
+  space:   NewChatSpace
 }
 
-type ChatEvent = {
-  type:     "MESSAGE" | "ADDED_TO_SPACE" | "REMOVED_FROM_SPACE" | "CARD_CLICKED"
-  space:    ChatSpace
-  user:     ChatUser
-  message?: ChatMessage
-  common?:  {
-    invokedFunction?: string
-    parameters?:      Array<{ key: string; value: string }>
+type ChatBody = {
+  chat: {
+    user?:                    NewChatUser
+    messagePayload?:          MessagePayload
+    addedToSpacePayload?:     unknown
+    removedFromSpacePayload?: unknown
   }
 }
-
-type ChatTextResponse = { text: string }
 
 // ── Endpoint ──────────────────────────────────────────────────────────────────
 
@@ -110,57 +116,54 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     return new NextResponse("Bad Request", { status: 400 })
   }
 
-  // TEMP DIAGNOSTIC — log the full raw body so we can see the actual structure
+  // TEMP DIAGNOSTIC — remove after round-trip confirmed end-to-end
   console.log("[chat] raw body:", JSON.stringify(body))
 
-  const event = body as ChatEvent
-
-  // ── Step 5: Dispatch on event type.
-  switch (event.type) {
-    case "ADDED_TO_SPACE":
-      // Synchronous text replies to ADDED_TO_SPACE are auto-deleted by Chat.
-      // Return empty JSON — no text, no ghost message.
-      return NextResponse.json({})
-
-    case "REMOVED_FROM_SPACE":
-      // Google Chat doesn't use the body here; return empty JSON so the
-      // response is well-formed rather than a null body.
-      return NextResponse.json({})
-
-    case "MESSAGE": {
-      // Wrap in try-catch: an unhandled exception (DB error, missing email,
-      // cold-start failure) would otherwise produce a Next.js 500 HTML body,
-      // which Google Chat reads as "not responding."
-      let reply: ChatTextResponse
-      try {
-        reply = await handleMessage(event)
-      } catch (err) {
-        console.error("[chat] handleMessage error:", err)
-        reply = { text: "Something went wrong. Please try again." }
-      }
-      return NextResponse.json(reply)
-    }
-
-    case "CARD_CLICKED":
-      // Reserved for Phase 3 (interactive rain/reaction callbacks).
-      // Acknowledge without action; empty object is valid for Chat.
-      return NextResponse.json({})
-
-    default:
-      return NextResponse.json({})
+  // ── Step 5: Dispatch on payload key under body.chat.
+  const chat = (body as ChatBody).chat
+  if (!chat) {
+    console.log("[chat] no chat key in body — ignoring")
+    return NextResponse.json({})
   }
+
+  if (chat.addedToSpacePayload !== undefined) {
+    // Synchronous text replies to add-to-space are auto-deleted by Chat.
+    console.log("[chat] addedToSpace — no reply")
+    return NextResponse.json({})
+  }
+
+  if (chat.removedFromSpacePayload !== undefined) {
+    console.log("[chat] removedFromSpace — no reply")
+    return NextResponse.json({})
+  }
+
+  if (chat.messagePayload !== undefined) {
+    const { message } = chat.messagePayload
+    // Prefer message.sender.email; fall back to top-level user.email.
+    const senderEmail = message.sender?.email ?? chat.user?.email ?? ""
+    console.log("[chat] message event | senderEmail:", senderEmail, "| text:", message.text)
+
+    let reply: { text: string }
+    try {
+      reply = await handleMessage(senderEmail)
+    } catch (err) {
+      console.error("[chat] handleMessage error:", err)
+      reply = { text: "Something went wrong. Please try again." }
+    }
+    return NextResponse.json(reply)
+  }
+
+  // Unknown payload shape — acknowledge without replying.
+  console.log("[chat] unknown payload keys:", Object.keys(chat))
+  return NextResponse.json({})
 }
 
 // ── Handlers ──────────────────────────────────────────────────────────────────
 
-async function handleMessage(event: ChatEvent): Promise<ChatTextResponse> {
-  // TEMP DIAGNOSTIC — remove after round-trip confirmed end-to-end
-  console.log("[chat] event.user:", JSON.stringify(event.user))
-  console.log("[chat] event.message?.sender:", JSON.stringify(event.message?.sender))
-
-  // Try message.sender.email first (populated for MESSAGE events);
-  // fall back to top-level user.email.
-  const senderEmail = event.message?.sender?.email ?? event.user.email
+async function handleMessage(senderEmail: string): Promise<{ text: string }> {
+  if (!senderEmail) {
+    return { text: "I couldn't identify your account. Sign in at thewell.bewellkentucky.com first." }
+  }
 
   // Resolve Chat identity → Well user by email.
   // email has @unique in the schema → implicit Postgres index, fast lookup.
