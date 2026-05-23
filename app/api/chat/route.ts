@@ -103,15 +103,17 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
   // ── Step 4: Parse the event body.
   //    Verification is complete before we read any user-supplied data.
-  let event: ChatEvent
+  let body: unknown
   try {
-    event = (await req.json()) as ChatEvent
+    body = await req.json()
   } catch {
     return new NextResponse("Bad Request", { status: 400 })
   }
 
-  // TEMP DIAGNOSTIC — remove after round-trip confirmed
-  console.log("[chat] event.type:", event.type, "| space.type:", event.space?.type)
+  // TEMP DIAGNOSTIC — log the full raw body so we can see the actual structure
+  console.log("[chat] raw body:", JSON.stringify(body))
+
+  const event = body as ChatEvent
 
   // ── Step 5: Dispatch on event type.
   switch (event.type) {
