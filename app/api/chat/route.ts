@@ -113,7 +113,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   // ── Step 5: Dispatch on event type.
   switch (event.type) {
     case "ADDED_TO_SPACE":
-      return NextResponse.json(handleAddedToSpace())
+      // Synchronous text replies to ADDED_TO_SPACE are auto-deleted by Chat.
+      // Return empty JSON — no text, no ghost message.
+      return NextResponse.json({})
 
     case "REMOVED_FROM_SPACE":
       // Google Chat doesn't use the body here; return empty JSON so the
@@ -146,18 +148,14 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
 // ── Handlers ──────────────────────────────────────────────────────────────────
 
-function handleAddedToSpace(): ChatTextResponse {
-  return {
-    text: "Hi! I'm The Well, Be Well Kentucky's recognition app. Staff can give kudos and earn drops right here in Chat. More features coming soon.",
-  }
-}
-
 async function handleMessage(event: ChatEvent): Promise<ChatTextResponse> {
-  // TEMP DIAGNOSTIC — remove after email field confirmed
+  // TEMP DIAGNOSTIC — remove after round-trip confirmed end-to-end
   console.log("[chat] event.user:", JSON.stringify(event.user))
   console.log("[chat] event.message?.sender:", JSON.stringify(event.message?.sender))
 
-  const senderEmail = event.user.email
+  // Try message.sender.email first (populated for MESSAGE events);
+  // fall back to top-level user.email.
+  const senderEmail = event.message?.sender?.email ?? event.user.email
 
   // Resolve Chat identity → Well user by email.
   // email has @unique in the schema → implicit Postgres index, fast lookup.
