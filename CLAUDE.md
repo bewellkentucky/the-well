@@ -362,6 +362,48 @@ the behavioral health ethos better than generic gamification.
 `current.cost`, not `reward.cost` — so refunds are always the amount the staff member
 actually paid, even if the reward cost is later edited. No fix needed; correctly implemented.
 
+## Google Chat bot — in progress
+
+Decided to build an **interactive Chat bot** (not just a one-way webhook). Architecture
+principle: **the app is canonical; Chat is a surface.** All state lives in the Well DB;
+Chat is just another way to interact with it.
+
+### User mapping
+
+Resolve Chat users to Well users **live by email on each interaction** — no stored
+mapping table. Chat identities and Well users are the same `@bewellkentucky.com` Google
+Workspace identities, so matching is reliable: look up the sender's email against
+`User.email` (which has `@unique` → implicit Postgres index, so lookups are fast).
+
+Do **not** add a `chatUserId ↔ wellUserId` join table unless real email drift appears in
+practice (e.g. a user's Chat identity diverges from their Well email). That case hasn't
+occurred and the table adds complexity for no current benefit.
+
+### No-account case
+
+If a Chat user's email doesn't resolve to a Well user, reply in Chat: **"Sign in to The
+Well first."** Never auto-create a Well account from a Chat interaction — account creation
+is intentionally gated to Google OAuth sign-in in the app.
+
+### Money / action security
+
+- Any rain or give triggered from Chat must run through the **same server-side actor
+  re-check + atomic `$transaction`** as the in-app path. No shortcuts.
+- The Chat callback endpoint **must verify that requests genuinely come from Google**
+  (Google Chat request signature verification) before doing anything consequential. A
+  forged callback must never be able to move drops.
+
+### Build order
+
+1. Cloud project + Chat API enablement + app registration + interaction endpoint scaffold
+2. One-way posting (kudos → #kudos space) + user resolution + no-account reply
+3. Interactive rain callback — **built last, reviewed carefully** (money logic)
+
+### Reference
+
+See `docs/chat-integration.md` for additional design context and the reasoning behind
+keeping Chat reactions separate from app reactions.
+
 ## Brand
 
 - **Name:** The Well. Tagline context: "by Be Well Kentucky".
