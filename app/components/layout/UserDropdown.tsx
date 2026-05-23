@@ -6,13 +6,12 @@ import { doSignOut } from "@/app/actions/auth"
 
 export default function UserDropdown({
   name,
-  email,
   thumbnailUrl,
 }: {
   name:         string
-  email:        string
   thumbnailUrl: string | null
 }) {
+  const firstName = name.split(" ")[0] || name
   const [open, setOpen] = useState(false)
   const wrapRef = useRef<HTMLDivElement>(null)
 
@@ -43,15 +42,14 @@ export default function UserDropdown({
         aria-label="Account menu"
         aria-expanded={open}
       >
-        <Avatar name={name} email={email} thumbnailUrl={thumbnailUrl} size="md" />
+        <Avatar name={name} thumbnailUrl={thumbnailUrl} size="md" />
       </button>
 
       {open && (
         <div className="user-dd-panel" role="menu">
-          {/* User info header */}
+          {/* Greeting */}
           <div className="user-dd-header">
-            <Avatar name={name} email={email} thumbnailUrl={thumbnailUrl} size="lg" />
-            <div className="user-dd-name">{name}</div>
+            <div className="user-dd-greeting">Hi, {firstName}!</div>
           </div>
 
           {/* Menu items */}

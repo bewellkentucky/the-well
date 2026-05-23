@@ -83,6 +83,8 @@ model Reward {
   cost        Int
   category    String  // Swag | Gift Card | Time | Office | Team | Growth
   imageUrl    String?
+  icon        String  @default("🎁")   // admin-facing emoji icon; see CLAUDE.md for imageUrl vs icon decision
+  color       String  @default("#7a9b7e")
   inventory   Int?    // null = unlimited
   active      Boolean @default(true)
 
@@ -181,6 +183,13 @@ model AuditLog {
   @@index([createdAt(sort: Desc)])
   @@index([action])
   @@index([actorId])
+}
+
+model AppSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+  updatedBy String?  // userId of last editor
 }
 
 model IncentiveClaim {

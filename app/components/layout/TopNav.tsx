@@ -37,7 +37,6 @@ export default async function TopNav() {
         {/* ── User avatar → dropdown ─────────────────────────── */}
         <UserDropdown
           name={displayName}
-          email={email}
           thumbnailUrl={thumbnailUrl}
         />
 

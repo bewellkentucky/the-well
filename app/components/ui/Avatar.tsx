@@ -16,12 +16,12 @@ export default function Avatar({
   size = "md",
 }: {
   name: string
-  email: string
+  email?: string
   thumbnailUrl?: string | null
   size?: Size
 }) {
   const [failed, setFailed] = useState(false)
-  const color = avatarColor(email)
+  const color = avatarColor(email ?? name)
   const sizeClass = size === "md" ? "" : size
 
   if (thumbnailUrl && !failed) {

@@ -219,6 +219,27 @@ editor → admin approvals view. The editor option is the last piece because it'
 without the upload pipeline behind it. Pairs naturally with the production deployment work
 since storage setup requires deployed env vars.
 
+### Reward visual: imageUrl vs. icon/color
+
+`Reward` currently has two visual fields:
+- **`imageUrl String?`** — used by the staff shop (Rewards page) to show a product image.
+  Written by the seed data and not yet exposed in the Admin UI editor.
+- **`icon String` + `color String`** — added for the Admin Rewards tab so each catalog row
+  has a recognizable visual in the admin list. Same pattern as Incentives.
+
+This is an interim split: admin displays use emoji/color; the staff shop uses imageUrl.
+**Eventually decide the canonical reward visual** — options: (a) emoji icon everywhere and
+drop imageUrl; (b) imageUrl everywhere (requires upload pipeline); (c) imageUrl for rewards
+that have one, emoji fallback otherwise. Make the decision when the staff shop UI is redesigned
+or when file storage is set up, whichever comes first.
+
+### Redemption.cost is always a snapshot
+
+`Redemption.cost` was designed as a cost-at-time-of-redemption snapshot from day one
+(schema comment: "snapshot at time of redemption"). The `declineRedemption` refund uses
+`current.cost`, not `reward.cost` — so refunds are always the amount the staff member
+actually paid, even if the reward cost is later edited. No fix needed; correctly implemented.
+
 ## Brand
 
 - **Name:** The Well. Tagline context: "by Be Well Kentucky".

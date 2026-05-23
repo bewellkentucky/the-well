@@ -31,6 +31,8 @@ import RewardsPanel, {
 import IntegrationsPanel, {
   type BambooSyncStatus,
 } from "@/app/components/admin/IntegrationsPanel"
+import ProgramPanel from "@/app/components/admin/ProgramPanel"
+import { getAllowanceSetting } from "@/app/actions/adminProgram"
 import { ADMIN_TABS, type AdminTabId } from "@/lib/adminTabsConfig"
 
 const TAB_IDS = ADMIN_TABS.map((t) => t.id)
@@ -379,6 +381,13 @@ export default async function AdminPage({
     }))
   }
 
+  // ── Program tab data ───────────────────────────────────────
+  let allowanceAmount = 100
+
+  if (activeTab === "program") {
+    allowanceAmount = await getAllowanceSetting()
+  }
+
   // ── Overview tab data ──────────────────────────────────────
   let overviewData: OverviewData = {
     totalUsers:        0,
@@ -482,19 +491,10 @@ export default async function AdminPage({
           />
         ) : activeTab === "audit" ? (
           <AuditPanel logs={auditLogs} />
-        ) : (
-          <div className="card" style={{ maxWidth: 560 }}>
-            <div className="card-header">
-              <h2 className="card-title">{PLACEHOLDER[activeTab].heading}</h2>
-            </div>
-            <p style={{ fontSize: 14, color: "var(--ink-soft)", lineHeight: 1.6, padding: "0 0 4px" }}>
-              {PLACEHOLDER[activeTab].description}
-            </p>
-            <p style={{ fontSize: 12, color: "var(--ink-soft)", opacity: 0.6, marginTop: 16 }}>
-              Coming soon.
-            </p>
-          </div>
-        )}
+        ) : activeTab === "program" ? (
+          <ProgramPanel allowanceAmount={allowanceAmount} />
+        ) : null}
+
       </div>
     </main>
   )
