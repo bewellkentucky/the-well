@@ -827,10 +827,16 @@ img.avatar  { object-fit: cover; }
   align-items: center;
   gap: 10px;
   flex-shrink: 0;
+}
+
+.tnav-mark-link {
+  display: flex;
+  align-items: center;
   text-decoration: none;
   color: inherit;
   touch-action: manipulation;
   align-self: stretch;
+  flex-shrink: 0;
 }
 
 .tnav-mark {
@@ -843,8 +849,12 @@ img.avatar  { object-fit: cover; }
   flex-shrink: 0;
 }
 
+/* Desktop: static wordmark; hidden on mobile (NavWordmark takes over) */
 .tnav-wordmark {
   line-height: 1.1;
+}
+@media (max-width: 640px) {
+  .tnav-wordmark { display: none; }
 }
 
 .tnav-name {
@@ -863,6 +873,81 @@ img.avatar  { object-fit: cover; }
   color: var(--cream);
   opacity: 0.65;
   margin-top: 2px;
+}
+
+/* ── Mobile wordmark/balance crossfade slot ──────────────── */
+.tnav-wm-slot {
+  display: none;
+  height: 36px;
+}
+@media (max-width: 640px) {
+  .tnav-wm-slot { display: grid; }
+}
+
+.tnav-wm-wordmark,
+.tnav-wm-balances {
+  grid-area: 1 / 1;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.tnav-wm-wordmark {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  line-height: 1.1;
+}
+
+.tnav-wm-balances {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.tnav-wm-wordmark.visible,
+.tnav-wm-balances.visible { opacity: 1; }
+
+/* ── Balance number/unit — shared mobile + desktop ───────── */
+.tnav-bal-num {
+  font-family: var(--font-mono), monospace;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--cream);
+  letter-spacing: 0.01em;
+}
+
+.tnav-bal-unit {
+  font-family: var(--font-inter), sans-serif;
+  font-size: 10px;
+  color: var(--cream);
+  opacity: 0.65;
+  margin-left: 1px;
+  margin-right: 5px;
+}
+
+.tnav-bal-dot {
+  font-size: 10px;
+  color: var(--cream);
+  opacity: 0.35;
+  margin-right: 5px;
+}
+
+/* ── Right group: desktop balance + avatar ───────────────── */
+.tnav-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.tnav-desktop-bal {
+  display: none;
+  align-items: center;
+  white-space: nowrap;
+}
+@media (min-width: 641px) {
+  .tnav-desktop-bal { display: flex; }
 }
 
 /* ── User avatar dropdown ────────────────────────────────── */
@@ -937,9 +1022,6 @@ img.avatar  { object-fit: cover; }
 
 .user-dd-item:hover { background: var(--cream-2); }
 
-@media (max-width: 640px) {
-  .tnav-parent { display: none; }
-}
 
 /* ── Desktop nav links (inside TopNav) ───────────────────── */
 .desktop-nav {
