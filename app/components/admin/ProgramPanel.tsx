@@ -47,8 +47,8 @@ export default function ProgramPanel({
           <h2 className="card-title">Monthly giving allowance</h2>
         </div>
         <p className="prog-section-desc">
-          Each staff member receives this many drops to give out per month. The reset
-          cron job will use this value when it ships.
+          Each staff member receives this many drops to give out per month. The monthly
+          reset cron reads this value and applies it on the 1st of each month.
         </p>
 
         <div className="prog-allowance-row">
@@ -82,9 +82,9 @@ export default function ProgramPanel({
         <div className="prog-notice">
           <span className="prog-notice-icon">ⓘ</span>
           <span>
-            Automatic monthly resets are not built yet. Use this value as the reference
-            when topping up balances manually via People → Adjust balance. When the
-            reset cron job ships, it will read this setting.
+            The reset cron runs automatically on the 1st of each month and sets every
+            active staff member's giving allowance to this amount. Unused drops do not
+            roll over.
           </span>
         </div>
       </div>
@@ -96,12 +96,11 @@ export default function ProgramPanel({
         </div>
         <div className="prog-placeholder-row">
           <span className="prog-cadence-value">Monthly</span>
-          <span className="prog-coming-soon-badge">Not yet automated</span>
+          <span className="prog-coming-soon-badge" style={{ background: "color-mix(in srgb, var(--sage) 15%, transparent)", color: "var(--sage)" }}>Automated · 1st of month</span>
         </div>
         <p className="prog-section-desc" style={{ marginTop: 10 }}>
-          The intended cadence is monthly (1st of each month). Automatic resets require
-          a scheduled cron job, which will be set up at production deployment. Until
-          then, top up balances manually via People → Adjust balance.
+          Giving allowances reset automatically on the 1st of each month at 06:00 UTC.
+          The reset amount is controlled by the Monthly giving allowance setting above.
         </p>
       </div>
 
