@@ -23,38 +23,41 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       const domain = email?.split("@")[1]
       if (domain !== ALLOWED_DOMAIN || !email) return false
 
-      // Google Workspace internal OAuth apps don't include `picture` in the
-      // ID token. Fetch it from the UserInfo endpoint using the access token.
-      let thumbnailUrl: string | null = null
-      if (account?.access_token) {
-        try {
-          const res = await fetch("https://www.googleapis.com/oauth2/v1/userinfo?alt=json", {
+      // Fire the UserInfo fetch without awaiting it — saves ~200ms per sign-in.
+      // Google Workspace internal apps don't include `picture` in the ID token,
+      // so we fetch it separately. The photo update lands ~200ms after login
+      // completes; on a user's very first sign-in their avatar may be briefly
+      // absent until the background write finishes.
+      const thumbnailPromise: Promise<string | null> = account?.access_token
+        ? fetch("https://www.googleapis.com/oauth2/v1/userinfo?alt=json", {
             headers: { Authorization: `Bearer ${account.access_token}` },
           })
-          if (res.ok) {
-            const info = await res.json()
-            thumbnailUrl = info.picture ?? null
-          }
-        } catch {
-          // Non-fatal — no photo is fine
-        }
-      }
+            .then((r) => (r.ok ? r.json() : null))
+            .then((info) => info?.picture ?? null)
+            .catch(() => null)
+        : Promise.resolve(null)
 
-      // Upsert on every sign-in so name and photo stay in sync with Google.
+      // Upsert immediately — name and googleId stay in sync without waiting for photo.
       await db.user.upsert({
         where: { email },
         create: {
           email,
-          googleId: profile.sub,
-          fullName: profile.name ?? email,
-          thumbnailUrl,
-          domain: ALLOWED_DOMAIN,
+          googleId:     profile.sub,
+          fullName:     profile.name ?? email,
+          thumbnailUrl: null,
+          domain:       ALLOWED_DOMAIN,
         },
         update: {
           fullName: profile.name ?? undefined,
-          thumbnailUrl: thumbnailUrl ?? undefined,
-          googleId: profile.sub ?? undefined,
+          googleId: profile.sub  ?? undefined,
         },
+      })
+
+      // Write photo once the fetch resolves — non-blocking relative to login.
+      thumbnailPromise.then((thumbnailUrl) => {
+        if (thumbnailUrl) {
+          db.user.update({ where: { email }, data: { thumbnailUrl } }).catch(() => {})
+        }
       })
 
       return true
