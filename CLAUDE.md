@@ -396,7 +396,7 @@ is intentionally gated to Google OAuth sign-in in the app.
 ### Build order
 
 1. Cloud project + Chat API enablement + app registration + interaction endpoint scaffold ✅
-2. One-way posting (kudos → #kudos space) + user resolution + no-account reply
+2. One-way posting — public kudos → #kudos space; private kudos never post (fail-safe to silent). **Next to build; dependency for #3.**
 3. Interactive rain callback — **built last, reviewed carefully** (money logic)
 
 ### Deferred Chat features
@@ -411,7 +411,7 @@ Bot posts a kudo card with a "Make it rain" button. Tapping it moves drops in th
 
 Security requirements that cannot be skipped:
 - Verify `CARD_CLICKED` events rigorously — same JWT verification as message events.
-- **Never trust the button payload for actor identity.** Re-derive the actor from the verified JWT `email` claim on every click. The button payload is user-controlled data.
+- **Never trust the button payload for actor identity or amount.** Re-derive the actor from the verified JWT `email` claim on every click; re-derive the allowable amount from DB state inside the transaction. The button payload is user-controlled data.
 - Same `$transaction` + in-tx re-reads as the in-app path. No shortcuts because the surface is different.
 
 #### Private kudos as recipient-only DMs (under consideration — not committed)
