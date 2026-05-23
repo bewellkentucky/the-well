@@ -250,13 +250,13 @@ export default function KudoCard({
                 isStageCapped
                   ? `You've reached the ${RAIN_CAP}đ limit`
                   : staged > 0
-                  ? `Add ${RAIN_STEP}đ more (${staged}đ staged)`
+                  ? `Add ${RAIN_STEP}đ more (${staged}đ to add)`
                   : `Stage ${RAIN_STEP}đ — commit to send`
               }
             >
               <span key={rainAnimKey} className={rainAnimKey > 0 ? "rain-pop" : ""}>💧</span>
               <span>{isStageCapped ? "Maxed" : `+${RAIN_STEP}đ`}</span>
-              {staged > 0 && <span className="rain-staged-badge">{staged}đ staged</span>}
+              {staged > 0 && <span className="rain-staged-badge">{staged}đ to add</span>}
             </button>
 
             {staged > 0 && (
