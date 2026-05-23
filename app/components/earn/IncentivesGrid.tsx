@@ -1,29 +1,16 @@
 "use client"
 
-import { useState, useTransition } from "react"
-import { claimIncentive } from "@/app/actions/claimIncentive"
-
-type Incentive = {
-  id: string
-  title: string
-  description: string
-  reward: number
-  verification: string
-  cap: string
-  icon: string
-  color: string
-  proofPrompt: string | null
-  startsAt: Date | null
-  endsAt: Date | null
-}
+import { useState } from "react"
+import IncentiveClaimModal from "./IncentiveClaimModal"
+import type { ModalIncentive } from "./IncentiveClaimModal"
 
 type ClaimStatus = {
   incentiveId: string
-  status: string // "pending" | "credited" | "declined"
+  status: string
 }
 
 type Props = {
-  incentives: Incentive[]
+  incentives: ModalIncentive[]
   claims: ClaimStatus[]
 }
 
@@ -34,46 +21,15 @@ function capLabel(cap: string): string {
   return "Unlimited"
 }
 
-function windowLabel(inc: Incentive): string | null {
+function windowLabel(inc: ModalIncentive): string | null {
   if (!inc.endsAt) return null
   const end = new Date(inc.endsAt)
   return `Ends ${end.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
 }
 
 export default function IncentivesGrid({ incentives, claims }: Props) {
-  const [selected, setSelected] = useState<Incentive | null>(null)
-  const [note, setNote] = useState("")
-  const [proofLink, setProofLink] = useState("")
-  const [result, setResult] = useState<{ error?: string } | null>(null)
-  const [isPending, startTransition] = useTransition()
-
+  const [selected, setSelected] = useState<ModalIncentive | null>(null)
   const claimMap = new Map(claims.map((c) => [c.incentiveId, c.status]))
-
-  function openModal(inc: Incentive) {
-    setSelected(inc)
-    setNote("")
-    setProofLink("")
-    setResult(null)
-  }
-
-  function closeModal() {
-    setSelected(null)
-    setResult(null)
-  }
-
-  function submit() {
-    if (!selected) return
-    startTransition(async () => {
-      const res = await claimIncentive(selected.id, note || undefined, proofLink || undefined)
-      setResult(res)
-      if (!res.error) {
-        // Keep modal open to show confirmation
-      }
-    })
-  }
-
-  const claimed = selected ? claimMap.get(selected.id) : undefined
-  const success = result && !result.error
 
   return (
     <>
@@ -110,7 +66,7 @@ export default function IncentivesGrid({ incentives, claims }: Props) {
                     {badge}
                   </span>
                 ) : (
-                  <button className="incentive-claim-btn" onClick={() => openModal(inc)}>
+                  <button className="incentive-claim-btn" onClick={() => setSelected(inc)}>
                     Claim
                   </button>
                 )}
@@ -143,98 +99,7 @@ export default function IncentivesGrid({ incentives, claims }: Props) {
       </div>
 
       {selected && (
-        <div className="reward-modal-backdrop" onClick={closeModal}>
-          <div className="reward-modal incentive-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="incentive-modal-header" style={{ background: selected.color + "22" }}>
-              <span className="incentive-modal-icon">{selected.icon}</span>
-            </div>
-            <div className="reward-modal-body">
-              {success ? (
-                <div className="incentive-success">
-                  {selected.verification === "self" ? (
-                    <>
-                      <div className="incentive-success-icon">💧</div>
-                      <div className="incentive-success-title">
-                        {selected.reward}đ added to your balance
-                      </div>
-                      <p className="incentive-success-sub">Nice work. Keep it up.</p>
-                    </>
-                  ) : (
-                    <>
-                      <div className="incentive-success-icon">📬</div>
-                      <div className="incentive-success-title">Claim submitted</div>
-                      <p className="incentive-success-sub">
-                        An admin will review your submission and credit your balance once approved.
-                      </p>
-                    </>
-                  )}
-                  <button className="btn btn-primary" style={{ marginTop: 20, width: "100%" }} onClick={closeModal}>
-                    Done
-                  </button>
-                </div>
-              ) : (
-                <>
-                  <div className="reward-modal-title">{selected.title}</div>
-                  <p className="reward-modal-desc">{selected.description}</p>
-                  <div className="reward-modal-cost">
-                    <span>{selected.reward}đ</span> reward
-                    {selected.verification === "admin" && (
-                      <span style={{ marginLeft: 12, fontSize: 12, color: "var(--ink-soft)", fontFamily: "var(--font-inter), sans-serif" }}>
-                        pending admin review
-                      </span>
-                    )}
-                  </div>
-
-                  {selected.proofPrompt && (
-                    <div className="incentive-proof-field">
-                      <label className="incentive-proof-label">{selected.proofPrompt}</label>
-                      <input
-                        className="incentive-proof-input"
-                        type="text"
-                        placeholder="Link or description"
-                        value={proofLink}
-                        onChange={(e) => setProofLink(e.target.value)}
-                      />
-                      {selected.verification === "admin" && (
-                        <p className="incentive-proof-hint">Photo/screenshot upload coming soon.</p>
-                      )}
-                    </div>
-                  )}
-
-                  <div className="incentive-proof-field">
-                    <label className="incentive-proof-label">Note (optional)</label>
-                    <input
-                      className="incentive-proof-input"
-                      type="text"
-                      placeholder="Anything else we should know"
-                      value={note}
-                      onChange={(e) => setNote(e.target.value)}
-                    />
-                  </div>
-
-                  {result?.error && (
-                    <p className="reward-error" style={{ padding: "0 0 12px" }}>{result.error}</p>
-                  )}
-
-                  <div className="reward-modal-actions">
-                    <button
-                      className="btn btn-primary reward-btn-confirm"
-                      onClick={submit}
-                      disabled={isPending}
-                    >
-                      {isPending
-                        ? "Submitting..."
-                        : selected.verification === "self"
-                          ? `Claim ${selected.reward}đ`
-                          : "Submit for review"}
-                    </button>
-                    <button className="reward-btn-cancel" onClick={closeModal}>Cancel</button>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
+        <IncentiveClaimModal incentive={selected} onClose={() => setSelected(null)} />
       )}
     </>
   )

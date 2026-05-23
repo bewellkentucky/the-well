@@ -7,6 +7,7 @@ import FeaturedIncentives from "@/app/components/feed/FeaturedIncentives"
 import Leaderboard from "@/app/components/rail/Leaderboard"
 import ComingUp from "@/app/components/rail/ComingUp"
 import OutToday from "@/app/components/rail/OutToday"
+import { buildRelevantClaims } from "@/lib/relevantClaims"
 
 export default async function Home() {
   const session = await auth()
@@ -17,7 +18,7 @@ export default async function Home() {
 
   const now = new Date()
 
-  const [user, featuredSetting, candidateIncentives] = await Promise.all([
+  const [user, featuredSetting, candidateIncentives, rawClaims] = await Promise.all([
     db.user.findUnique({
       where:  { id: session.user.id },
       select: { givingBalance: true, balance: true },
@@ -36,11 +37,24 @@ export default async function Home() {
       },
       orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
       take:    10,
-      select:  { id: true, title: true, reward: true, icon: true, color: true },
+      select:  {
+        id: true, title: true, description: true, reward: true,
+        verification: true, cap: true, icon: true, color: true,
+        proofPrompt: true, startsAt: true, endsAt: true,
+      },
+    }),
+    db.incentiveClaim.findMany({
+      where: {
+        userId: session.user.id,
+        status: { not: "declined" },
+      },
+      select: { incentiveId: true, status: true, createdAt: true },
+      orderBy: { createdAt: "desc" },
     }),
   ])
   const featuredCount = Math.max(0, parseInt(featuredSetting?.value ?? "2", 10) || 2)
   const featuredIncentives = candidateIncentives.slice(0, featuredCount)
+  const featuredClaims = buildRelevantClaims(featuredIncentives, rawClaims, now)
 
   return (
     <PageShell>
@@ -57,7 +71,7 @@ export default async function Home() {
         {/* Left column: composer + featured incentives + feed */}
         <div>
           <ComposerWrapper />
-          <FeaturedIncentives incentives={featuredIncentives} />
+          <FeaturedIncentives incentives={featuredIncentives} claims={featuredClaims} />
           <Feed currentUserId={session.user.id} />
         </div>
 

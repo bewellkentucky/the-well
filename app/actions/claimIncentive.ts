@@ -64,5 +64,6 @@ export async function claimIncentive(
   }
 
   revalidatePath("/earn")
+  revalidatePath("/")
   return {}
 }
