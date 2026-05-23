@@ -2,16 +2,25 @@
 
 import { useState, useOptimistic, useTransition, useEffect, useRef } from "react"
 import { toggleReaction } from "@/app/actions/toggleReaction"
+import { makeItRain, RAIN_STEP, RAIN_CAP } from "@/app/actions/makeItRain"
+import { avatarColor } from "@/lib/avatarColor"
 import Avatar from "@/app/components/ui/Avatar"
 import type { Kudo, User, Reaction } from "@/app/generated/prisma/client"
 
 const REACTION_CHOICES = ["💧", "💛", "🙌", "🎉", "👏", "🔥", "💯", "🙏", "✨", "❤️"]
+
+type RainRow = {
+  userId: string
+  amount: number
+  user: Pick<User, "fullName" | "email" | "thumbnailUrl">
+}
 
 type KudoWithRelations = Omit<Kudo, "createdAt"> & {
   createdAt: string | Date
   from: Pick<User, "id" | "fullName" | "email" | "thumbnailUrl">
   to: Pick<User, "id" | "fullName" | "email" | "thumbnailUrl">
   reactions: (Reaction & { user: Pick<User, "id"> })[]
+  rains: RainRow[]
 }
 
 type ReactionSummary = { emoji: string; count: number; reacted: boolean }[]
@@ -31,6 +40,33 @@ function summarize(reactions: KudoWithRelations["reactions"], currentUserId: str
   return [...counts.entries()].map(([emoji, count]) => ({ emoji, count, reacted: mine.has(emoji) }))
 }
 
+function RainAvatar({ user }: { user: RainRow["user"] }) {
+  const [failed, setFailed] = useState(false)
+  const color = avatarColor(user.email ?? user.fullName)
+  const initials = user.fullName.split(" ").filter(Boolean).map((n: string) => n[0]).join("").slice(0, 2).toUpperCase()
+
+  if (user.thumbnailUrl && !failed) {
+    const src = user.thumbnailUrl.startsWith("https://lh3.googleusercontent.com/")
+      ? `/api/avatar?url=${encodeURIComponent(user.thumbnailUrl)}`
+      : user.thumbnailUrl
+    return (
+      <img
+        src={src}
+        alt={user.fullName}
+        className={`rain-avatar ${color}`}
+        referrerPolicy="no-referrer"
+        onError={() => setFailed(true)}
+        title={user.fullName}
+      />
+    )
+  }
+  return (
+    <div className={`rain-avatar ${color}`} title={user.fullName}>
+      {initials}
+    </div>
+  )
+}
+
 export default function KudoCard({
   kudo,
   currentUserId,
@@ -40,6 +76,8 @@ export default function KudoCard({
 }) {
   const [pickerOpen, setPickerOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
+  const [isRainPending, startRainTransition] = useTransition()
+  const [rainAnimKey, setRainAnimKey] = useState(0)
   const pickerRef = useRef<HTMLDivElement>(null)
 
   const [optimistic, applyOptimistic] = useOptimistic(
@@ -57,6 +95,19 @@ export default function KudoCard({
       }
       return [...prev, { emoji, count: 1, reacted: true }]
     }
+  )
+
+  const myRain = kudo.rains.find((r) => r.userId === currentUserId)
+  const serverTotal = kudo.rains.reduce((s, r) => s + r.amount, 0)
+
+  const [optimisticRain, applyOptimisticRain] = useOptimistic(
+    { myAmount: myRain?.amount ?? 0, totalAmount: serverTotal, rainerCount: kudo.rains.length, iAmNew: false },
+    (prev) => ({
+      myAmount:     Math.min(prev.myAmount + RAIN_STEP, RAIN_CAP),
+      totalAmount:  prev.totalAmount + RAIN_STEP,
+      rainerCount:  prev.myAmount === 0 ? prev.rainerCount + 1 : prev.rainerCount,
+      iAmNew:       prev.myAmount === 0,
+    })
   )
 
   useEffect(() => {
@@ -77,6 +128,24 @@ export default function KudoCard({
       await toggleReaction(kudo.id, emoji)
     })
   }
+
+  const canRain =
+    !kudo.isPrivate &&
+    kudo.from.id !== currentUserId &&
+    kudo.to.id !== currentUserId
+
+  function handleRain() {
+    if (!canRain || optimisticRain.myAmount >= RAIN_CAP || isRainPending) return
+    setRainAnimKey((k) => k + 1)
+    startRainTransition(async () => {
+      applyOptimisticRain(undefined)
+      await makeItRain(kudo.id)
+    })
+  }
+
+  const isCapped   = optimisticRain.myAmount >= RAIN_CAP
+  const showStrip  = optimisticRain.totalAmount > 0 || kudo.rains.length > 0
+  const stripCount = optimisticRain.rainerCount
 
   return (
     <div className={`kudo${kudo.isPrivate ? " kudo-private" : ""}`}>
@@ -144,7 +213,33 @@ export default function KudoCard({
               </div>
             )}
           </div>
+
+          {canRain && (
+            <button
+              className={`kudo-rain-btn${isCapped ? " capped" : ""}`}
+              onClick={handleRain}
+              disabled={isCapped || isRainPending}
+              title={isCapped ? `You've reached the ${RAIN_CAP}đ limit` : `Add ${RAIN_STEP}đ from your giving balance`}
+            >
+              <span key={rainAnimKey} className={rainAnimKey > 0 ? "rain-pop" : ""}>💧</span>
+              <span>{isCapped ? "Maxed" : `+${RAIN_STEP}đ`}</span>
+            </button>
+          )}
         </div>
+
+        {showStrip && (
+          <div className="kudo-rain-strip">
+            <div className="kudo-rain-avatars">
+              {kudo.rains.slice(0, 5).map((r) => (
+                <RainAvatar key={r.userId} user={r.user} />
+              ))}
+            </div>
+            <span>
+              +{optimisticRain.totalAmount}đ from {stripCount}{" "}
+              {stripCount === 1 ? "person" : "people"}
+            </span>
+          </div>
+        )}
       </div>
     </div>
   )

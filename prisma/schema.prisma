@@ -36,6 +36,7 @@ model User {
   kudosReceived Kudo[]           @relation("KudoTo")
   redemptions   Redemption[]
   reactions     Reaction[]
+  rains         Rain[]
   incentiveClaims IncentiveClaim[]
   balanceAdjustmentsReceived BalanceAdjustment[] @relation("AdjustedUser")
   balanceAdjustmentsGiven    BalanceAdjustment[] @relation("AdjustedBy")
@@ -59,10 +60,24 @@ model Kudo {
   createdAt DateTime @default(now())
 
   reactions Reaction[]
+  rains     Rain[]
 
   @@index([toId, createdAt])
   @@index([fromId, createdAt])
   @@index([createdAt])
+}
+
+model Rain {
+  id        String   @id @default(cuid())
+  kudoId    String
+  kudo      Kudo     @relation(fields: [kudoId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  amount    Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@unique([kudoId, userId])
+  @@index([kudoId])
 }
 
 model Reaction {

@@ -120,6 +120,10 @@ export default async function Feed({ currentUserId }: { currentUserId: string })
       from: { select: { id: true, fullName: true, email: true, thumbnailUrl: true } },
       to:   { select: { id: true, fullName: true, email: true, thumbnailUrl: true } },
       reactions: { include: { user: { select: { id: true } } } },
+      rains: {
+        select: { userId: true, amount: true, user: { select: { fullName: true, email: true, thumbnailUrl: true } } },
+        orderBy: { createdAt: "asc" },
+      },
     },
   })
 
