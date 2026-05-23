@@ -88,7 +88,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const raw = ticket.getPayload()
     if (!raw) throw new Error("empty payload")
     payload = raw
-  } catch {
+  } catch (err) {
+    // TEMP DIAGNOSTIC — remove after root cause confirmed
+    console.error("[chat-auth] verifyIdToken threw:", err instanceof Error ? err.message : String(err))
     return new NextResponse("Unauthorized", { status: 401 })
   }
 
@@ -97,6 +99,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   //    specific iss. We assert this explicitly so that a valid JWT from any
   //    other Google service (e.g. Cloud Run invoker) cannot reach our logic.
   if (payload.iss !== CHAT_ISSUER) {
+    // TEMP DIAGNOSTIC — remove after root cause confirmed
+    console.error("[chat-auth] issuer-pin failed — got iss:", payload.iss, "| got aud:", payload.aud, "| expected iss:", CHAT_ISSUER, "| expected aud:", projectNumber)
     return new NextResponse("Unauthorized", { status: 401 })
   }
 
