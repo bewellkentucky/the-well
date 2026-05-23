@@ -2,7 +2,10 @@
 
 import { useState, useOptimistic, useTransition, useEffect, useRef } from "react"
 import { toggleReaction } from "@/app/actions/toggleReaction"
-import { makeItRain, RAIN_STEP, RAIN_CAP } from "@/app/actions/makeItRain"
+import { makeItRain } from "@/app/actions/makeItRain"
+
+const RAIN_STEP = 5
+const RAIN_CAP  = 25
 import { avatarColor } from "@/lib/avatarColor"
 import Avatar from "@/app/components/ui/Avatar"
 import type { Kudo, User, Reaction } from "@/app/generated/prisma/client"

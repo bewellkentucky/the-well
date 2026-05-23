@@ -4,8 +4,8 @@ import { auth } from "@/auth"
 import { db } from "@/lib/db"
 import { revalidatePath } from "next/cache"
 
-export const RAIN_STEP = 5
-export const RAIN_CAP  = 25
+const RAIN_STEP = 5
+const RAIN_CAP  = 25
 
 export async function makeItRain(kudoId: string): Promise<{ error?: string; newAmount?: number }> {
   const session = await auth()
