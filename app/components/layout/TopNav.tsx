@@ -51,7 +51,7 @@ export default async function TopNav() {
             <span className="tnav-bal-num">{balance}</span>
             <span className="tnav-bal-unit">đ earned</span>
           </div>
-          <UserDropdown name={displayName} thumbnailUrl={thumbnailUrl} />
+          <UserDropdown name={displayName} thumbnailUrl={thumbnailUrl} showAdmin={showAdmin} />
         </div>
 
       </div>

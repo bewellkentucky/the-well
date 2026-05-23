@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { useState, useRef, useEffect } from "react"
 import Avatar from "@/app/components/ui/Avatar"
 import { doSignOut } from "@/app/actions/auth"
@@ -7,9 +8,11 @@ import { doSignOut } from "@/app/actions/auth"
 export default function UserDropdown({
   name,
   thumbnailUrl,
+  showAdmin = false,
 }: {
   name:         string
   thumbnailUrl: string | null
+  showAdmin?:   boolean
 }) {
   const firstName = name.split(" ")[0] || name
   const [open, setOpen] = useState(false)
@@ -54,6 +57,11 @@ export default function UserDropdown({
 
           {/* Menu items */}
           <div className="user-dd-items">
+            {showAdmin && (
+              <Link href="/admin" className="user-dd-item" role="menuitem" onClick={() => setOpen(false)}>
+                Admin portal
+              </Link>
+            )}
             <form action={doSignOut}>
               <button type="submit" className="user-dd-item" role="menuitem">
                 Sign out

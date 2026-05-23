@@ -16,14 +16,11 @@ export const NAV_TABS = [
     ),
   },
   {
-    href: "/team",
-    label: "Team",
+    href: "/earn",
+    label: "Earn",
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M9 7a3 3 0 1 0 6 0a3 3 0 0 0 -6 0"/>
-        <path d="M3 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2"/>
-        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-        <path d="M21 21v-2a4 4 0 0 0 -3 -3.85"/>
+        <path d="M12 17.75l-6.172 3.245l1.179 -6.873l-5 -4.867l6.9 -1l3.086 -6.253l3.086 6.253l6.9 1l-5 4.867l1.179 6.873z"/>
       </svg>
     ),
   },
@@ -53,11 +50,14 @@ export const NAV_TABS = [
     ),
   },
   {
-    href: "/earn",
-    label: "Earn",
+    href: "/team",
+    label: "Team",
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M12 17.75l-6.172 3.245l1.179 -6.873l-5 -4.867l6.9 -1l3.086 -6.253l3.086 6.253l6.9 1l-5 4.867l1.179 6.873z"/>
+        <path d="M9 7a3 3 0 1 0 6 0a3 3 0 0 0 -6 0"/>
+        <path d="M3 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2"/>
+        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+        <path d="M21 21v-2a4 4 0 0 0 -3 -3.85"/>
       </svg>
     ),
   },
