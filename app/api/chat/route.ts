@@ -91,6 +91,12 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   } catch (err) {
     // TEMP DIAGNOSTIC — remove after root cause confirmed
     console.error("[chat-auth] verifyIdToken threw:", err instanceof Error ? err.message : String(err))
+    try {
+      const rawPayload = JSON.parse(Buffer.from(token.split(".")[1], "base64url").toString("utf8"))
+      console.error("[chat-auth] token aud is:", rawPayload.aud, "| token iss is:", rawPayload.iss)
+    } catch {
+      console.error("[chat-auth] could not decode token payload")
+    }
     return new NextResponse("Unauthorized", { status: 401 })
   }
 
