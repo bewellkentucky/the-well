@@ -1,4 +1,3 @@
-import Image from "next/image"
 import { auth, signIn, signOut } from "@/auth"
 import { db } from "@/lib/db"
 import PageShell from "@/app/components/layout/PageShell"
@@ -85,12 +84,10 @@ function SignInPage() {
     <main className="min-h-full flex items-center justify-center bg-[#2a3441]">
       <div className="w-full max-w-sm mx-4">
         <div className="flex flex-col items-center gap-6 mb-10">
-          <Image
-            src="/brand-icon.png"
+          <img
+            src="/Be_Well_Icon_Color_transparent.png"
             alt="Be Well Kentucky"
-            width={72}
-            height={72}
-            priority
+            style={{ height: 72, width: "auto" }}
           />
           <div className="text-center">
             <h1 className="font-[family-name:var(--font-lora)] text-3xl text-[#f4f1ec]">
