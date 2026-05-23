@@ -629,6 +629,9 @@ img.avatar  { object-fit: cover; }
 @media (max-width: 768px) {
   .feed-topbar-title { font-size: 28px; }
 }
+@media (max-width: 640px) {
+  .feed-title-col { display: none; }
+}
 
 /* ── Balance widget (right rail, top card) ───────────────── */
 .drops-balance {
