@@ -116,19 +116,31 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       return NextResponse.json(handleAddedToSpace())
 
     case "REMOVED_FROM_SPACE":
-      // No action needed. Return 200 with no body.
-      return new NextResponse(null, { status: 200 })
+      // Google Chat doesn't use the body here; return empty JSON so the
+      // response is well-formed rather than a null body.
+      return NextResponse.json({})
 
-    case "MESSAGE":
-      return NextResponse.json(await handleMessage(event))
+    case "MESSAGE": {
+      // Wrap in try-catch: an unhandled exception (DB error, missing email,
+      // cold-start failure) would otherwise produce a Next.js 500 HTML body,
+      // which Google Chat reads as "not responding."
+      let reply: ChatTextResponse
+      try {
+        reply = await handleMessage(event)
+      } catch (err) {
+        console.error("[chat] handleMessage error:", err)
+        reply = { text: "Something went wrong. Please try again." }
+      }
+      return NextResponse.json(reply)
+    }
 
     case "CARD_CLICKED":
       // Reserved for Phase 3 (interactive rain/reaction callbacks).
-      // Acknowledge without action until that logic is built and reviewed.
-      return NextResponse.json({ text: "" })
+      // Acknowledge without action; empty object is valid for Chat.
+      return NextResponse.json({})
 
     default:
-      return new NextResponse(null, { status: 200 })
+      return NextResponse.json({})
   }
 }
 
@@ -141,6 +153,10 @@ function handleAddedToSpace(): ChatTextResponse {
 }
 
 async function handleMessage(event: ChatEvent): Promise<ChatTextResponse> {
+  // TEMP DIAGNOSTIC — remove after email field confirmed
+  console.log("[chat] event.user:", JSON.stringify(event.user))
+  console.log("[chat] event.message?.sender:", JSON.stringify(event.message?.sender))
+
   const senderEmail = event.user.email
 
   // Resolve Chat identity → Well user by email.
