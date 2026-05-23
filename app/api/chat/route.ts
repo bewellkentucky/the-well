@@ -143,14 +143,26 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const senderEmail = message.sender?.email ?? chat.user?.email ?? ""
     console.log("[chat] message event | senderEmail:", senderEmail, "| text:", message.text)
 
-    let reply: { text: string }
+    let replyText: string
     try {
-      reply = await handleMessage(senderEmail)
+      replyText = (await handleMessage(senderEmail)).text
     } catch (err) {
       console.error("[chat] handleMessage error:", err)
-      reply = { text: "Something went wrong. Please try again." }
+      replyText = "Something went wrong. Please try again."
     }
-    return NextResponse.json(reply)
+
+    // The new Chat API (add-ons framework) requires the response wrapped in
+    // hostAppDataAction — a bare { text } is only valid for the classic bot format.
+    console.log("[chat] replying with text:", replyText)
+    return NextResponse.json({
+      hostAppDataAction: {
+        chatDataAction: {
+          createMessageAction: {
+            message: { text: replyText },
+          },
+        },
+      },
+    })
   }
 
   // Unknown payload shape — acknowledge without replying.
