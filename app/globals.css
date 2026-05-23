@@ -85,15 +85,32 @@ img.avatar  { object-fit: cover; }
   border-radius: 0 2px 2px 0;
 }
 
-.kudo-content { flex: 1; min-width: 0; }
+.kudo-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
 
+/* Outer header row: timestamp pinned right, never wraps */
 .kudo-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+/* Inner group: names/arrow/amount/badge wrap freely */
+.kudo-header-main {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: 6px;
-  margin-bottom: 8px;
+  flex: 1;
+  min-width: 0;
 }
+
 .kudo-from, .kudo-to { font-weight: 600; font-size: 14px; color: var(--ink); }
 .kudo-arrow { color: var(--honey-deep); font-size: 14px; margin: 0 2px; }
 
@@ -127,22 +144,21 @@ img.avatar  { object-fit: cover; }
   font-size: 11px;
   color: var(--ink-soft);
   opacity: 0.6;
-  margin-left: auto;
+  flex-shrink: 0;
   white-space: nowrap;
+  padding-top: 2px;
 }
 
 .kudo-message {
   font-size: 14px;
   color: var(--ink-soft);
   line-height: 1.55;
-  margin-bottom: 10px;
 }
 
 .kudo-values {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  margin-bottom: 10px;
 }
 .kudo-value-pill {
   font-size: 10px;
