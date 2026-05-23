@@ -68,38 +68,9 @@ const SEED_KUDOS = [
 ] as const
 
 async function seedIfNeeded() {
-  // User upserts run every time — they're idempotent and need to backfill
-  // new fields (birthday, hireDate) on existing rows without a full reseed.
-  // create= full row on first insert
-  // update= display fields + null-safe date backfill (never overwrites BambooHR data)
-  for (const u of SEED_USERS) {
-    await db.user.upsert({
-      where: { email: u.email },
-      create: {
-        email: u.email, fullName: u.fullName, title: u.title, role: u.role,
-        domain: "bewellkentucky.com",
-        ...(u.birthday && { birthday: u.birthday }),
-        ...(u.hireDate && { hireDate: u.hireDate }),
-      },
-      update: { fullName: u.fullName, title: u.title },
-    })
-    // Backfill dates only when both are still null — safe once BambooHR runs.
-    if (u.birthday || u.hireDate) {
-      await db.user.updateMany({
-        where: {
-          email: u.email,
-          birthday: null,
-          hireDate: null,
-        },
-        data: {
-          ...(u.birthday && { birthday: u.birthday }),
-          ...(u.hireDate && { hireDate: u.hireDate }),
-        },
-      })
-    }
-  }
-
-  // Kudo seed is guarded — only runs once on a fresh database.
+  // Exit immediately if already seeded — avoids 20+ sequential DB queries on
+  // every production render. New seed fields must be backfilled via the
+  // Supabase SQL Editor (see CLAUDE.md), not by re-running upserts on every load.
   if (await db.kudo.count() > 0) return
 
   // Build email → id map
