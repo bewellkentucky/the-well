@@ -67,6 +67,7 @@ const REWARDS = [
 ]
 
 export async function seedRewards() {
+  if (await db.reward.count() > 0) return
   for (const reward of REWARDS) {
     await db.reward.upsert({
       where: { id: reward.id },

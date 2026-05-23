@@ -86,6 +86,7 @@ const INCENTIVES = [
 ] as const
 
 export async function seedIncentives() {
+  if (await db.incentive.count() > 0) return
   for (const inc of INCENTIVES) {
     await db.incentive.upsert({
       where: { id: inc.id },

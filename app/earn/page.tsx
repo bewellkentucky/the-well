@@ -13,33 +13,38 @@ export default async function EarnPage() {
 
   const now = new Date()
 
-  const incentives = await db.incentive.findMany({
-    where: {
-      active: true,
-      OR: [
-        { startsAt: null },
-        { startsAt: { lte: now } },
-      ],
-      AND: [
-        {
-          OR: [
-            { endsAt: null },
-            { endsAt: { gte: now } },
-          ],
-        },
-      ],
-    },
-    orderBy: { sortOrder: "asc" },
-  })
-
-  const claims = await db.incentiveClaim.findMany({
-    where: {
-      userId: session.user.id,
-      status: { not: "declined" },
-    },
-    select: { incentiveId: true, status: true, createdAt: true },
-    orderBy: { createdAt: "desc" },
-  })
+  const [incentives, claims, user] = await Promise.all([
+    db.incentive.findMany({
+      where: {
+        active: true,
+        OR: [
+          { startsAt: null },
+          { startsAt: { lte: now } },
+        ],
+        AND: [
+          {
+            OR: [
+              { endsAt: null },
+              { endsAt: { gte: now } },
+            ],
+          },
+        ],
+      },
+      orderBy: { sortOrder: "asc" },
+    }),
+    db.incentiveClaim.findMany({
+      where: {
+        userId: session.user.id,
+        status: { not: "declined" },
+      },
+      select: { incentiveId: true, status: true, createdAt: true },
+      orderBy: { createdAt: "desc" },
+    }),
+    db.user.findUnique({
+      where: { id: session.user.id },
+      select: { balance: true, givingBalance: true },
+    }),
+  ])
 
   // For cap enforcement in the UI, reduce to the most relevant claim per incentive
   const relevantClaims = incentives.flatMap((inc) => {
@@ -59,11 +64,6 @@ export default async function EarnPage() {
     }
     // "once" or "unlimited" — show the most recent non-declined claim
     return [{ incentiveId: inc.id, status: incClaims[0].status }]
-  })
-
-  const user = await db.user.findUnique({
-    where: { id: session.user.id },
-    select: { balance: true, givingBalance: true },
   })
 
   return (
