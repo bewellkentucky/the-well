@@ -130,7 +130,7 @@ export default function Composer({
           <input
             className="recipient-input"
             type="text"
-            placeholder="@Who deserves it? Start typing a name..."
+            placeholder="@Who deserves it?"
             autoComplete="off"
             value={query}
             onChange={(e) => {

@@ -318,6 +318,22 @@ img.avatar  { object-fit: cover; }
   flex-wrap: wrap;
 }
 
+@media (max-width: 640px) {
+  .composer-actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  .composer-actions .btn {
+    width: 100%;
+    justify-content: center;
+  }
+  .composer-meta {
+    font-size: 13px;
+    opacity: 0.8;
+  }
+}
+
 .privacy-switch {
   display: inline-flex;
   align-items: center;
