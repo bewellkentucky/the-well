@@ -116,24 +116,18 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     return new NextResponse("Bad Request", { status: 400 })
   }
 
-  // TEMP DIAGNOSTIC — remove after round-trip confirmed end-to-end
-  console.log("[chat] raw body:", JSON.stringify(body))
-
   // ── Step 5: Dispatch on payload key under body.chat.
   const chat = (body as ChatBody).chat
   if (!chat) {
-    console.log("[chat] no chat key in body — ignoring")
     return NextResponse.json({})
   }
 
   if (chat.addedToSpacePayload !== undefined) {
     // Synchronous text replies to add-to-space are auto-deleted by Chat.
-    console.log("[chat] addedToSpace — no reply")
     return NextResponse.json({})
   }
 
   if (chat.removedFromSpacePayload !== undefined) {
-    console.log("[chat] removedFromSpace — no reply")
     return NextResponse.json({})
   }
 
@@ -141,19 +135,16 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const { message } = chat.messagePayload
     // Prefer message.sender.email; fall back to top-level user.email.
     const senderEmail = message.sender?.email ?? chat.user?.email ?? ""
-    console.log("[chat] message event | senderEmail:", senderEmail, "| text:", message.text)
 
     let replyText: string
     try {
       replyText = (await handleMessage(senderEmail)).text
-    } catch (err) {
-      console.error("[chat] handleMessage error:", err)
+    } catch {
       replyText = "Something went wrong. Please try again."
     }
 
     // The new Chat API (add-ons framework) requires the response wrapped in
     // hostAppDataAction — a bare { text } is only valid for the classic bot format.
-    console.log("[chat] replying with text:", replyText)
     return NextResponse.json({
       hostAppDataAction: {
         chatDataAction: {
@@ -165,8 +156,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     })
   }
 
-  // Unknown payload shape — acknowledge without replying.
-  console.log("[chat] unknown payload keys:", Object.keys(chat))
   return NextResponse.json({})
 }
 
