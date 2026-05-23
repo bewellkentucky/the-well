@@ -395,9 +395,33 @@ is intentionally gated to Google OAuth sign-in in the app.
 
 ### Build order
 
-1. Cloud project + Chat API enablement + app registration + interaction endpoint scaffold
+1. Cloud project + Chat API enablement + app registration + interaction endpoint scaffold ✅
 2. One-way posting (kudos → #kudos space) + user resolution + no-account reply
 3. Interactive rain callback — **built last, reviewed carefully** (money logic)
+
+### Deferred Chat features
+
+#### Interactive 2-way rain callback (committed — build after one-way posting)
+
+Bot posts a kudo card with a "Make it rain" button. Tapping it moves drops in the app. Money logic over a new surface — this is high-risk and must be built in stages:
+
+1. **Card + button posts** — kudo cards appear in Chat with the button rendered; no click handling yet.
+2. **Click reaches and logs** — `CARD_CLICKED` events arrive, actor is re-derived server-side, all data is logged but no money moves.
+3. **Wire the transaction** — reviewed separately before merging. Reuses the existing atomic rain transaction with all guarantees: allowance check, 25đ cap, no double-spend.
+
+Security requirements that cannot be skipped:
+- Verify `CARD_CLICKED` events rigorously — same JWT verification as message events.
+- **Never trust the button payload for actor identity.** Re-derive the actor from the verified JWT `email` claim on every click. The button payload is user-controlled data.
+- Same `$transaction` + in-tx re-reads as the in-app path. No shortcuts because the surface is different.
+
+#### Private kudos as recipient-only DMs (under consideration — not committed)
+
+Instead of private kudos touching Chat not at all, optionally DM them to the recipient only. Two wrinkles to resolve before building:
+
+- **What does "private" mean?** "Not broadcast to the space" or "stay in-app only entirely"? If it means the latter, a DM is unwanted even for the recipient — the sender chose to keep it off Chat. Decide based on real usage.
+- **Silent failure for non-adopters.** The bot can only DM users who have installed it. A private kudo DM silently fails for non-adopters, creating partial behavior that's hard to explain.
+
+Default for now: **private kudos = nothing in Chat** (fail-safe to silent). Revisit after seeing real private-kudo usage and bot adoption numbers.
 
 ### Reference
 
