@@ -58,15 +58,13 @@ export default function Composer({
     return () => document.removeEventListener("mousedown", handler)
   }, [])
 
-  const filtered =
-    query.trim().length > 0
-      ? users.filter(
-          (u) =>
-            u.id !== currentUserId &&
-            (u.fullName.toLowerCase().includes(query.toLowerCase()) ||
-              u.email.toLowerCase().includes(query.toLowerCase()))
-        )
-      : []
+  const filtered = users.filter(
+    (u) =>
+      u.id !== currentUserId &&
+      (query.trim() === "" ||
+        u.fullName.toLowerCase().includes(query.toLowerCase()) ||
+        u.email.toLowerCase().includes(query.toLowerCase()))
+  )
 
   function selectUser(u: User) {
     setSelectedUser(u)
@@ -138,12 +136,12 @@ export default function Composer({
               setSelectedUser(null)
               setShowSuggestions(true)
             }}
-            onFocus={() => { if (query.trim()) setShowSuggestions(true) }}
+            onFocus={() => setShowSuggestions(true)}
           />
           {showSuggestions && filtered.length > 0 && (
             <div className="suggestions">
-              {filtered.slice(0, 8).map((u) => (
-                <div key={u.id} className="suggestion" onMouseDown={() => selectUser(u)}>
+              {filtered.map((u) => (
+                <div key={u.id} className="suggestion" onMouseDown={(e) => e.preventDefault()} onClick={() => selectUser(u)}>
                   <Avatar name={u.fullName} email={u.email} thumbnailUrl={u.thumbnailUrl} size="sm" />
                   <div className="suggestion-info">
                     <div className="suggestion-name">{u.fullName}</div>
