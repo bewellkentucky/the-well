@@ -1,12 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
-import { auth } from "@/auth"
 
 export async function GET(req: NextRequest) {
-  const session = await auth()
-  if (!session?.user?.id) {
-    return new NextResponse(null, { status: 401 })
-  }
-
   const url = req.nextUrl.searchParams.get("url")
   if (!url) return new NextResponse(null, { status: 400 })
 
@@ -17,7 +11,8 @@ export async function GET(req: NextRequest) {
     return new NextResponse(null, { status: 400 })
   }
 
-  // Only proxy Google profile photo CDN — no open redirect
+  // Only proxy Google profile photo CDN — hostname pin prevents SSRF/open-relay.
+  // Google profile photos are public; auth() provided no meaningful access control here.
   if (parsed.hostname !== "lh3.googleusercontent.com") {
     return new NextResponse(null, { status: 400 })
   }

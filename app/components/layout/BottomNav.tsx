@@ -12,7 +12,7 @@ export default function BottomNav() {
         {NAV_TABS.map((tab) => {
           const active = tab.href === "/" ? pathname === "/" : pathname.startsWith(tab.href)
           return (
-            <Link key={tab.href} href={tab.href} className={`mnav-btn${active ? " active" : ""}`}>
+            <Link key={tab.href} href={tab.href} prefetch={false} className={`mnav-btn${active ? " active" : ""}`}>
               <div className="mnav-icon-wrap">
                 <span className="mnav-icon">{tab.icon}</span>
               </div>

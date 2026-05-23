@@ -71,7 +71,7 @@ export default function NavLinks({ showAdmin = false }: { showAdmin?: boolean })
       {NAV_TABS.map((tab) => {
         const active = tab.href === "/" ? pathname === "/" : pathname.startsWith(tab.href)
         return (
-          <Link key={tab.href} href={tab.href} className={`desktop-nav-link${active ? " active" : ""}`}>
+          <Link key={tab.href} href={tab.href} prefetch={false} className={`desktop-nav-link${active ? " active" : ""}`}>
             {tab.label}
           </Link>
         )
@@ -81,6 +81,7 @@ export default function NavLinks({ showAdmin = false }: { showAdmin?: boolean })
           <span className="desktop-nav-divider" />
           <Link
             href="/admin"
+            prefetch={false}
             className={`desktop-nav-link desktop-nav-link-admin${pathname.startsWith("/admin") ? " active" : ""}`}
           >
             Admin

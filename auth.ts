@@ -62,17 +62,34 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
       return true
     },
-    async session({ session, token }) {
-      if (session.user?.email) {
+    async jwt({ token, trigger }) {
+      // Cache user data in the JWT on sign-in so session() needs no DB query.
+      // To revoke access immediately: rotate AUTH_SECRET in Vercel env vars —
+      // all existing tokens become invalid and everyone must re-authenticate.
+      if ((trigger === "signIn" || trigger === "signUp") && token.email) {
         const user = await db.user.findUnique({
-          where: { email: session.user.email },
+          where: { email: token.email },
           select: { id: true, role: true, entity: true, active: true, thumbnailUrl: true },
         })
-        if (!user?.active) return session
-        session.user.id = user.id
-        session.user.role = user.role
-        session.user.entity = user.entity
-        session.user.image = user.thumbnailUrl ?? session.user.image ?? null
+        if (user) {
+          token.userId       = user.id
+          token.role         = user.role
+          token.entity       = user.entity
+          token.active       = user.active
+          token.thumbnailUrl = user.thumbnailUrl
+        }
+      }
+      return token
+    },
+    async session({ session, token }) {
+      // Reads from JWT — zero DB round-trips per request.
+      // Inactive users: id stays unset, every page redirects to sign-in.
+      if (token.active === false) return session
+      if (token.userId) {
+        session.user.id     = token.userId      as string
+        session.user.role   = token.role        as string
+        session.user.entity = token.entity      as string
+        session.user.image  = (token.thumbnailUrl as string | null) ?? session.user.image ?? null
       }
       return session
     },
