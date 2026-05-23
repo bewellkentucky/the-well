@@ -3168,3 +3168,10 @@ img.avatar  { object-fit: cover; }
   font-weight: 500;
   color: var(--ink);
 }
+
+/* ── iOS auto-zoom prevention ────────────────────────────────── */
+/* iOS Safari zooms on focus when an input's computed font-size < 16px.
+   !important beats per-class overrides so no future input can sneak below 16px. */
+input, textarea, select {
+  font-size: 16px !important;
+}
