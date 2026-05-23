@@ -819,6 +819,7 @@ img.avatar  { object-fit: cover; }
   align-items: center;
   justify-content: space-between;
   gap: 16px;
+  position: relative;
 }
 
 /* ── Brand mark ──────────────────────────────────────────── */
@@ -881,7 +882,15 @@ img.avatar  { object-fit: cover; }
   height: 36px;
 }
 @media (max-width: 640px) {
-  .tnav-wm-slot { display: grid; }
+  .tnav-wm-slot {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    display: grid;
+    max-width: calc(100% - 200px);
+    overflow: hidden;
+  }
 }
 
 .tnav-wm-wordmark,
@@ -895,6 +904,7 @@ img.avatar  { object-fit: cover; }
   display: flex;
   flex-direction: column;
   justify-content: center;
+  align-items: center;
   line-height: 1.1;
 }
 
@@ -902,6 +912,7 @@ img.avatar  { object-fit: cover; }
   display: flex;
   flex-direction: row;
   align-items: center;
+  justify-content: center;
   white-space: nowrap;
 }
 
