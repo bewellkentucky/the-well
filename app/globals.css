@@ -3303,10 +3303,11 @@ img.avatar  { object-fit: cover; }
   font-size: 15px;
   font-weight: 500;
   color: var(--ink);
-  line-height: 1.25;
+  line-height: 1.4;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  padding-bottom: 2px;
 }
 
 .featured-incentive-reward {
