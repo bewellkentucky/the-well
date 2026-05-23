@@ -62,7 +62,9 @@ export default async function EarnPage() {
       const recent = incClaims.find((c) => new Date(c.createdAt) >= since)
       return recent ? [{ incentiveId: inc.id, status: recent.status }] : []
     }
-    // "once" or "unlimited" — show the most recent non-declined claim
+    // "unlimited" — never lock the button; the modal success screen handles acknowledgment
+    if (inc.cap === "unlimited") return []
+    // "once" — block if any non-declined claim exists
     return [{ incentiveId: inc.id, status: incClaims[0].status }]
   })
 
