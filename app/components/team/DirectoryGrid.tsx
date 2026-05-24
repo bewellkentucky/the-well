@@ -14,7 +14,7 @@ export type DirectoryUser = {
 }
 
 function PersonCard({ user }: { user: DirectoryUser }) {
-  const titleLine = [user.title, user.department].filter(Boolean).join(" · ")
+  const titleLine = user.title ?? ""
 
   return (
     <div className="person-card">
