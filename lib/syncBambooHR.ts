@@ -80,9 +80,10 @@ export async function syncBambooHR(opts: { since?: Date; force?: boolean } = {})
     `BambooHR sync: ${sinceIso ? `incremental since ${sinceIso}` : "full"} — ${employeeIds.length} employees`
   )
 
+  let created  = 0
   let enriched = 0
-  let skipped = 0
-  let errors = 0
+  let skipped  = 0
+  let errors   = 0
 
   for (const id of employeeIds) {
     try {
@@ -90,12 +91,6 @@ export async function syncBambooHR(opts: { since?: Date; force?: boolean } = {})
       if (!emp.workEmail) { skipped++; continue }
 
       const email = (emp.workEmail as string).toLowerCase()
-      const user = await getDb().user.findUnique({ where: { email } })
-      if (!user) {
-        console.warn(`  skip: ${email} is in Bamboo but not in DB`)
-        skipped++
-        continue
-      }
 
       // reportsTo comes back as a plain string (manager display name) or ""
       const reportsTo =
@@ -111,6 +106,30 @@ export async function syncBambooHR(opts: { since?: Date; force?: boolean } = {})
         : emp.firstName && emp.lastName
           ? `${emp.firstName} ${emp.lastName}`
           : undefined
+
+      const user = await getDb().user.findUnique({ where: { email } })
+
+      if (!user) {
+        // Pre-populate — makes the employee recognizable in the app before they sign in.
+        // googleId stays null until they log in via Google OAuth, which fills it in.
+        await getDb().user.create({
+          data: {
+            email,
+            fullName:         fullName ?? email,
+            domain:           "bewellkentucky.com",
+            bambooId:         emp.id                  ? String(emp.id)                   : undefined,
+            title:            emp.jobTitle                                                || undefined,
+            department:       emp.department                                              || undefined,
+            location:         emp.location                                                || undefined,
+            reportsTo,
+            hireDate:         emp.hireDate    ? parseBambooDate(emp.hireDate)    : undefined,
+            birthday:         emp.dateOfBirth ? parseBambooDate(emp.dateOfBirth) : undefined,
+            employmentStatus: emp.employmentHistoryStatus                                 || undefined,
+          },
+        })
+        created++
+        continue
+      }
 
       // Use undefined (not null) for absent fields — avoids wiping data Bamboo doesn't own
       await getDb().user.update({
@@ -139,11 +158,11 @@ export async function syncBambooHR(opts: { since?: Date; force?: boolean } = {})
       id:               `bamboohr-${Date.now()}`,
       source:           "bamboohr",
       lastRunAt:        new Date(),
-      recordsProcessed: enriched,
+      recordsProcessed: created + enriched,
       errors,
-      notes:            sinceIso ? `incremental since ${sinceIso}` : "full sync",
+      notes:            `${sinceIso ? `incremental since ${sinceIso}` : "full sync"} — ${created} created, ${enriched} enriched`,
     },
   })
 
-  return { enriched, skipped, errors, total: employeeIds.length }
+  return { created, enriched, skipped, errors, total: employeeIds.length }
 }

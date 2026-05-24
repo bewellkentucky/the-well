@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/reset-allowances",
       "schedule": "0 6 1 * *"
+    },
+    {
+      "path": "/api/cron/sync-bamboo",
+      "schedule": "0 7 * * *"
     }
   ]
 }
