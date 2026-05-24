@@ -30,7 +30,7 @@ truth for product behavior and visual design.
 - Kudo composer (recipient picker, value tags, drop amount, public/private toggle, server-side auth guard, balance deduction in a single transaction)
 - Reactions: 10-emoji picker led by 💧, toggle on/off, persisted, optimistic UI
 - Right sidebar: "This month" leaderboard (top givers), "Coming up" (birthdays + anniversaries, 60-day rolling window)
-- Seed data for 10 staff users + 6 kudos, idempotent via stable IDs + upsert
+- Seed data for 10 staff users (idempotent upsert on every sign-in). Kudo seed **removed before launch** — see Database / Prisma gotchas.
 - Navigation: 5 tabs (Feed `/`, Team `/team`, Rewards `/rewards`, Dates `/dates`, Earn `/earn`). Desktop: links in the TopNav header. Mobile: fixed bottom nav. Both use `usePathname()` from shared `NavLinks.tsx`. `PageShell` wraps every authenticated page.
 
 ## The build, in order
@@ -496,19 +496,9 @@ Other staff referenced in mock data: Melissa Gibson (Clinical Director), Hayley 
   `datasource db` block in `schema.prisma` only has `provider = "postgresql"`. Both `url`
   (pooled `DATABASE_URL`) and `directUrl` (`DIRECT_URL`) are set in `prisma.config.ts`
   under `datasource`. Don't put them back in `schema.prisma` — Prisma 7 will reject it.
-- **Seed data uses stable string IDs + upsert for idempotency.** Seed kudos have IDs like
-  `seed-kudo-0`. The kudo seed is guarded by a count check so it only runs once. User
-  upserts run every request (they're idempotent) so new fields added to SEED_USERS (like
-  birthday/hireDate) automatically backfill via a `updateMany WHERE birthday IS NULL`
-  after each upsert. This is BambooHR-safe: once Bamboo sets the dates, the null check
-  fails and the seed no longer touches them. Adding new seed fields to `update:` alone is
-  NOT enough — they must also go in the `updateMany` backfill block.
-- **Adding new fields to SEED_USERS won't populate them on pre-existing rows.** User rows
-  are created once via the `create:` block of the upsert. If you add a new field to the
-  seed after users already exist, the `create:` block never fires for those rows. You must
-  either (a) run a manual `UPDATE` in the Supabase SQL Editor, or (b) add a null-safe
-  `updateMany` backfill in the seed (as done for birthday/hireDate). Re-running the seed
-  alone does nothing for existing rows unless an explicit backfill is wired up.
+- **Kudo seed is GONE — do not re-add it.** `SEED_KUDOS`, `SEED_USERS` (the kudo-seed copy), and `seedIfNeeded()` were removed from `Feed.tsx` before launch (commit f924a49). The count-based guard (`if kudo.count > 0 return`) re-triggered on every render of an empty table — this bit us three times. Production feed must stay empty when the Kudo table is empty. An empty feed is correct; "No kudos yet. Be the first to recognize someone." is the intended empty state.
+- **User upsert still runs on every sign-in** (idempotent). New fields added to `SEED_USERS` in `auth.ts` (or wherever the upsert lives) automatically backfill via a `updateMany WHERE field IS NULL` guard. This is BambooHR-safe: once Bamboo sets the field, the null check fails and the seed no longer touches it. Adding new fields to `update:` alone is NOT enough — they must also go in the `updateMany` backfill block.
+- **Adding new fields to the user upsert won't populate them on pre-existing rows.** User rows are created once via the `create:` block. If you add a new field after users already exist, the `create:` block never fires for those rows. Run a manual `UPDATE` in the Supabase SQL Editor, or add a null-safe `updateMany` backfill (as done for birthday/hireDate).
 
 ## BambooHR field map (confirmed via /v1/meta/fields, subdomain: bewellkentucky)
 
