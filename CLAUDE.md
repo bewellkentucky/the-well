@@ -399,6 +399,31 @@ is intentionally gated to Google OAuth sign-in in the app.
 2. One-way posting — public kudos → #kudos space; private kudos never post (fail-safe to silent). **Next to build; dependency for #3.**
 3. Interactive rain callback — **built last, reviewed carefully** (money logic)
 
+### One-way posting — setup blockers (resolved + remaining)
+
+**Ruled out (confirmed not the cause):**
+- Propagation delay
+- Admin → Chat apps "Allow users to install Chat apps" = ON (lists Be Well Kentucky internal apps)
+- Admin → Workspace Marketplace allowlist = "Allow install of ANY app" (most permissive)
+
+All org-level gates are open.
+
+**Root cause identified:** internally-developed apps must be published to the org (private/internal) via the **Google Workspace Marketplace SDK** before they appear in the space's add-app picker. There is no Marketplace SDK listing yet.
+
+**Next-session setup checklist (in order):**
+1. Read Google docs: "publish a Chat app / private app to your org" (Marketplace SDK publishing flow)
+2. Enable Marketplace SDK API in the `thewell-prod` Cloud project
+3. Configure the app/store listing — set visibility to `bewellkentucky.com` org only
+4. Publish (internal/private — not public)
+5. Add bot to "The Well — Kudos" space via the add-app picker
+6. Grab the space's `spaces/` resource ID (needed for posting API calls)
+7. Generate or locate the service account key → add to Vercel env vars
+8. Write the one-way posting code
+
+**Design decisions locked (do not relitigate):**
+- Shared #kudos space only (not individual DMs for public kudos)
+- Public kudos post; private kudos never post (fail-safe to silent)
+
 ### Deferred Chat features
 
 #### Interactive 2-way rain callback (committed — build after one-way posting)
