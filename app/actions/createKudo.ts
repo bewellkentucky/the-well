@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache"
 import { auth } from "@/auth"
 import { db } from "@/lib/db"
+import { postKudoToChat } from "@/lib/chat/postKudo"
 
 const VALID_VALUES = new Set([
   "Compassion",
@@ -38,7 +39,7 @@ export async function createKudo(params: Params): Promise<{ error: string } | un
 
   const sender = await db.user.findUnique({
     where: { id: currentUserId },
-    select: { givingBalance: true },
+    select: { givingBalance: true, fullName: true },
   })
   if (!sender) return { error: "Sender not found." }
   if (amount > sender.givingBalance) {
@@ -47,7 +48,7 @@ export async function createKudo(params: Params): Promise<{ error: string } | un
 
   const recipient = await db.user.findUnique({
     where: { id: toId, active: true },
-    select: { id: true },
+    select: { id: true, fullName: true },
   })
   if (!recipient) return { error: "Recipient not found." }
 
@@ -64,6 +65,21 @@ export async function createKudo(params: Params): Promise<{ error: string } | un
       data: { balance: { increment: amount } },
     }),
   ])
+
+  // ── Chat posting — after transaction commits, best-effort only.
+  //    Any failure here must never affect kudo creation or the caller.
+  try {
+    await postKudoToChat({
+      isPrivate,
+      giverName:     sender.fullName,
+      recipientName: recipient.fullName,
+      amount,
+      values,
+      message: message.trim(),
+    })
+  } catch (err) {
+    console.error("[chat-post] unexpected throw:", err)
+  }
 
   revalidatePath("/")
 }
