@@ -88,7 +88,11 @@ export async function syncBambooHR(opts: { since?: Date; force?: boolean } = {})
   for (const id of employeeIds) {
     try {
       const emp = await bamboo(`/employees/${id}?fields=${FIELDS}`)
-      if (!emp.workEmail) { skipped++; continue }
+      if (!emp.workEmail) {
+        console.log(`  skip (no workEmail): Bamboo id ${id}`)
+        skipped++
+        continue
+      }
 
       const email = (emp.workEmail as string).toLowerCase()
 
@@ -127,6 +131,7 @@ export async function syncBambooHR(opts: { since?: Date; force?: boolean } = {})
             employmentStatus: emp.employmentHistoryStatus                                 || undefined,
           },
         })
+        console.log(`  created: ${email}`)
         created++
         continue
       }
@@ -146,6 +151,7 @@ export async function syncBambooHR(opts: { since?: Date; force?: boolean } = {})
           employmentStatus: emp.employmentHistoryStatus                   || undefined,
         },
       })
+      console.log(`  enriched: ${email}`)
       enriched++
     } catch (err) {
       console.error(`  error syncing Bamboo id ${id}:`, err)

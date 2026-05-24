@@ -13,7 +13,7 @@ async function main() {
 
   const result = await syncBambooHR({ since, force })
   console.log(
-    `\nSync complete: ${result.enriched} enriched, ${result.skipped} skipped, ${result.errors} errors (${result.total} total)`
+    `\nSync complete: ${result.created} created, ${result.enriched} enriched, ${result.skipped} skipped, ${result.errors} errors (${result.total} total)`
   )
   process.exit(result.errors > 0 ? 1 : 0)
 }
