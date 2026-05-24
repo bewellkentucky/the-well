@@ -66,8 +66,7 @@ export async function createKudo(params: Params): Promise<{ error: string } | un
     }),
   ])
 
-  // ── Chat posting — after transaction commits, best-effort only.
-  //    Any failure here must never affect kudo creation or the caller.
+  // Chat posting — after transaction commits, best-effort only.
   try {
     await postKudoToChat({
       isPrivate,
@@ -78,7 +77,7 @@ export async function createKudo(params: Params): Promise<{ error: string } | un
       message: message.trim(),
     })
   } catch (err) {
-    console.error("[chat-post] unexpected throw:", err)
+    console.error("postKudoToChat:", err)
   }
 
   revalidatePath("/")

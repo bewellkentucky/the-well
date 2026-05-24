@@ -396,33 +396,28 @@ is intentionally gated to Google OAuth sign-in in the app.
 ### Build order
 
 1. Cloud project + Chat API enablement + app registration + interaction endpoint scaffold ✅
-2. One-way posting — public kudos → #kudos space; private kudos never post (fail-safe to silent). **Next to build; dependency for #3.**
+2. One-way posting — public kudos → #kudos space; private kudos never post (fail-safe to silent). ✅
 3. Interactive rain callback — **built last, reviewed carefully** (money logic)
 
-### One-way posting — setup blockers (resolved + remaining)
+### One-way posting — completed setup (hard-won reference)
 
-**Ruled out (confirmed not the cause):**
-- Propagation delay
-- Admin → Chat apps "Allow users to install Chat apps" = ON (lists Be Well Kentucky internal apps)
-- Admin → Workspace Marketplace allowlist = "Allow install of ANY app" (most permissive)
+**What's running in production:**
+- Service account: `the-well-chat-poster@thewell-prod.iam.gserviceaccount.com`
+- Vercel env: `GCHAT_SA_KEY` (full SA JSON), `GCHAT_KUDOS_SPACE` = `spaces/AAQAnfLSHXY`
+- Auth: `google-auth-library` GoogleAuth, scope `chat.bot`, POSTs to `https://chat.googleapis.com/v1/{space}/messages`
+- Code: `lib/chat/postKudo.ts` → called from `app/actions/createKudo.ts` after the transaction
 
-All org-level gates are open.
+**Full setup required (document for future reference — none of these are optional):**
 
-**Root cause identified:** internally-developed apps must be published to the org (private/internal) via the **Google Workspace Marketplace SDK** before they appear in the space's add-app picker. There is no Marketplace SDK listing yet.
+1. **Marketplace SDK — publish as PRIVATE app.** App Config settings that matter:
+   - Visibility: **Private** (bewellkentucky.com only) — **PERMANENT once saved, cannot be changed**
+   - Install: Individual + Admin
+   - Integration type: Standalone Chat App
+   - Store Listing requires: icons (32px + 128px), 220×140 banner, at least one screenshot, Terms/Privacy/Support URLs, All Regions
+2. **Chat API Configuration → enable "Join spaces and group conversations."** This was the actual unlock — without it the bot can DM but cannot join or post to spaces. Nothing in the Marketplace SDK flow hints at this.
+3. **Do NOT add `chat.bot` scope on the Marketplace SDK OAuth scopes page.** Google's docs explicitly say it doesn't go there; adding it causes errors.
 
-**Next-session setup checklist (in order):**
-1. Read Google docs: "publish a Chat app / private app to your org" (Marketplace SDK publishing flow)
-2. Enable Marketplace SDK API in the `thewell-prod` Cloud project
-3. Configure the app/store listing — set visibility to `bewellkentucky.com` org only
-4. Publish (internal/private — not public)
-5. Add bot to "The Well — Kudos" space via the add-app picker
-6. Grab the space's `spaces/` resource ID (needed for posting API calls)
-7. Generate or locate the service account key → add to Vercel env vars
-8. Write the one-way posting code
-
-**Design decisions locked (do not relitigate):**
-- Shared #kudos space only (not individual DMs for public kudos)
-- Public kudos post; private kudos never post (fail-safe to silent)
+**Privacy gate (permanent — do not remove):** `if (params.isPrivate !== false) return` in `lib/chat/postKudo.ts`. Posts only when `isPrivate` is explicitly `false`. Any other value (true, null, undefined) → silent no-op. Fail-safe to silent.
 
 ### Deferred Chat features
 

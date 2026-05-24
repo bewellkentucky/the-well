@@ -25,10 +25,7 @@ export async function postKudoToChat(params: Params): Promise<void> {
   // ── Privacy gate ───────────────────────────────────────────────────────────
   // Post ONLY when isPrivate is explicitly false. If true, null, undefined,
   // or any other value → do not post. Fail-safe to silent.
-  if (params.isPrivate !== false) {
-    console.log("[chat-post] skipped-private")
-    return
-  }
+  if (params.isPrivate !== false) return
 
   const saKey   = process.env.GCHAT_SA_KEY
   const spaceId = process.env.GCHAT_KUDOS_SPACE
@@ -52,12 +49,9 @@ export async function postKudoToChat(params: Params): Promise<void> {
     })
 
     if (!res.ok) {
-      console.error("[chat-post] error:", res.status, await res.text())
-      return
+      console.error("postKudoToChat:", res.status, await res.text())
     }
-
-    console.log("[chat-post] success")
   } catch (err) {
-    console.error("[chat-post] error:", err)
+    console.error("postKudoToChat:", err)
   }
 }
