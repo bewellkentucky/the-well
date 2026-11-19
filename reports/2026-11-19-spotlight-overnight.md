@@ -541,6 +541,10 @@ passes with local settings only.
 - **Decision for you:** I read "no outbound action" strictly, so an admin
   can't run a BambooHR sync to pre-load people before launch. If you'd like
   that, it's a one-line change in `syncBambooHR`.
+- **Update:** BambooHR sync now runs while a company is closed (cron,
+  admin button and command line). It only reads from BambooHR and sends
+  nothing to staff. People it creates or updates still can't sign in until
+  the company opens. Chat and the allowance reset stay blocked.
 - **Local seed:** both fictional companies are seeded open so dev works, with
   one fictional tester (Priya Okafor). New companies created in `/platform`
   start closed.

@@ -94,9 +94,11 @@ No email provider in v1 (Resend removed). PWA, no app store.
   is coming soon" (`/?signin=closed&c=<slug>`, or an old session), no user
   row is created or updated, and an audit row `signin_refused_closed` is
   written (`AuditLog.actorId` is null when there is no person). Nothing
-  outbound runs for a closed company: allowance-reset cron, BambooHR sync
-  (cron, admin button and CLI, enforced in `syncBambooHR`) and Chat posts
-  (`chatTarget` requires `companyOpen`). Keep-warm is unaffected. Opening,
+  outbound runs for a closed company: allowance-reset cron and Chat posts
+  (`chatTarget` requires `companyOpen`). Exception: BambooHR sync (cron,
+  admin button, CLI) runs while closed, since it only reads from Bamboo and
+  sends nothing to staff (decided 2026-11-19); people it creates or updates
+  still can't sign in. Keep-warm is unaffected. Opening,
   closing and tester flags are platform-owner actions in `/platform`, all
   audited. Seeds create both fictional companies open; new companies start
   closed. Any new cron or outbound call must check `isOpen`.

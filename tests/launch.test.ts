@@ -1,12 +1,17 @@
 // Launch switch (Company.isOpen, lib/launch.ts). A closed company admits only
 // platform owners, admins and testers; everyone else is refused, audited, and
 // never gets a user row. Opening is a platform-owner action, audit-logged.
+// BambooHR sync (read-only) still runs while closed; Chat and the allowance
+// reset do not.
 import { describe, it, expect, beforeEach, vi } from "vitest"
 import { db } from "@/lib/db"
 import { resolveGoogleSignIn } from "@/lib/signIn"
 import { getActor } from "@/lib/tenant"
 import { resetAllowances } from "@/lib/allowanceReset"
 import { syncBambooHR } from "@/lib/syncBambooHR"
+import { triggerBambooSync } from "@/app/actions/adminIntegrations"
+import { GET as bambooCron } from "@/app/api/cron/sync-bamboo/route"
+import { NextRequest } from "next/server"
 import { getComingSoonBrand } from "@/lib/brandContext"
 import { setCompanyOpen, setTester } from "@/app/actions/platform"
 import { createKudo } from "@/app/actions/createKudo"
@@ -210,16 +215,15 @@ describe("launch switch: nothing runs for a closed company", () => {
     expect(await db.allowanceReset.count({ where: { companyId: lced.id } })).toBe(0)
   })
 
-  it("BambooHR sync refuses before making any request", async () => {
-    const { lced } = await closedLced()
-    await db.company.update({ where: { id: lced.id }, data: { bambooEnabled: true, bambooSubdomain: "lced" } })
-    const fetchSpy = vi.spyOn(globalThis, "fetch")
-    try {
-      await expect(syncBambooHR(lced.id)).rejects.toThrow(/starts when Spotlight opens/)
-      expect(fetchSpy).not.toHaveBeenCalled()
-    } finally {
-      fetchSpy.mockRestore()
-    }
+  it("Chat and the allowance reset stay blocked even after a BambooHR sync", async () => {
+    const { lced, admin, tester } = await closedLced()
+    await db.company.update({ where: { id: lced.id }, data: { chatSpace: "spaces/AAAA1" } })
+    await withFakeBamboo(lced.id, () => syncBambooHR(lced.id))
+    chatCalls.length = 0
+    setActor(admin.id)
+    await createKudo({ toId: tester.id, amount: 10, message: "Thanks for testing", values: ["Compassion"], isPrivate: false })
+    expect(chatCalls).toEqual([null])
+    expect((await resetAllowances()).map((r) => r.companyId)).not.toContain(lced.id)
   })
 
   it("an admin's public kudo in a closed company never reaches Chat; once open it would", async () => {
@@ -237,5 +241,94 @@ describe("launch switch: nothing runs for a closed company", () => {
     expect(await send()).toBeUndefined()
     expect(chatCalls).toEqual([null, "spaces/AAAA1"])
     expect(chatTarget({ companyOpen: false, isPrivate: false, chatSpace: "spaces/AAAA1" })).toBeNull()
+  })
+})
+
+// Fake BambooHR: two employees, one new and one existing member. Records every
+// request so tests can prove the sync only ever sends GETs to Bamboo.
+const bambooRequests: { url: string; method: string }[] = []
+async function withFakeBamboo<T>(companyId: string, run: () => Promise<T>): Promise<T> {
+  await db.company.update({ where: { id: companyId }, data: { bambooEnabled: true, bambooSubdomain: "lced" } })
+  const prevKey = process.env.BAMBOOHR_API_KEY_LCED
+  process.env.BAMBOOHR_API_KEY_LCED = "fake-test-key"
+  bambooRequests.length = 0
+  const employees: Record<string, object> = {
+    "1": { id: "1", workEmail: "nia.park@lcedky.com", firstName: "Nia", lastName: "Park", jobTitle: "Therapist" },
+    "2": { id: "2", workEmail: "member@lcedky.com", firstName: "Mel", lastName: "Ember", jobTitle: "Dietitian" },
+  }
+  const spy = vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
+    const url = String(input)
+    bambooRequests.push({ url, method: init?.method ?? "GET" })
+    const path = new URL(url).pathname
+    const body = path.endsWith("/employees/directory")
+      ? { employees: [{ id: 1 }, { id: 2 }] }
+      : employees[path.split("/").pop() ?? ""] ?? {}
+    return new Response(JSON.stringify(body), { status: 200, headers: { "Content-Type": "application/json" } })
+  })
+  try {
+    return await run()
+  } finally {
+    spy.mockRestore()
+    if (prevKey === undefined) delete process.env.BAMBOOHR_API_KEY_LCED
+    else process.env.BAMBOOHR_API_KEY_LCED = prevKey
+  }
+}
+
+describe("launch switch: BambooHR sync runs while closed (read-only)", () => {
+  it("pre-loads and enriches people, sending only GETs to Bamboo, and none of them can sign in", async () => {
+    const { lced, member } = await closedLced()
+    const res = await withFakeBamboo(lced.id, () => syncBambooHR(lced.id))
+    expect(res).toMatchObject({ created: 1, enriched: 1, errors: 0 })
+    expect(bambooRequests.length).toBeGreaterThan(0)
+    expect(bambooRequests.every((r) => r.method === "GET" && new URL(r.url).host === "api.bamboohr.com")).toBe(true)
+
+    const nia = await db.user.findUniqueOrThrow({ where: { email: "nia.park@lcedky.com" } })
+    expect(nia).toMatchObject({ companyId: lced.id, role: "member", isTester: false, isPlatformOwner: false, googleId: null })
+    const mel = await db.user.findUniqueOrThrow({ where: { id: member.id } })
+    expect(mel).toMatchObject({ title: "Dietitian", role: "member", isTester: false })
+
+    for (const email of ["nia.park@lcedky.com", "member@lcedky.com"]) {
+      expect(await resolveGoogleSignIn(db, profile(email))).toMatchObject({ ok: false, reason: "closed" })
+    }
+    setActor(nia.id)
+    expect(await getActor()).toBeNull()
+    expect((await db.user.findUniqueOrThrow({ where: { id: nia.id } })).googleId).toBeNull()
+  })
+
+  it("a sync doesn't change who is admitted: an enriched tester stays a tester", async () => {
+    const { lced, tester } = await closedLced()
+    // The tester is Bamboo employee 1, so the sync enriches their row.
+    await db.user.update({ where: { id: tester.id }, data: { email: "nia.park@lcedky.com" } })
+    const res = await withFakeBamboo(lced.id, () => syncBambooHR(lced.id))
+    expect(res).toMatchObject({ created: 0, enriched: 2 })
+    expect(await db.user.findUniqueOrThrow({ where: { id: tester.id } })).toMatchObject({ isTester: true, title: "Therapist" })
+    expect(await resolveGoogleSignIn(db, profile("nia.park@lcedky.com"))).toMatchObject({ ok: true })
+    expect(await resolveGoogleSignIn(db, profile("member@lcedky.com"))).toMatchObject({ ok: false, reason: "closed" })
+  })
+
+  it("the admin button works for a closed company and is audited", async () => {
+    const { lced, admin } = await closedLced()
+    setActor(admin.id)
+    const res = await withFakeBamboo(lced.id, () => triggerBambooSync())
+    expect(res).toMatchObject({ created: 1, enriched: 1 })
+    expect(await db.auditLog.count({ where: { companyId: lced.id, action: "sync_bamboo" } })).toBe(1)
+  })
+
+  it("the cron includes closed companies", async () => {
+    const { lced } = await closedLced()
+    const prev = process.env.CRON_SECRET
+    process.env.CRON_SECRET = "test-cron-secret"
+    try {
+      const req = new NextRequest("http://localhost/api/cron/sync-bamboo", {
+        headers: { authorization: "Bearer test-cron-secret" },
+      })
+      const res = await withFakeBamboo(lced.id, () => bambooCron(req))
+      const json = await res.json()
+      expect(json.results.lced).toMatchObject({ created: 1, enriched: 1 })
+      expect(await db.user.count({ where: { email: "nia.park@lcedky.com" } })).toBe(1)
+    } finally {
+      if (prev === undefined) delete process.env.CRON_SECRET
+      else process.env.CRON_SECRET = prev
+    }
   })
 })

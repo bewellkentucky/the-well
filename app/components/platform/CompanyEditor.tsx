@@ -160,8 +160,8 @@ function LaunchSwitch({ c }: { c: CompanyRow }) {
         <div className="plat-launch-state">{c.isOpen ? "Open to everyone" : "Closed: coming soon"}</div>
         <div className="plat-launch-hint">
           {c.isOpen
-            ? "Everyone from this company's domains can sign in. Cron, Chat posts and BambooHR sync run."
-            : `Only platform owners, admins and testers (${testers}) can sign in. No cron, Chat posts or BambooHR sync. ${c.refusedSignIns} refused sign-in${c.refusedSignIns === 1 ? "" : "s"} so far.`}
+            ? "Everyone from this company's domains can sign in. Chat posts and the allowance reset run."
+            : `Only platform owners, admins and testers (${testers}) can sign in. No Chat posts or allowance reset; BambooHR sync still runs (read-only). ${c.refusedSignIns} refused sign-in${c.refusedSignIns === 1 ? "" : "s"} so far.`}
         </div>
         {error && <div className="prog-error">{error}</div>}
       </div>

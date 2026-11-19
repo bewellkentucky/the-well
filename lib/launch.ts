@@ -5,8 +5,11 @@
 //    (User.isTester) can sign in or use the app;
 //  - everyone else from its domains sees "Spotlight is coming soon", and no
 //    user row is created for them (lib/signIn.ts audits the refusal);
-//  - no cron (allowance reset, BambooHR), Chat post or BambooHR sync runs for
-//    it. The keep-warm cron touches no company and is unaffected.
+//  - no Chat post, allowance reset or other outbound action runs for it. The
+//    exception is BambooHR sync (cron, admin button, CLI): read-only GETs that
+//    send nothing to staff, so people can be pre-loaded before launch. People
+//    it creates or updates are never admins or testers, so they still can't
+//    sign in. The keep-warm cron touches no company and is unaffected.
 // Opening (or closing) is a platform-owner action in /platform, audit-logged.
 
 export type LaunchPerson = { role: string; isPlatformOwner: boolean; isTester: boolean }
