@@ -1,3 +1,5 @@
+> **History.** Written for the single-tenant "The Well" (Be Well Kentucky). Spotlight is multi-tenant; see `CLAUDE.md` for current rules. Names, domains and env vars below may be out of date.
+
 # The Well, Google Chat Integration Addendum
 
 How to make kudos appear in people's Google Chat the moment they're sent, plus weekly digests, milestone reminders, and slash commands.

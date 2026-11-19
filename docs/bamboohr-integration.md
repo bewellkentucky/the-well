@@ -1,3 +1,5 @@
+> **History.** Written for the single-tenant "The Well" (Be Well Kentucky). Spotlight is multi-tenant; see `CLAUDE.md` for current rules. Names, domains and env vars below may be out of date.
+
 # The Well, BambooHR Integration Addendum
 
 Adding BambooHR alongside Workspace. Workspace stays the **identity source** (login, email, name); BambooHR becomes the **HR data source** (hire date, birthday, supervisor, location, time-off, custom fields like Entity).

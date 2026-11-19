@@ -1,3 +1,5 @@
+> **History.** Written for the single-tenant "The Well" (Be Well Kentucky). Spotlight is multi-tenant; see `CLAUDE.md` for current rules. Names, domains and env vars below may be out of date.
+
 # The Well, Real Build Plan
 
 A pragmatic architecture for taking the prototype to a working internal tool for Be Well Kentucky and LCED.

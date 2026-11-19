@@ -1,3 +1,5 @@
+> **History.** Written for the single-tenant "The Well" (Be Well Kentucky). Spotlight is multi-tenant; see `CLAUDE.md` for current rules. Names, domains and env vars below may be out of date.
+
 # The Well, Fulfillment Addendum
 
 How redemptions actually become packages on doorsteps, gift cards in inboxes, and gifted PTO into BambooHR, without anyone at Be Well or LCED touching an order form.
