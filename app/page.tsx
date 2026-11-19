@@ -2,7 +2,8 @@ import { signIn } from "@/auth"
 import { getActor } from "@/lib/tenant"
 import { getRequestBrand } from "@/lib/brandContext"
 import { SIGN_IN_MESSAGES, type SignInDenied } from "@/lib/signIn"
-import { activeIncentiveWhere, buildClaimStatuses, INCENTIVE_ORDER, INCENTIVE_PUBLIC_SELECT } from "@/lib/incentives"
+import { buildClaimStatuses } from "@/lib/incentives"
+import { listFeaturedIncentives } from "@/lib/incentiveQueries"
 import { formatStars } from "@/lib/brand"
 import PageShell from "@/app/components/layout/PageShell"
 import ComposerWrapper from "@/app/components/composer/ComposerWrapper"
@@ -37,29 +38,22 @@ export default async function Home({
   const now = new Date()
   const sdb = actor.db
 
-  const [user, company, candidateIncentives, rawClaims] = await Promise.all([
+  const [user, company, featuredIncentives, rawClaims] = await Promise.all([
     sdb.user.findUnique({
       where: { id: actor.userId },
       select: { givingBalance: true, balance: true },
     }),
     sdb.company.findUnique({
       where: { id: actor.companyId },
-      select: { featuredIncentiveCount: true, name: true },
+      select: { name: true },
     }),
-    sdb.incentive.findMany({
-      where: activeIncentiveWhere(now),
-      orderBy: INCENTIVE_ORDER,
-      take: 10,
-      select: INCENTIVE_PUBLIC_SELECT,
-    }),
+    listFeaturedIncentives(sdb, actor.companyId, now),
     sdb.incentiveClaim.findMany({
       where: { userId: actor.userId, status: { not: "declined" } },
       select: { incentiveId: true, status: true, createdAt: true },
       orderBy: { createdAt: "desc" },
     }),
   ])
-  const featuredCount = Math.max(0, company?.featuredIncentiveCount ?? 2)
-  const featuredIncentives = candidateIncentives.slice(0, featuredCount)
   const featuredClaims = buildClaimStatuses(featuredIncentives, rawClaims, now)
 
   return (

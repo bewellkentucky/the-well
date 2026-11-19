@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation"
 import { getActor } from "@/lib/tenant"
-import { activeIncentiveWhere, buildClaimStatuses, INCENTIVE_ORDER, INCENTIVE_PUBLIC_SELECT } from "@/lib/incentives"
+import { buildClaimStatuses } from "@/lib/incentives"
+import { listActiveIncentives } from "@/lib/incentiveQueries"
 import { formatStars } from "@/lib/brand"
 import PageShell from "@/app/components/layout/PageShell"
 import IncentivesGrid from "@/app/components/earn/IncentivesGrid"
@@ -11,11 +12,7 @@ export default async function EarnPage() {
 
   const now = new Date()
   const [incentives, claims, user] = await Promise.all([
-    actor.db.incentive.findMany({
-      where: activeIncentiveWhere(now),
-      orderBy: INCENTIVE_ORDER,
-      select: INCENTIVE_PUBLIC_SELECT,
-    }),
+    listActiveIncentives(actor.db, now),
     actor.db.incentiveClaim.findMany({
       where: { userId: actor.userId, status: { not: "declined" } },
       select: { incentiveId: true, status: true, createdAt: true },
