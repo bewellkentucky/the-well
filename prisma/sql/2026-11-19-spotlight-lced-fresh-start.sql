@@ -16,13 +16,18 @@
 -- In one transaction (any failure changes nothing):
 --   - deletes LCED's kudos, reactions, pile-ons, incentive claims,
 --     redemptions and old BalanceAdjustment rows;
+--   - returns limited reward stock (+1 per deleted redemption, rewards with
+--     a non-null inventory only). Every redemption here was made on the old
+--     app, which never restocked, not even on decline, so each one still
+--     holds a unit of stock;
 --   - sets every LCED person's giving allowance to the company allowance and
 --     every earned wallet to 0, with an AllowanceReset ledger row each;
 --   - writes audit rows: one per person (old and new balances) and one
 --     company-level summary.
 --
 -- Keeps: people, roles, platform owner flags, Google links, active status,
--- incentives, the rewards catalog (including limited inventory counts),
+-- incentives, the rewards catalog (titles, costs, active flags; only the
+-- limited stock counts change, as above),
 -- company settings, domains, time off, sync history and the audit log.
 -- Deactivates nobody; use query B to choose who to deactivate by hand.
 --
@@ -76,6 +81,20 @@ DELETE FROM "Reaction"       WHERE "companyId" = 'company_lced';
 DELETE FROM "PileOn"         WHERE "companyId" = 'company_lced';
 DELETE FROM "Kudo"           WHERE "companyId" = 'company_lced';
 DELETE FROM "IncentiveClaim" WHERE "companyId" = 'company_lced';
+
+-- Put limited stock back before the redemptions go.
+CREATE TEMP TABLE fresh_start_restock ON COMMIT DROP AS
+SELECT d."rewardId" AS reward_id, count(*)::int AS units
+  FROM "Redemption" d
+  JOIN "Reward" r ON r.id = d."rewardId" AND r."companyId" = d."companyId"
+ WHERE d."companyId" = 'company_lced' AND r.inventory IS NOT NULL
+ GROUP BY d."rewardId";
+
+UPDATE "Reward" r
+   SET inventory = r.inventory + s.units
+  FROM fresh_start_restock s
+ WHERE r.id = s.reward_id AND r."companyId" = 'company_lced';
+
 DELETE FROM "Redemption"     WHERE "companyId" = 'company_lced';
 
 -- BalanceAdjustment is the old single-tenant table: no companyId, so match
@@ -132,9 +151,10 @@ INSERT INTO "AuditLog" ("id", "companyId", "createdAt", "actorId", "actorName",
                         "action", "details", "reason")
 SELECT 'fs_al_company_' || md5(clock_timestamp()::text),
        'company_lced', CURRENT_TIMESTAMP, a.id, a."fullName", 'fresh_start',
-       format('Deleted %s kudos, %s reactions, %s pile-ons, %s incentive claims, %s redemptions, %s balance adjustments. '
+       format('Deleted %s kudos, %s reactions, %s pile-ons, %s incentive claims, %s redemptions (%s limited-stock units returned), %s balance adjustments. '
               'Earned wallets %s -> 0 ⭐ total; giving allowances %s -> %s ⭐ total for %s people.',
-              k.kudos, k.reactions, k.pile_ons, k.claims, k.redemptions, adj.balance_adjustments,
+              k.kudos, k.reactions, k.pile_ons, k.claims, k.redemptions,
+              (SELECT coalesce(sum(units), 0) FROM fresh_start_restock), adj.balance_adjustments,
               k.earned_total, k.giving_total,
               (SELECT coalesce(sum("givingBalance"), 0) FROM "User" WHERE "companyId" = 'company_lced'),
               (SELECT count(*) FROM fresh_start_before)),
@@ -149,8 +169,9 @@ COMMIT;
 -- A. Counts. Run BEFORE the reset and again AFTER, and compare.
 --    After: kudos, reactions, pile_ons, claims, redemptions and
 --    balance_adjustments are 0; earned_total is 0; giving_total is
---    people x allowance; people, admins, linked_google, incentives and
---    rewards are unchanged; harborlight_* (or any other company) unchanged.
+--    people x allowance; limited_stock_total goes up by the number of
+--    deleted redemptions of limited rewards; people, admins, linked_google,
+--    incentives and rewards are unchanged; harborlight_* (or any other company) unchanged.
 -- ════════════════════════════════════════════════════════════════════════════
 -- SELECT
 --   (SELECT count(*) FROM "User"           WHERE "companyId" = 'company_lced') AS people,
@@ -165,6 +186,7 @@ COMMIT;
 --   (SELECT count(*) FROM "BalanceAdjustment" ba JOIN "User" u ON u.id = ba."userId" WHERE u."companyId" = 'company_lced') AS balance_adjustments,
 --   (SELECT count(*) FROM "Incentive"      WHERE "companyId" = 'company_lced') AS incentives,
 --   (SELECT count(*) FROM "Reward"         WHERE "companyId" = 'company_lced') AS rewards,
+--   (SELECT coalesce(sum(inventory), 0)    FROM "Reward" WHERE "companyId" = 'company_lced' AND inventory IS NOT NULL) AS limited_stock_total,
 --   (SELECT coalesce(sum(balance), 0)         FROM "User" WHERE "companyId" = 'company_lced') AS earned_total,
 --   (SELECT coalesce(sum("givingBalance"), 0) FROM "User" WHERE "companyId" = 'company_lced') AS giving_total,
 --   (SELECT "allowanceAmount" FROM "Company" WHERE id = 'company_lced') AS allowance,
@@ -204,3 +226,14 @@ COMMIT;
 --   FROM "User" u
 --  WHERE u."companyId" = 'company_lced'
 --  ORDER BY u.active DESC, last_activity DESC NULLS LAST, u."fullName";
+
+-- ════════════════════════════════════════════════════════════════════════════
+-- C. Limited reward stock, per reward. Run before and after; each limited
+--    reward goes up by its number of deleted redemptions.
+-- ════════════════════════════════════════════════════════════════════════════
+-- SELECT r.title, r.inventory,
+--        (SELECT count(*) FROM "Redemption" d WHERE d."rewardId" = r.id AND d."companyId" = r."companyId") AS redemptions_now
+--   FROM "Reward" r
+--  WHERE r."companyId" = 'company_lced' AND r.inventory IS NOT NULL
+--  ORDER BY r.title;
+

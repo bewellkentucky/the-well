@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react"
 import { createCompany, updateCompany, type CompanyInput } from "@/app/actions/platform"
 import { changeRole } from "@/app/actions/adminPeople"
+import { DEFAULT_THEME, THEME_KEYS, THEME_LABELS, themeContrastPairs, type Theme } from "@/lib/theme"
 
 export type CompanyRow = {
   id: string
@@ -12,7 +13,7 @@ export type CompanyRow = {
   domains: string[]
   appUrl: string | null
   logoUrl: string | null
-  brandColor: string | null
+  theme: Theme | null
   bambooEnabled: boolean
   bambooSubdomain: string | null
   bambooKeyEnv: string
@@ -24,14 +25,14 @@ export type CompanyRow = {
 }
 
 const EMPTY: CompanyInput = {
-  name: "", shortName: null, slug: "", domains: "", appUrl: null, logoUrl: null, brandColor: null,
+  name: "", shortName: null, slug: "", domains: "", appUrl: null, logoUrl: null, theme: null,
   bambooEnabled: false, bambooSubdomain: null, chatSpace: null, active: true,
 }
 
 function toInput(c: CompanyRow): CompanyInput {
   return {
     name: c.name, shortName: c.shortName, slug: c.slug, domains: c.domains.join(", "), appUrl: c.appUrl, logoUrl: c.logoUrl,
-    brandColor: c.brandColor, bambooEnabled: c.bambooEnabled, bambooSubdomain: c.bambooSubdomain,
+    theme: c.theme, bambooEnabled: c.bambooEnabled, bambooSubdomain: c.bambooSubdomain,
     chatSpace: c.chatSpace, active: c.active,
   }
 }
@@ -76,7 +77,6 @@ function CompanyForm({
         <Field label="Sign-in email domains (comma separated)"><input {...text("domains")} placeholder="example.com, alias.com" /></Field>
         <Field label="Company address"><input {...text("appUrl")} placeholder="https://spotlight.example.com" /></Field>
         <Field label="Logo URL"><input {...text("logoUrl")} placeholder="https://…" /></Field>
-        <Field label="Brand color"><input {...text("brandColor")} placeholder="#c2410c" /></Field>
         <Field label="BambooHR subdomain"><input {...text("bambooSubdomain")} placeholder="yourco" /></Field>
         <Field label="Google Chat space"><input {...text("chatSpace")} placeholder="spaces/XXXX" /></Field>
       </div>
@@ -84,6 +84,7 @@ function CompanyForm({
         <label><input type="checkbox" checked={v.bambooEnabled} onChange={(e) => set("bambooEnabled", e.target.checked)} /> BambooHR connected (read-only)</label>
         <label><input type="checkbox" checked={v.active} onChange={(e) => set("active", e.target.checked)} /> Company active</label>
       </div>
+      <ThemeEditor value={v.theme} onChange={(t) => set("theme", t)} />
       {error && <p className="prog-error">{error}</p>}
       <button
         type="button"
@@ -98,6 +99,51 @@ function CompanyForm({
       >
         {isPending ? "Saving…" : saved ? "Saved" : submitLabel}
       </button>
+    </div>
+  )
+}
+
+// 14-color palette with a live WCAG AA check of every text and button pair.
+// The server re-checks and refuses a failing palette.
+function ThemeEditor({ value, onChange }: { value: Theme | null; onChange: (t: Theme | null) => void }) {
+  const t = value ?? DEFAULT_THEME
+  const pairs = themeContrastPairs(t)
+  const failing = pairs.filter((p) => !p.ok)
+  const HEX = /^#[0-9a-f]{6}$/i
+  return (
+    <div className="plat-theme">
+      <div className="plat-theme-head">
+        <span className="adj-label">Color palette</span>
+        <label>
+          <input type="checkbox" checked={value === null} onChange={(e) => onChange(e.target.checked ? null : { ...DEFAULT_THEME })} />{" "}
+          Use Spotlight default
+        </label>
+      </div>
+      {value !== null && (
+        <div className="plat-theme-grid">
+          {THEME_KEYS.map((k) => (
+            <label key={k} className="plat-theme-field">
+              <input
+                type="color"
+                aria-label={THEME_LABELS[k]}
+                value={HEX.test(t[k]) ? t[k] : "#000000"}
+                onChange={(e) => onChange({ ...t, [k]: e.target.value })}
+              />
+              <input
+                className="adj-input"
+                value={t[k]}
+                onChange={(e) => onChange({ ...t, [k]: e.target.value.trim().toLowerCase() })}
+              />
+              <span className="plat-theme-label">{THEME_LABELS[k]}</span>
+            </label>
+          ))}
+        </div>
+      )}
+      <p className={failing.length ? "prog-error" : "plat-theme-ok"}>
+        {failing.length
+          ? `${failing.length} of ${pairs.length} pairs are below 4.5:1: ${failing.map((p) => `${p.use} (${p.ratio}:1)`).join(", ")}`
+          : `All ${pairs.length} text and button pairs pass WCAG AA (4.5:1).`}
+      </p>
     </div>
   )
 }

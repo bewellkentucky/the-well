@@ -4,8 +4,7 @@
 export const PRODUCT_NAME = "Spotlight"
 export const PRODUCT_TAGLINE = "Recognition for teams that care"
 
-// Spotlight's own default look (used when a company has not set a brand color).
-export const DEFAULT_BRAND_COLOR = "#c2410c"
+// Spotlight's default palette lives in lib/theme.ts (DEFAULT_THEME).
 
 // ── Currency ───────────────────────────────────────────────────────────────
 export const STAR = "⭐"

@@ -25,7 +25,7 @@ model Company {
   shortName              String?  // shown under "Spotlight" on phones, e.g. "LCED"; null = name
   appUrl                 String?  // e.g. https://spotlight.louisvillecenterforeatingdisorders.com (platform owner sets)
   logoUrl                String?  // https URL; null = Spotlight mark
-  brandColor             String?  // #rrggbb; null = Spotlight default
+  theme                  Json?    // 14-color palette (lib/theme.ts); null = Spotlight default
   allowanceAmount        Int      @default(100) // giving allowance per person per reset
   featuredIncentiveCount Int      @default(2)   // incentives featured on Home
   bambooEnabled          Boolean  @default(false)
@@ -173,7 +173,7 @@ model Reward {
   category    String // Swag | Gift Card | Time | Office | Team | Growth
   imageUrl    String?
   icon        String  @default("🎁")
-  color       String  @default("#c2410c")
+  color       String  @default("#0f766e")
   inventory   Int? // null = unlimited
   active      Boolean @default(true)
 

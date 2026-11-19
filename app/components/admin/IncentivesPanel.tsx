@@ -43,14 +43,6 @@ export type ClaimHistoryRow = {
   incentiveReward: number
 }
 
-const COLORS = [
-  { label: "Ember",  value: "#c2410c" },
-  { label: "Green",  value: "#5a7d5e" },
-  { label: "Violet", value: "#6d5b86" },
-  { label: "Slate",  value: "#1f2633" },
-  { label: "Gold",   value: "#b7791f" },
-  { label: "Teal",   value: "#2c7a7b" },
-]
 
 const CAP_LABELS: Record<string, string> = {
   once:       "Once",
@@ -138,24 +130,26 @@ function rowToForm(inc: IncentiveAdminRow): FormState {
 
 export default function IncentivesPanel({
   incentives,
+  swatches,
   claimHistory,
   featuredIds,
   featuredCount,
 }: {
   incentives:    IncentiveAdminRow[]
+  swatches: { label: string; value: string }[]
   claimHistory:  ClaimHistoryRow[]
   featuredIds:   string[]
   featuredCount: number
 }) {
   const featured = new Set(featuredIds)
   const [modal, setModal] = useState<{ mode: "new" | "edit"; id: string | null } | null>(null)
-  const [form, setForm]   = useState<FormState>(EMPTY_FORM)
+  const [form, setForm]   = useState<FormState>({ ...EMPTY_FORM, color: swatches[0].value })
   const [formError, setFormError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
   const [claimFilter, setClaimFilter] = useState<ClaimFilter>("all")
 
   function openCreate() {
-    setForm(EMPTY_FORM)
+    setForm({ ...EMPTY_FORM, color: swatches[0].value })
     setFormError(null)
     setModal({ mode: "new", id: null })
   }
@@ -431,7 +425,7 @@ export default function IncentivesPanel({
                   <div className="inc-form-field" style={{ flex: 1 }}>
                     <label className="adj-label">Color</label>
                     <div className="inc-color-swatches">
-                      {COLORS.map((c) => (
+                      {swatches.map((c) => (
                         <button
                           key={c.value}
                           type="button"

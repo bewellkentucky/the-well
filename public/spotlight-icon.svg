@@ -1,5 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="512" height="512">
-  <rect width="64" height="64" rx="14" fill="#1f2633"/>
-  <circle cx="32" cy="34" r="21" fill="#c2410c"/>
-  <polygon points="32.00,17.00 36.23,28.18 48.17,28.75 38.85,36.22 41.99,47.75 32.00,41.20 22.01,47.75 25.15,36.22 15.83,28.75 27.77,28.18" fill="#ffffff" stroke="#ffffff" stroke-width="2.4" stroke-linejoin="round"/>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="512" height="512"><rect width="64" height="64" rx="14" fill="#0f766e"/><g transform="translate(4 4) scale(0.875)"><circle cx="32" cy="32" r="30" fill="#134e4a"/><circle cx="32" cy="32" r="27" fill="none" stroke="#e6f2f0" stroke-width="2"/><polygon points="32.00,13.00 36.97,26.15 51.02,26.82 40.06,35.61 43.75,49.18 32.00,41.47 20.25,49.18 23.94,35.61 12.98,26.82 27.03,26.15" fill="#ffffff" stroke="#ffffff" stroke-width="2.6" stroke-linejoin="round"/></g></svg>

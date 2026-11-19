@@ -8,7 +8,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   if (!actor || !actor.isAdmin) redirect("/")
 
   return (
-    <div style={{ minHeight: "100vh", background: "var(--canvas)" }}>
+    <div style={{ minHeight: "100vh", background: "var(--page)" }}>
       <TopNav />
       {children}
       <BottomNav />

@@ -27,11 +27,11 @@ function RewardCard({
 }) {
   const canAfford = balance >= reward.cost
   const outOfStock = reward.inventory !== null && reward.inventory <= 0
-  const color = /^#[0-9a-fA-F]{6}$/.test(reward.color) ? reward.color : "#c2410c"
+  const color = /^#[0-9a-fA-F]{6}$/.test(reward.color) ? reward.color : "var(--primary)"
 
   return (
     <div className="reward-card">
-      <div className="reward-image" style={{ background: `${color}1a` }}>
+      <div className="reward-image" style={{ background: `color-mix(in srgb, ${color} 10%, transparent)` }}>
         <span className="reward-tag">{reward.category}</span>
         {reward.imageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -105,7 +105,7 @@ export default function RewardsGrid({
   const color =
     confirmingReward && /^#[0-9a-fA-F]{6}$/.test(confirmingReward.color)
       ? confirmingReward.color
-      : "#c2410c"
+      : "var(--primary)"
 
   return (
     <>
@@ -139,7 +139,7 @@ export default function RewardsGrid({
           <div className="reward-modal" onClick={(e) => e.stopPropagation()}>
             <div
               className="reward-modal-img"
-              style={{ background: `${color}1a`, position: "relative" }}
+              style={{ background: `color-mix(in srgb, ${color} 10%, transparent)`, position: "relative" }}
             >
               <div className="reward-icon-art" aria-hidden="true">{confirmingReward.icon}</div>
             </div>
@@ -148,7 +148,7 @@ export default function RewardsGrid({
               <p className="reward-modal-desc">{confirmingReward.description}</p>
               <div className="reward-modal-cost">
                 <span>{confirmingReward.cost.toLocaleString()} ⭐</span>
-                <span style={{ color: "var(--ink-soft)", fontSize: 13 }}>
+                <span style={{ color: "var(--text-muted)", fontSize: 13 }}>
                   &nbsp;from your {balance.toLocaleString()} ⭐ earned
                 </span>
               </div>

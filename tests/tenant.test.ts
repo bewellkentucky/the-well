@@ -202,13 +202,13 @@ describe("admin actions across companies", () => {
     setActor(aAdmin.id)
     expect(await setAllowanceSetting(250)).toEqual({})
     expect(await setFeaturedCount(4)).toEqual({})
-    expect(await setBranding({ logoUrl: "https://example.com/a.png", brandColor: "#123456" })).toEqual({})
+    expect(await setBranding({ logoUrl: "https://example.com/a.png" })).toEqual({})
     const [ca, cb] = await Promise.all([
       db.company.findUniqueOrThrow({ where: { id: a.id } }),
       db.company.findUniqueOrThrow({ where: { id: b.id } }),
     ])
-    expect([ca.allowanceAmount, ca.featuredIncentiveCount, ca.brandColor]).toEqual([250, 4, "#123456"])
-    expect([cb.allowanceAmount, cb.featuredIncentiveCount, cb.brandColor]).toEqual([100, 2, null])
+    expect([ca.allowanceAmount, ca.featuredIncentiveCount, ca.logoUrl]).toEqual([250, 4, "https://example.com/a.png"])
+    expect([cb.allowanceAmount, cb.featuredIncentiveCount, cb.logoUrl]).toEqual([100, 2, null])
   })
 
   it("members can't use admin actions at all", async () => {
@@ -266,7 +266,7 @@ describe("roles and platform", () => {
   it("non-owners can't create or edit companies", async () => {
     const { b, aAdmin } = await twoCompanies()
     setActor(aAdmin.id)
-    const input = { name: "Evil", shortName: null, slug: "evil", domains: "bravo.test", appUrl: null, logoUrl: null, brandColor: null, bambooEnabled: false, bambooSubdomain: null, chatSpace: null, active: true }
+    const input = { name: "Evil", shortName: null, slug: "evil", domains: "bravo.test", appUrl: null, logoUrl: null, theme: null, bambooEnabled: false, bambooSubdomain: null, chatSpace: null, active: true }
     expect((await createCompany(input)).error).toBe("Platform owner only.")
     expect((await updateCompany(b.id, input)).error).toBe("Platform owner only.")
   })
@@ -275,7 +275,7 @@ describe("roles and platform", () => {
     const { a } = await twoCompanies()
     const owner = await makeUser(a.id, { role: "admin", isPlatformOwner: true })
     setActor(owner.id)
-    const input = { name: "Copycat", shortName: null, slug: "copycat", domains: "bravo.test", appUrl: null, logoUrl: null, brandColor: null, bambooEnabled: false, bambooSubdomain: null, chatSpace: null, active: true }
+    const input = { name: "Copycat", shortName: null, slug: "copycat", domains: "bravo.test", appUrl: null, logoUrl: null, theme: null, bambooEnabled: false, bambooSubdomain: null, chatSpace: null, active: true }
     expect((await createCompany(input)).error).toMatch(/Already used by another company: bravo.test/)
   })
 
@@ -283,7 +283,7 @@ describe("roles and platform", () => {
     const { a } = await twoCompanies()
     const owner = await makeUser(a.id, { role: "admin", isPlatformOwner: true })
     setActor(owner.id)
-    const base = { name: "Northwind Family Practice", slug: "northwind", domains: "northwind.test", appUrl: null, logoUrl: null, brandColor: null, bambooEnabled: false, bambooSubdomain: null, chatSpace: null, active: true }
+    const base = { name: "Northwind Family Practice", slug: "northwind", domains: "northwind.test", appUrl: null, logoUrl: null, theme: null, bambooEnabled: false, bambooSubdomain: null, chatSpace: null, active: true }
     expect((await createCompany({ ...base, shortName: "x".repeat(25) })).error).toMatch(/24 characters/)
     const created = await createCompany({ ...base, shortName: "  Northwind  " })
     expect(created.error).toBeUndefined()

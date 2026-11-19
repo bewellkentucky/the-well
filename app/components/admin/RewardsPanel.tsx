@@ -22,14 +22,6 @@ export type RewardAdminRow = {
   redemptionCount: number
 }
 
-const COLORS = [
-  { label: "Sage",       value: "#7a9b7e" },
-  { label: "Terracotta", value: "#c97b5c" },
-  { label: "Plum",       value: "#6b5b73" },
-  { label: "Slate",      value: "#2a3441" },
-  { label: "Honey",      value: "#a89060" },
-  { label: "Teal",       value: "#4a8fa8" },
-]
 
 const CATEGORIES = ["Swag", "Gift Card", "Time", "Office", "Team", "Growth"]
 
@@ -68,16 +60,18 @@ function rowToForm(row: RewardAdminRow): FormState {
 
 export default function RewardsPanel({
   rewards,
+  swatches,
 }: {
   rewards: RewardAdminRow[]
+  swatches: { label: string; value: string }[]
 }) {
   const [modal, setModal] = useState<{ mode: "new" | "edit"; id: string | null } | null>(null)
-  const [form, setForm]   = useState<FormState>(EMPTY_FORM)
+  const [form, setForm]   = useState<FormState>({ ...EMPTY_FORM, color: swatches[0].value })
   const [formError, setFormError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
 
   function openCreate() {
-    setForm(EMPTY_FORM)
+    setForm({ ...EMPTY_FORM, color: swatches[0].value })
     setFormError(null)
     setModal({ mode: "new", id: null })
   }
@@ -250,7 +244,7 @@ export default function RewardsPanel({
                   <div className="inc-form-field" style={{ flex: 1 }}>
                     <label className="adj-label">Color</label>
                     <div className="inc-color-swatches">
-                      {COLORS.map((c) => (
+                      {swatches.map((c) => (
                         <button
                           key={c.value}
                           type="button"

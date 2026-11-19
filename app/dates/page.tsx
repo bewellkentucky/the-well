@@ -151,7 +151,7 @@ export default async function DatesPage() {
             </div>
 
             {grouped.size === 0 ? (
-              <p style={{ color: "var(--ink-soft)", fontSize: 14, padding: "16px 0" }}>
+              <p style={{ color: "var(--text-muted)", fontSize: 14, padding: "16px 0" }}>
                 No upcoming milestones found.
               </p>
             ) : (
@@ -195,7 +195,7 @@ export default async function DatesPage() {
             </div>
 
             {tenureRows.length === 0 ? (
-              <p style={{ color: "var(--ink-soft)", fontSize: 14, padding: "16px 0" }}>
+              <p style={{ color: "var(--text-muted)", fontSize: 14, padding: "16px 0" }}>
                 No hire dates on file yet.
               </p>
             ) : (

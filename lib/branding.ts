@@ -1,13 +1,5 @@
-// Company branding: validation and the CSS override. Plain module.
-import { DEFAULT_BRAND_COLOR } from "@/lib/brand"
-
-const HEX = /^#[0-9a-fA-F]{6}$/
-
-export function normalizeBrandColor(input: unknown): string | null {
-  if (input === null || input === undefined || input === "") return null
-  if (typeof input !== "string" || !HEX.test(input.trim())) throw new Error("Brand color must look like #1a2b3c.")
-  return input.trim().toLowerCase()
-}
+// Company branding: logo, address and name validation. Plain module.
+// Colors live in lib/theme.ts (per-company palette).
 
 export function normalizeLogoUrl(input: unknown): string | null {
   if (input === null || input === undefined || input === "") return null
@@ -37,20 +29,11 @@ export function normalizeAppUrl(input: unknown): string | null {
   return url.origin
 }
 
-/**
- * CSS that applies a company's brand color. Only a validated #rrggbb ever
- * reaches the <style> tag, so nothing can be injected through it.
- */
-export function brandCss(brandColor: string | null | undefined): string {
-  const c = brandColor && HEX.test(brandColor) ? brandColor : DEFAULT_BRAND_COLOR
-  return `html:root{--accent:${c};}`
-}
-
 export type CompanyBrand = {
   name: string
   shortName: string | null
   logoUrl: string | null
-  brandColor: string | null
+  theme: unknown // validated by lib/theme.ts before use
 }
 
 /** Short display name: trimmed, 1 to 24 characters, or null (falls back to name). */

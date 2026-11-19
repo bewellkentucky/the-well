@@ -4,6 +4,8 @@
 // Idempotent: re-running updates company settings and skips existing rows.
 import { db } from "@/lib/db"
 import { scopedDb } from "@/lib/scopedDb"
+import { LCED_THEME, itemSwatches, type Theme } from "@/lib/theme"
+import { Prisma } from "@/app/generated/prisma/client"
 
 type Person = {
   first: string
@@ -38,7 +40,7 @@ const COMPANIES: {
   shortName: string | null
   domains: string[]
   appUrl: string | null
-  brandColor: string | null
+  theme: Theme | null
   allowance: number
   people: Person[]
 }[] = [
@@ -48,7 +50,7 @@ const COMPANIES: {
     shortName: "LCED",
     domains: ["lcedky.com", "bewellkentucky.com"],
     appUrl: "https://spotlight.louisvillecenterforeatingdisorders.com",
-    brandColor: null,
+    theme: LCED_THEME,
     allowance: 100,
     people: [
       { first: "Morgan", last: "Reyes", title: "Operations Director", role: "admin", platformOwner: true, hire: "2019-03-11", birthday: mdFromToday(9), location: "Louisville" },
@@ -67,7 +69,7 @@ const COMPANIES: {
     shortName: "Harborlight",
     domains: ["harborlight.test"],
     appUrl: null,
-    brandColor: "#2563eb",
+    theme: null, // Spotlight default palette
     allowance: 150,
     people: [
       { first: "Theo", last: "Marsh", title: "Director", role: "admin", hire: "2016-02-01", birthday: "01-19" },
@@ -80,21 +82,21 @@ const COMPANIES: {
 ]
 
 const REWARDS = [
-  { title: "Spotlight hoodie", description: "Heavyweight fleece with your team's logo on the chest.", cost: 1200, category: "Swag", icon: "🧥", color: "#5a7d5e" },
-  { title: "Tote bag", description: "Heavy canvas, fits a laptop and a notebook.", cost: 700, category: "Swag", icon: "👜", color: "#6d5b86" },
-  { title: "$25 bookstore gift card", description: "Delivered to your inbox.", cost: 2500, category: "Gift Card", icon: "📚", color: "#c2410c" },
-  { title: "Half day off", description: "Four hours of bonus PTO. Use it whenever.", cost: 5000, category: "Time", icon: "🌤️", color: "#2c7a7b" },
-  { title: "Desk plant", description: "A low-maintenance pothos or snake plant for your space.", cost: 600, category: "Office", icon: "🪴", color: "#5a7d5e" },
-  { title: "Team outing", description: "Bowling or mini golf for your pod. You pick, we book.", cost: 4500, category: "Team", icon: "🎳", color: "#b7791f", inventory: 3 },
-  { title: "CEU stipend", description: "$100 toward an approved continuing education course.", cost: 10000, category: "Growth", icon: "🎓", color: "#1f2633" },
+  { title: "Spotlight hoodie", description: "Heavyweight fleece with your team's logo on the chest.", cost: 1200, category: "Swag", icon: "🧥" },
+  { title: "Tote bag", description: "Heavy canvas, fits a laptop and a notebook.", cost: 700, category: "Swag", icon: "👜" },
+  { title: "$25 bookstore gift card", description: "Delivered to your inbox.", cost: 2500, category: "Gift Card", icon: "📚" },
+  { title: "Half day off", description: "Four hours of bonus PTO. Use it whenever.", cost: 5000, category: "Time", icon: "🌤️" },
+  { title: "Desk plant", description: "A low-maintenance pothos or snake plant for your space.", cost: 600, category: "Office", icon: "🪴" },
+  { title: "Team outing", description: "Bowling or mini golf for your pod. You pick, we book.", cost: 4500, category: "Team", icon: "🎳", inventory: 3 },
+  { title: "CEU stipend", description: "$100 toward an approved continuing education course.", cost: 10000, category: "Growth", icon: "🎓" },
 ]
 
 const INCENTIVES = [
-  { title: "Share a Google review link", description: "Invite a client or family member to leave a Google review. Paste the review link once it posts.", reward: 200, verification: "admin", cap: "unlimited", icon: "⭐", color: "#c2410c", proofPrompt: "Paste the Google review URL" },
-  { title: "Refer a new hire", description: "Refer someone for an open role. Credited after they pass 90 days.", reward: 1000, verification: "admin", cap: "unlimited", icon: "🤝", color: "#5a7d5e", proofPrompt: "Name and email of the person you referred" },
-  { title: "Quarterly safety training", description: "Finish this quarter's safety module and self-attest.", reward: 100, verification: "self", cap: "quarterly", icon: "🛡️", color: "#6d5b86", proofPrompt: null },
-  { title: "Annual compliance training", description: "Complete the yearly compliance course.", reward: 150, verification: "self", cap: "once", icon: "📋", color: "#2c7a7b", proofPrompt: null },
-  { title: "Monthly pulse survey", description: "Two minutes, anonymous. Tell us how things are going.", reward: 50, verification: "self", cap: "monthly", icon: "📣", color: "#b7791f", proofPrompt: null },
+  { title: "Share a Google review link", description: "Invite a client or family member to leave a Google review. Paste the review link once it posts.", reward: 200, verification: "admin", cap: "unlimited", icon: "⭐", proofPrompt: "Paste the Google review URL" },
+  { title: "Refer a new hire", description: "Refer someone for an open role. Credited after they pass 90 days.", reward: 1000, verification: "admin", cap: "unlimited", icon: "🤝", proofPrompt: "Name and email of the person you referred" },
+  { title: "Quarterly safety training", description: "Finish this quarter's safety module and self-attest.", reward: 100, verification: "self", cap: "quarterly", icon: "🛡️", proofPrompt: null },
+  { title: "Annual compliance training", description: "Complete the yearly compliance course.", reward: 150, verification: "self", cap: "once", icon: "📋", proofPrompt: null },
+  { title: "Monthly pulse survey", description: "Two minutes, anonymous. Tell us how things are going.", reward: 50, verification: "self", cap: "monthly", icon: "📣", proofPrompt: null },
 ]
 
 const KUDOS: [number, number, number, string, string[], boolean][] = [
@@ -111,13 +113,16 @@ export async function seedDemoData() {
   for (const c of COMPANIES) {
     const company = await db.company.upsert({
       where: { slug: c.slug },
-      create: { slug: c.slug, name: c.name, shortName: c.shortName, appUrl: c.appUrl, brandColor: c.brandColor, allowanceAmount: c.allowance },
-      update: { name: c.name, shortName: c.shortName, appUrl: c.appUrl, brandColor: c.brandColor, allowanceAmount: c.allowance },
+      create: { slug: c.slug, name: c.name, shortName: c.shortName, appUrl: c.appUrl, theme: c.theme ?? Prisma.DbNull, allowanceAmount: c.allowance },
+      update: { name: c.name, shortName: c.shortName, appUrl: c.appUrl, theme: c.theme ?? Prisma.DbNull, allowanceAmount: c.allowance },
     })
     for (const domain of c.domains) {
       await db.companyDomain.upsert({ where: { domain }, create: { domain, companyId: company.id }, update: {} })
     }
     const sdb = scopedDb(company.id)
+    // Item colors come from the company palette (never the accent).
+    const swatches = itemSwatches(c.theme)
+    const swatch = (i: number) => swatches[i % swatches.length].value
 
     const ids: string[] = []
     for (const p of c.people) {
@@ -144,11 +149,11 @@ export async function seedDemoData() {
     }
 
     if ((await sdb.reward.count()) === 0) {
-      await sdb.reward.createMany({ data: REWARDS.map((r) => ({ companyId: company.id, ...r })) })
+      await sdb.reward.createMany({ data: REWARDS.map((r, i) => ({ companyId: company.id, ...r, color: swatch(i) })) })
     }
     if ((await sdb.incentive.count()) === 0) {
       await sdb.incentive.createMany({
-        data: INCENTIVES.map((inc, i) => ({ companyId: company.id, ...inc, sortOrder: i })),
+        data: INCENTIVES.map((inc, i) => ({ companyId: company.id, ...inc, color: swatch(i), sortOrder: i })),
       })
     }
     if ((await sdb.kudo.count()) === 0) {

@@ -77,11 +77,11 @@ export default function IncentivesGrid({ incentives, claims }: Props) {
 
         {/* Suggest an incentive — UI only */}
         <div className="incentive-card incentive-card-suggest">
-          <div className="incentive-icon" style={{ background: "var(--canvas-2)", color: "var(--ink-soft)" }}>
+          <div className="incentive-icon" style={{ background: "var(--tint)", color: "var(--text-muted)" }}>
             💡
           </div>
           <div className="incentive-body">
-            <div className="incentive-title" style={{ color: "var(--ink-soft)" }}>Suggest an incentive</div>
+            <div className="incentive-title" style={{ color: "var(--text-muted)" }}>Suggest an incentive</div>
             <div className="incentive-desc">
               Have an idea for a new way to earn stars? Let us know and we&apos;ll consider adding it.
             </div>
@@ -89,7 +89,7 @@ export default function IncentivesGrid({ incentives, claims }: Props) {
           <div className="incentive-action">
             <button
               className="incentive-claim-btn"
-              style={{ background: "var(--canvas-2)", color: "var(--ink-soft)" }}
+              style={{ background: "var(--tint)", color: "var(--text-muted)" }}
               disabled
             >
               Coming soon

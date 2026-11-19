@@ -1,7 +1,8 @@
 import { describe, it, expect } from "vitest"
 import { chatTarget } from "@/lib/chat/postKudo"
 import { isAuthorizedCron } from "@/lib/cronAuth"
-import { brandCss, normalizeBrandColor, normalizeLogoUrl } from "@/lib/branding"
+import { normalizeLogoUrl } from "@/lib/branding"
+import { themeCss, normalizeTheme, DEFAULT_THEME } from "@/lib/theme"
 import { devLoginEnabled } from "@/lib/devLogin"
 import { employeeDomainAllowed, bambooKeyEnvName } from "@/lib/syncBambooHR"
 import { normalizeDomains } from "@/lib/companies"
@@ -27,12 +28,15 @@ describe("cron auth", () => {
 })
 
 describe("branding", () => {
-  it("only a #rrggbb color ever reaches the style tag", () => {
-    expect(brandCss("#123abc")).toBe("html:root{--accent:#123abc;}")
-    expect(brandCss("red;}body{display:none")).toBe("html:root{--accent:#c2410c;}")
-    expect(brandCss(null)).toBe("html:root{--accent:#c2410c;}")
-    expect(() => normalizeBrandColor("javascript:alert(1)")).toThrow()
-    expect(normalizeBrandColor("")).toBeNull()
+  it("only validated #rrggbb palette values ever reach the style tag", () => {
+    const evil = { ...DEFAULT_THEME, primary: "red;}body{display:none" }
+    expect(themeCss(evil)).toBe(themeCss(null)) // invalid -> whole default palette
+    expect(themeCss(evil)).not.toContain("display")
+    expect(themeCss({ ...DEFAULT_THEME, primary: "#123ABC" })).toContain("--primary:#123abc;")
+    expect(() => normalizeTheme(evil)).toThrow(/must look like/)
+    expect(() => normalizeTheme({ ...DEFAULT_THEME, extra: "#000000" })).toThrow(/Unknown theme color/)
+    expect(() => normalizeTheme({ primary: "#000000" })).toThrow() // all 14 required
+    expect(normalizeTheme("")).toBeNull()
   })
   it("logos must be https URLs", () => {
     expect(normalizeLogoUrl("https://cdn.example.com/logo.png")).toBe("https://cdn.example.com/logo.png")

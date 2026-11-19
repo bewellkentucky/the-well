@@ -2,6 +2,15 @@ import { redirect } from "next/navigation"
 import { db } from "@/lib/db"
 import { getActor } from "@/lib/tenant"
 import { bambooKeyEnvName } from "@/lib/syncBambooHR"
+import { normalizeTheme, type Theme } from "@/lib/theme"
+
+function normalizeStoredTheme(stored: unknown): Theme | null {
+  try {
+    return normalizeTheme(stored)
+  } catch {
+    return null
+  }
+}
 import PageShell from "@/app/components/layout/PageShell"
 import CompanyEditor, { type CompanyRow } from "@/app/components/platform/CompanyEditor"
 
@@ -32,7 +41,7 @@ export default async function PlatformPage() {
     domains: c.domains.map((d) => d.domain),
     appUrl: c.appUrl,
     logoUrl: c.logoUrl,
-    brandColor: c.brandColor,
+    theme: normalizeStoredTheme(c.theme),
     bambooEnabled: c.bambooEnabled,
     bambooSubdomain: c.bambooSubdomain,
     bambooKeyEnv: bambooKeyEnvName(c.slug),

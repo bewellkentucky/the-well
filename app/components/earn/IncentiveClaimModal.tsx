@@ -75,7 +75,7 @@ export default function IncentiveClaimModal({
               <div className="reward-modal-cost">
                 <span>{incentive.reward} ⭐</span> reward
                 {incentive.verification === "admin" && (
-                  <span style={{ marginLeft: 12, fontSize: 12, color: "var(--ink-soft)", fontFamily: "var(--font-inter), sans-serif" }}>
+                  <span style={{ marginLeft: 12, fontSize: 12, color: "var(--text-muted)", fontFamily: "var(--font-inter), sans-serif" }}>
                     pending admin review
                   </span>
                 )}

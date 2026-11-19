@@ -31,6 +31,7 @@ import IntegrationsPanel, {
   type BambooSyncStatus,
 } from "@/app/components/admin/IntegrationsPanel"
 import ProgramPanel from "@/app/components/admin/ProgramPanel"
+import { itemSwatches } from "@/lib/theme"
 import { ADMIN_TABS, type AdminTabId } from "@/lib/adminTabsConfig"
 import { INCENTIVE_ORDER, isInWindow } from "@/lib/incentives"
 
@@ -55,7 +56,7 @@ export default async function AdminPage({
   const company = await sdb.company.findUnique({
     where: { id: actor.companyId },
     select: {
-      name: true, allowanceAmount: true, featuredIncentiveCount: true, logoUrl: true, brandColor: true,
+      name: true, allowanceAmount: true, featuredIncentiveCount: true, logoUrl: true, theme: true,
       bambooEnabled: true, bambooSubdomain: true, slug: true,
     },
   })
@@ -478,7 +479,7 @@ export default async function AdminPage({
             categoryStats={categoryStats}
           />
         ) : activeTab === "rewards" ? (
-          <RewardsPanel rewards={rewards} />
+          <RewardsPanel rewards={rewards} swatches={itemSwatches(company?.theme)} />
         ) : activeTab === "integrations" ? (
           <IntegrationsPanel
             bambooLastSync={bambooLastSync}
@@ -489,6 +490,7 @@ export default async function AdminPage({
         ) : activeTab === "incentives" ? (
           <IncentivesPanel
             incentives={incentives}
+            swatches={itemSwatches(company?.theme)}
             claimHistory={claimHistory}
             featuredIds={featuredIds}
             featuredCount={company?.featuredIncentiveCount ?? 2}
@@ -500,7 +502,6 @@ export default async function AdminPage({
             allowanceAmount={allowance}
             featuredCount={company?.featuredIncentiveCount ?? 2}
             logoUrl={company?.logoUrl ?? null}
-            brandColor={company?.brandColor ?? null}
           />
         ) : null}
 

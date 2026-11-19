@@ -189,12 +189,12 @@ export default function ApprovalsPanel({
             <span className="admin-tab-badge">{totalPending}</span>
           )}
         </div>
-        <p style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 16, lineHeight: 1.5 }}>
+        <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 16, lineHeight: 1.5 }}>
           Incentive claims and reward redemptions that need admin sign-off before stars are credited or fulfillment begins.
         </p>
 
         {totalPending === 0 ? (
-          <p style={{ fontSize: 14, color: "var(--ink-soft)", opacity: 0.7, padding: "8px 0 4px" }}>
+          <p style={{ fontSize: 14, color: "var(--text-muted)", opacity: 0.7, padding: "8px 0 4px" }}>
             Nothing pending. All caught up.
           </p>
         ) : (

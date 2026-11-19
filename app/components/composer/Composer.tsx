@@ -223,7 +223,7 @@ export default function Composer({
 
         <button
           type="button"
-          className="btn btn-primary"
+          className="btn btn-cta"
           disabled={isPending || givingBalance < 1}
           onClick={handleSubmit}
         >

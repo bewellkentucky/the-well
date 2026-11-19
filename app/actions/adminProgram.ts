@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache"
 import { requireAdmin, ActionError, toActionError } from "@/lib/tenant"
-import { normalizeBrandColor, normalizeLogoUrl } from "@/lib/branding"
+import { normalizeLogoUrl } from "@/lib/branding"
 import { formatStars } from "@/lib/brand"
 
 // Company settings live on the Company row. Each action changes only the
@@ -50,18 +50,19 @@ export async function setFeaturedCount(count: number): Promise<{ error?: string 
   }
 }
 
-export async function setBranding(input: { logoUrl: string | null; brandColor: string | null }): Promise<{ error?: string }> {
+// Company admins set the logo. The color palette is set by the platform owner
+// in /platform (it is contrast-checked there).
+export async function setBranding(input: { logoUrl: string | null }): Promise<{ error?: string }> {
   try {
     const actor = await requireAdmin()
-    let logoUrl: string | null, brandColor: string | null
+    let logoUrl: string | null
     try {
       logoUrl = normalizeLogoUrl(input?.logoUrl)
-      brandColor = normalizeBrandColor(input?.brandColor)
     } catch (e) {
       throw new ActionError((e as Error).message)
     }
-    await actor.db.company.update({ where: { id: actor.companyId }, data: { logoUrl, brandColor } })
-    await audit(actor, `Branding -> color ${brandColor ?? "default"}, logo ${logoUrl ? "set" : "default"}`)
+    await actor.db.company.update({ where: { id: actor.companyId }, data: { logoUrl } })
+    await audit(actor, `Branding -> logo ${logoUrl ? "set" : "default"}`)
     revalidatePath("/", "layout")
     return {}
   } catch (e) {

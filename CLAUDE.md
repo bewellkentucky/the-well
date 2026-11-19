@@ -71,7 +71,7 @@ No email provider in v1 (Resend removed). PWA, no app store.
   "Spotlight" on phones and on the phone sign-in page; LCED = "LCED"; null
   falls back to name; 24 characters max), `appUrl` (company address,
   e.g. `https://spotlight.louisvillecenterforeatingdisorders.com`), `logoUrl`,
-  `brandColor`, `allowanceAmount`, `featuredIncentiveCount`, BambooHR settings,
+  `theme` (palette JSON), `allowanceAmount`, `featuredIncentiveCount`, BambooHR settings,
   `chatSpace`. There is no global settings table any more.
 - Sign-in (`lib/signIn.ts`): Google `email_verified` + `hd` claim must map
   through `CompanyDomain` to an active company. Match by Google `sub` first,
@@ -89,9 +89,9 @@ No email provider in v1 (Resend removed). PWA, no app store.
 - `User.lastSignInAt` is set on every successful Google sign-in
   (`lib/signIn.ts`). The old app never stored it, so it is null for everyone
   until their first sign-in after the Spotlight deploy.
-- Branding: a validated `#rrggbb` replaces the `--accent` CSS variable
-  (`lib/branding.ts`); everything accent-derived uses `color-mix`. Logos must be
-  https URLs. The sign-in page picks branding by request host vs `appUrl`.
+- Branding: logo (company admins, Program tab; https URLs only) and a 14-color
+  palette (`Company.theme`, platform owner only, `/platform`). See "Colors".
+  The sign-in page picks branding by request host vs `appUrl`.
 - Tests in `tests/tenant.test.ts` try to read and write across companies and
   must fail. Add a case there for every new action or page query.
 
@@ -134,12 +134,40 @@ replaces anything else (Prisma, network) with a generic message.
 - Allowance reset (`lib/allowanceReset.ts`, cron on the 1st): per company, its
   own amount, writes `AllowanceReset` ledger rows; never touches `balance`.
 
+## Colors (per-company palette)
+
+- `lib/theme.ts` is the source of truth: 14 tokens (`primary`,
+  `primaryStrong`, `heading`, `subtle`, `mutedOnDark`, `tint`, `accent`,
+  `accentStrong`, `accentSoft`, `page`, `card`, `text`, `textMuted`, `line`)
+  -> CSS `--primary`, `--primary-strong`, ... `--line`, plus derived
+  `--on-accent` / `--on-accent-strong`. `themeCss()` writes them into the
+  layout `<style>`; only validated `#rrggbb` values get there.
+- `globals.css` `:root` holds `DEFAULT_THEME` (deep teal `#0f766e`, neutral
+  grays, accent = primary, so no second hue). A test keeps them in sync.
+- Fixed status colors outside palettes: `--danger`, `--success`, `--star`.
+- Every palette must pass WCAG AA (4.5:1) on every pair in
+  `themeContrastPairs()`; `/platform` refuses one that doesn't. When you add a
+  new text/background combination, add the pair there. Don't fade text with
+  `opacity` (a test enforces this); use `--text-muted`.
+- Accent rules (LCED: Logo Mauve): at most one call to action per screen, the
+  composer's Send kudos (`.btn-cta`), plus the occasional accent word on navy
+  (`--accent-soft`, e.g. the company name in the nav). Never a background,
+  panel, body text or full headline. Light text on Logo Mauve fails (3.1-3.3:1):
+  the CTA uses Ink text, hover is Deep Mauve with Cream text (`onColor()`).
+- Primary buttons, nav, Pile on: solid `--primary` with `--card` text. The ⭐
+  reaction stays an outlined chip.
+- Icons: `/brand-icon/[file]` draws the app icons from the requesting
+  company's palette (`lib/iconSvg.ts`, `next/og`); manifest and theme-color
+  follow it. `public/` icons are the Spotlight default set.
+- LCED palette: `LCED_THEME`. Slate Light was darkened `#6B7785` ->
+  `#5A6573` so captions pass AA on Mist and Warm Paper.
+
 ## Product decisions (don't relitigate without reason)
 
 - Names: Spotlight; stars `⭐` (format with `formatStars()` in `lib/brand.ts`);
   ⭐ is the lead reaction. No food or body references in names or copy (LCED
-  treats eating disorders). This includes CSS token names (`--accent`,
-  `--canvas`, `--moss`, `--violet`, `--fern`) and seed catalog items.
+  treats eating disorders). This includes CSS token names (neutral names
+  only, see "Colors") and seed catalog items.
 - Exactly six values, verbatim: Compassion, Ownership, Curiosity, Team-First,
   Excellence, Above & Beyond (`COMPANY_VALUES` in `lib/brand.ts`).
 - The leaderboard ranks **givers** (kudos + pile-ons), not receivers.
@@ -154,6 +182,8 @@ replaces anything else (Prisma, network) with a generic message.
   isn't the company's; Google creates/links people, Bamboo pre-creates and
   enriches (undefined, not null, for missing fields).
 - Reward visual: emoji `icon` + `color` everywhere, `imageUrl` when present.
+  Item colors are picked from the palette's primary family (`itemSwatches`),
+  never the accent.
 - Reward fulfillment (Tremendous/Printful) stays deferred until after the admin
   approval queue; redemptions only record + deduct.
 - Voice: warm, calm, human. No em dashes in user-facing text.
@@ -181,8 +211,10 @@ and group conversations" enabled, don't add `chat.bot` on the SDK scopes page.
   (not yet run): LCED only, one transaction, deletes activity (kudos,
   reactions, pile-ons, claims, redemptions, old balance adjustments), sets
   allowances to the company amount and earned wallets to 0, writes audit and
-  AllowanceReset rows. It has a people list (query B) for choosing who to
-  deactivate by hand; run that before the reset. It deactivates nobody.
+  AllowanceReset rows, and returns limited reward stock (+1 per deleted
+  redemption; the old app never restocked, not even on decline). It has a
+  people list (query B) for choosing who to deactivate by hand; run that
+  before the reset. It deactivates nobody. Query C shows stock per reward.
 - Prisma 7: connection URLs live in `prisma.config.ts`, not `schema.prisma`.
 - "use server" files may export async functions only (types are fine).
 - Kudo seeding on render is gone for good; empty feed shows "No kudos yet. Be

@@ -17,6 +17,8 @@
 --   6. Per-company bambooId uniqueness; drops User.domain (now derived).
 --   7. Adds Company.shortName (LCED = "LCED", shown under "Spotlight" on
 --      phones) and User.lastSignInAt (empty until people sign in again).
+--   8. Company.theme: LCED's 14-color palette (navy first, mauve accent).
+--      Recolors LCED's rewards and incentives from that palette.
 --
 -- What it deliberately does NOT do (commented out at the bottom):
 --   - drop AppSetting, BalanceAdjustment, User.entity. Drop them later once
@@ -36,7 +38,7 @@ CREATE TABLE "Company" (
     "shortName" TEXT,
     "appUrl" TEXT,
     "logoUrl" TEXT,
-    "brandColor" TEXT,
+    "theme" JSONB,
     "allowanceAmount" INTEGER NOT NULL DEFAULT 100,
     "featuredIncentiveCount" INTEGER NOT NULL DEFAULT 2,
     "bambooEnabled" BOOLEAN NOT NULL DEFAULT false,
@@ -59,10 +61,13 @@ CREATE INDEX "CompanyDomain_companyId_idx" ON "CompanyDomain"("companyId");
 ALTER TABLE "CompanyDomain" ADD CONSTRAINT "CompanyDomain_companyId_fkey"
   FOREIGN KEY ("companyId") REFERENCES "Company"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
-INSERT INTO "Company" ("id", "slug", "name", "shortName", "appUrl", "allowanceAmount", "featuredIncentiveCount",
+INSERT INTO "Company" ("id", "slug", "name", "shortName", "appUrl", "theme", "allowanceAmount", "featuredIncentiveCount",
                        "bambooEnabled", "bambooSubdomain", "chatSpace", "updatedAt")
 VALUES ('company_lced', 'lced', 'Louisville Center for Eating Disorders', 'LCED',
         'https://spotlight.louisvillecenterforeatingdisorders.com',  -- change if the address differs
+        -- LCED palette: navy first, mauve accent only (lib/theme.ts LCED_THEME;
+        -- textMuted darkened from #6b7785 for WCAG AA).
+        '{"primary":"#14304d","primaryStrong":"#0b1b2d","heading":"#1f4368","subtle":"#3e6792","mutedOnDark":"#7c9bbb","tint":"#dce6f0","accent":"#b97aa3","accentStrong":"#8e4f76","accentSoft":"#e0c4d6","page":"#f6f2ec","card":"#faf7f1","text":"#3a4654","textMuted":"#5a6573","line":"#c5ccd3"}'::jsonb,
         100, 2,
         false,  -- turn on after setting BAMBOOHR_API_KEY_LCED in Vercel
         NULL,   -- BambooHR subdomain, e.g. the old BAMBOOHR_SUBDOMAIN value
@@ -220,7 +225,20 @@ WITH ordered AS (
   FROM "Incentive"
 )
 UPDATE "Incentive" i SET "sortOrder" = o.rn FROM ordered o WHERE o.id = i.id;
-ALTER TABLE "Reward" ALTER COLUMN "color" SET DEFAULT '#c2410c';
+ALTER TABLE "Reward" ALTER COLUMN "color" SET DEFAULT '#0f766e';
+
+-- Item colors from LCED's palette (primary family only, never the mauve
+-- accent): cycle Anchor Navy, Steady Navy, Quiet Steel, Ink in display order.
+WITH r AS (
+  SELECT id, ROW_NUMBER() OVER (ORDER BY "cost", "title", "id") - 1 AS rn FROM "Reward" WHERE "companyId" = 'company_lced'
+)
+UPDATE "Reward" x SET "color" = (ARRAY['#14304d','#1f4368','#3e6792','#0b1b2d'])[(r.rn % 4) + 1]
+  FROM r WHERE r.id = x.id;
+WITH i AS (
+  SELECT id, ROW_NUMBER() OVER (ORDER BY "sortOrder", "title", "id") - 1 AS rn FROM "Incentive" WHERE "companyId" = 'company_lced'
+)
+UPDATE "Incentive" x SET "color" = (ARRAY['#14304d','#1f4368','#3e6792','#0b1b2d'])[(i.rn % 4) + 1]
+  FROM i WHERE i.id = x.id;
 
 COMMIT;
 

@@ -49,7 +49,7 @@ export default async function Feed() {
         <h2 className="card-title">Recent recognition</h2>
       </div>
       {shaped.length === 0 ? (
-        <p style={{ fontSize: 14, color: "var(--ink-soft)", textAlign: "center", padding: "32px 0" }}>
+        <p style={{ fontSize: 14, color: "var(--text-muted)", textAlign: "center", padding: "32px 0" }}>
           No kudos yet. Be the first to recognize someone.
         </p>
       ) : (

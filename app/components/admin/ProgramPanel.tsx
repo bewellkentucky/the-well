@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react"
 import { setAllowanceSetting, setFeaturedCount, setBranding } from "@/app/actions/adminProgram"
-import { COMPANY_VALUE_NAMES, DEFAULT_BRAND_COLOR, STAR } from "@/lib/brand"
+import { COMPANY_VALUE_NAMES, STAR } from "@/lib/brand"
 
 function useSaver() {
   const [saved, setSaved] = useState(false)
@@ -27,22 +27,17 @@ export default function ProgramPanel({
   allowanceAmount,
   featuredCount,
   logoUrl,
-  brandColor,
 }: {
   allowanceAmount: number
   featuredCount: number
   logoUrl: string | null
-  brandColor: string | null
 }) {
   const [amount, setAmount] = useState(String(allowanceAmount))
   const [featured, setFeatured] = useState(String(featuredCount))
   const [logo, setLogo] = useState(logoUrl ?? "")
-  const [color, setColor] = useState(brandColor ?? "")
   const allowance = useSaver()
   const feat = useSaver()
   const brand = useSaver()
-
-  const previewColor = /^#[0-9a-fA-F]{6}$/.test(color) ? color : DEFAULT_BRAND_COLOR
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20, maxWidth: 640 }}>
@@ -121,10 +116,11 @@ export default function ProgramPanel({
       {/* ── Branding ─────────────────────────────────────────── */}
       <div className="card">
         <div className="card-header">
-          <h2 className="card-title">Logo and brand color</h2>
+          <h2 className="card-title">Logo</h2>
         </div>
         <p className="prog-section-desc">
-          Leave either blank to use the Spotlight default. The logo must be an https:// image link.
+          Leave blank to use the Spotlight mark. The logo must be an https:// image link.
+          Your color palette is set by Spotlight and checked for readability.
         </p>
         <div className="prog-brand-grid">
           <label className="adj-label" htmlFor="brand-logo">Logo URL</label>
@@ -136,37 +132,15 @@ export default function ProgramPanel({
             value={logo}
             onChange={(e) => { setLogo(e.target.value); brand.setSaved(false) }}
           />
-          <label className="adj-label" htmlFor="brand-color">Brand color</label>
-          <div className="prog-color-row">
-            <input
-              type="color"
-              aria-label="Pick brand color"
-              value={previewColor}
-              onChange={(e) => { setColor(e.target.value); brand.setSaved(false) }}
-              className="prog-color-swatch"
-            />
-            <input
-              id="brand-color"
-              className="adj-input"
-              type="text"
-              placeholder={DEFAULT_BRAND_COLOR}
-              value={color}
-              onChange={(e) => { setColor(e.target.value); brand.setSaved(false) }}
-            />
-          </div>
-        </div>
-        <div className="prog-brand-preview">
-          <span className="prog-brand-chip" style={{ background: previewColor }}>Send kudos →</span>
-          <span style={{ fontSize: 12, color: "var(--ink-soft)" }}>Preview</span>
         </div>
         <div className="prog-allowance-row" style={{ marginTop: 12 }}>
           <button
             type="button"
             className="btn btn-primary"
-            onClick={() => brand.run(() => setBranding({ logoUrl: logo.trim() || null, brandColor: color.trim() || null }))}
+            onClick={() => brand.run(() => setBranding({ logoUrl: logo.trim() || null }))}
             disabled={brand.isPending}
           >
-            {brand.isPending ? "Saving…" : brand.saved ? "Saved" : "Save branding"}
+            {brand.isPending ? "Saving…" : brand.saved ? "Saved" : "Save logo"}
           </button>
         </div>
         {brand.error && <p className="prog-error">{brand.error}</p>}

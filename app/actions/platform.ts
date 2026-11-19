@@ -6,7 +6,9 @@ import { revalidatePath } from "next/cache"
 import { db } from "@/lib/db"
 import { requirePlatformOwner, ActionError, toActionError } from "@/lib/tenant"
 import { normalizeDomains, normalizeSlug } from "@/lib/companies"
-import { normalizeAppUrl, normalizeBrandColor, normalizeLogoUrl, normalizeShortName } from "@/lib/branding"
+import { normalizeAppUrl, normalizeLogoUrl, normalizeShortName } from "@/lib/branding"
+import { normalizeTheme, themeContrastProblems, type Theme } from "@/lib/theme"
+import { Prisma } from "@/app/generated/prisma/client"
 
 export type CompanyInput = {
   name: string
@@ -15,7 +17,7 @@ export type CompanyInput = {
   domains: string
   appUrl: string | null
   logoUrl: string | null
-  brandColor: string | null
+  theme: Theme | null // null = Spotlight default
   bambooEnabled: boolean
   bambooSubdomain: string | null
   chatSpace: string | null
@@ -25,23 +27,33 @@ export type CompanyInput = {
 function clean(input: CompanyInput) {
   const name = String(input.name ?? "").trim()
   if (name.length < 2 || name.length > 120) throw new ActionError("Company name is required.")
-  let shortName: string | null, slug: string, domains: string[], appUrl: string | null, logoUrl: string | null, brandColor: string | null
+  let shortName: string | null, slug: string, domains: string[], appUrl: string | null, logoUrl: string | null, theme: Theme | null
   try {
     shortName = normalizeShortName(input.shortName)
     slug = normalizeSlug(input.slug)
     domains = normalizeDomains(input.domains)
     appUrl = normalizeAppUrl(input.appUrl)
     logoUrl = normalizeLogoUrl(input.logoUrl)
-    brandColor = normalizeBrandColor(input.brandColor)
+    theme = normalizeTheme(input.theme)
   } catch (e) {
     throw new ActionError((e as Error).message)
+  }
+  if (theme) {
+    const problems = themeContrastProblems(theme)
+    if (problems.length)
+      throw new ActionError(
+        `These colors are too hard to read (WCAG AA needs 4.5:1): ${problems
+          .map((p) => `${p.use} ${p.ratio}:1`)
+          .join("; ")}`,
+      )
   }
   const bambooSubdomain = input.bambooSubdomain?.trim() || null
   if (bambooSubdomain && !/^[a-z0-9-]{2,63}$/i.test(bambooSubdomain)) throw new ActionError("Invalid BambooHR subdomain.")
   const chatSpace = input.chatSpace?.trim() || null
   if (chatSpace && !/^spaces\/[A-Za-z0-9_-]+$/.test(chatSpace)) throw new ActionError("Chat space must look like spaces/XXXX.")
   return {
-    name, shortName, slug, domains, appUrl, logoUrl, brandColor,
+    name, shortName, slug, domains, appUrl, logoUrl,
+    theme: theme ?? Prisma.DbNull,
     bambooEnabled: input.bambooEnabled === true && !!bambooSubdomain,
     bambooSubdomain, chatSpace, active: input.active !== false,
   }

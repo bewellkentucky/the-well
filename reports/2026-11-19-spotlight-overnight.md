@@ -293,10 +293,11 @@ kudos                               2 ->  0
 reactions                           1 ->  0
 pile_ons                            1 ->  0
 claims                              1 ->  0
-redemptions                         1 ->  0
+redemptions                         6 ->  0
 balance_adjustments                 1 ->  0
 incentives                          2 ->  2
-rewards                             1 ->  1
+rewards                             4 ->  4
+limited_stock_total                 7 ->  12
 earned_total                      775 ->  0
 giving_total                      260 ->  360
 allowance                         120 ->  120
@@ -331,13 +332,147 @@ other_companies_earned            340 ->  340
    Typecheck is clean.
 
 **New open questions**
-- **Reward inventory after the fresh start.** Deleted redemptions don't put
-  limited stock back, because you said keep the catalog as-is. **Check
-  limited-stock rewards (e.g. Team outing) in Admin > Rewards after running,
-  and reset the counts by hand if needed.**
+- ~~**Reward inventory after the fresh start.**~~ Done in the second
+  follow-up: the script now returns limited stock.
 - **The audit log is kept,** including old `adjust_balance` rows. Only the
   old `BalanceAdjustment` table rows are deleted. **Keep it: the audit trail
   should survive a reset.**
 - **Run the fresh start in a quiet moment.** It waits for any in-flight star
   movements and blocks new ones for the second or so it runs.
+
+## Second follow-up: palettes, contrast, icons (2026-11-19)
+
+Same rules: local only, nothing pushed or deployed, local databases only.
+
+1. **Fresh start returns limited stock.** It adds +1 per deleted redemption to
+   rewards with a limited inventory. Every redemption it deletes was made on
+   the old app, which never restocked, not even on decline, so each one still
+   holds a unit. Query C in the file shows stock per reward. Re-rehearsed on
+   `spotlight_test`:
+   - Setup: old schema, fictional fixtures with limited rewards in every
+     redemption status, the multitenant migration, then a second company.
+   - Limited stock, before:
+
+```
+    title    | inventory | redemptions_now 
+-------------+-----------+-----------------
+ Desk plant  |         0 |               3
+ Team outing |         2 |               2
+ Tote bag    |         5 |               0
+(3 rows)
+```
+
+   - Limited stock, after:
+
+```
+    title    | inventory | redemptions_now 
+-------------+-----------+-----------------
+ Desk plant  |         3 |               0
+ Team outing |         4 |               0
+ Tote bag    |         5 |               0
+(3 rows)
+```
+
+   - The other company's limited reward (Harbor mug, 4, with a pending
+     redemption) is unchanged.
+   - All counts, before -> after:
+
+```
+people                              3 ->  3
+active_people                       3 ->  3
+admins                              2 ->  2
+linked_google                       2 ->  2
+kudos                               2 ->  0
+reactions                           1 ->  0
+pile_ons                            1 ->  0
+claims                              1 ->  0
+redemptions                         6 ->  0
+balance_adjustments                 1 ->  0
+incentives                          2 ->  2
+rewards                             4 ->  4
+limited_stock_total                 7 ->  12
+earned_total                      775 ->  0
+giving_total                      260 ->  360
+allowance                         120 ->  120
+fresh_start_audit_rows              0 ->  4
+other_companies_kudos               1 ->  1
+other_companies_earned            340 ->  340
+```
+
+2. **Per-company palette.**
+   - `Company.theme` (JSON, 14 neutral-named tokens, `lib/theme.ts`) replaces
+     `brandColor`. Null means the Spotlight default: deep teal `#0f766e`,
+     neutral grays, and accent = primary, so there is no second hue.
+   - It is edited in `/platform`, with a live AA check, and the server
+     refuses a failing palette. Company admins keep only the logo.
+   - The migration adds the column with LCED's palette and recolors LCED's
+     rewards and incentives from the navy family. The seed gives LCED its
+     palette and Harborlight the default.
+   - Every old CSS token was mapped onto the palette, and literal colors are
+     gone except fixed status colors (danger, success, star) and shadows.
+3. **LCED palette, navy first.**
+   - **Navy:** primary Anchor Navy (buttons, nav bar, Pile on, kudo amount
+     chips); Ink for the darkest surfaces and hover; Steady Navy for
+     headings; Quiet Steel for subheads and states.
+   - **Mauve:** only the composer's Send kudos button (`.btn-cta`, Ink text,
+     Deep Mauve with Cream on hover), plus the company short name in the nav
+     in Whisper.
+   - **Pile on:** solid Anchor Navy with Cream text; the ⭐ reaction stays an
+     outlined chip.
+   - Tests check that the accent appears only in those rules and never in
+     the item swatches.
+4. **Contrast.** 28 text and button pairs are checked at AA (4.5:1) for both
+   palettes (`themeContrastPairs`, tested).
+   - **Adjusted Slate Light `#6B7785` -> `#5A6573`.** It was 4.09 on Warm
+     Paper, 4.27 on Cream and 3.61 on Mist; it is now 5.31, 5.54 and 4.69.
+   - **Confirmed the rule you described.** Cream on Logo Mauve is 3.08 and
+     white on Logo Mauve is 3.29, so the CTA uses Ink (5.27). Cream on Deep
+     Mauve is 5.56.
+   - **Fixed while checking:**
+     - The balance-card label was the primary color on the darkest surface
+       (nearly invisible); it is now Fog.
+     - The active desktop nav link was navy on navy; it is now Cream.
+     - 39 caption rules faded `--text-muted` with `opacity`, dropping below
+       AA; the fades are removed, and a test now blocks faded text.
+     - Input placeholders were the browser default gray (about 2.5:1); they
+       are now `--text-muted`.
+   - **Not changed:**
+     - Divider and input borders use Line `#C5CCD3`, about 1.6:1 against
+       Cream. Dividers are decorative; inputs are identified by their
+       placeholder and label text. **Consider Quiet Steel for input borders
+       if you want 3:1 component contrast.**
+5. **Icons.** `/brand-icon/[file]` draws the app icons (SVG, 16/32/48, 180
+   Apple, 192, 512, 512 maskable) from the requesting company's palette:
+   primary square, Ink disc, Fog ring, Cream star. The manifest and
+   theme-color follow the palette too.
+   - The `public/` icons and `favicon.ico` were regenerated from the
+     Spotlight default palette (the old orange set is gone).
+   - Copies of the LCED and default icons are in
+     `reports/screens/2026-11-19/icons/`.
+6. **Screens** (LCED, fictional admin Dana Whitfield, local dev; the Next.js
+   dev badge is hidden): `reports/screens/2026-11-19/`, with
+   `{home,feed,earn,rewards,admin}-{390,desktop}.png`.
+   - 390 is 390x844; desktop is 1280x860. Both are taken at 2x.
+   - "Feed" is Home scrolled to the first kudo, because the Feed tab is
+     Home.
+   - No page scrolls sideways at 390.
+7. **Checks:**
+   - Tests: 93 of 93 pass across 9 files. The new `tests/theme.test.ts`
+     covers both palettes at AA, the original Slate Light failing, light
+     text on mauve, the CSS defaults matching `DEFAULT_THEME`, where the
+     accent is used, faded text, swatches, and the platform save, refusal
+     and owner-only rule.
+   - Lint: 0 errors (same one warning).
+   - `next build`: passes with every `.env.local` key overridden by local
+     values.
+   - After both migrations, `prisma migrate diff` shows only the three
+     objects deliberately left for later.
+
+**Open questions**
+- **Who edits the palette?** It is platform-owner-only, because a bad palette
+  can make the app unreadable. **Keep it that way until a second customer
+  asks.**
+- **Item colors.** LCED's existing rewards and incentives are recolored from
+  the navy family by the migration. **Fine; admins can re-pick from the
+  palette swatches.**
 
