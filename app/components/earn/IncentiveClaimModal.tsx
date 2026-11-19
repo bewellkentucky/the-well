@@ -51,7 +51,7 @@ export default function IncentiveClaimModal({
                 <>
                   <div className="incentive-success-icon">⭐</div>
                   <div className="incentive-success-title">
-                    {incentive.reward} ⭐ added to your balance
+                    {incentive.reward} ⭐ added to your earned stars
                   </div>
                   <p className="incentive-success-sub">Nice work. Keep it up.</p>
                 </>
@@ -60,7 +60,7 @@ export default function IncentiveClaimModal({
                   <div className="incentive-success-icon">📬</div>
                   <div className="incentive-success-title">Claim submitted</div>
                   <p className="incentive-success-sub">
-                    An admin will review your submission and credit your balance once approved.
+                    An admin will review your submission and add the stars once approved.
                   </p>
                 </>
               )}
