@@ -15,6 +15,8 @@
 --      are kept as-is and still count toward the 25 cap).
 --   5. Roles: "owner" -> "admin" + isPlatformOwner = true.
 --   6. Per-company bambooId uniqueness; drops User.domain (now derived).
+--   7. Adds Company.shortName (LCED = "LCED", shown under "Spotlight" on
+--      phones) and User.lastSignInAt (empty until people sign in again).
 --
 -- What it deliberately does NOT do (commented out at the bottom):
 --   - drop AppSetting, BalanceAdjustment, User.entity. Drop them later once
@@ -31,6 +33,7 @@ CREATE TABLE "Company" (
     "id" TEXT NOT NULL,
     "slug" TEXT NOT NULL,
     "name" TEXT NOT NULL,
+    "shortName" TEXT,
     "appUrl" TEXT,
     "logoUrl" TEXT,
     "brandColor" TEXT,
@@ -56,9 +59,9 @@ CREATE INDEX "CompanyDomain_companyId_idx" ON "CompanyDomain"("companyId");
 ALTER TABLE "CompanyDomain" ADD CONSTRAINT "CompanyDomain_companyId_fkey"
   FOREIGN KEY ("companyId") REFERENCES "Company"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
-INSERT INTO "Company" ("id", "slug", "name", "appUrl", "allowanceAmount", "featuredIncentiveCount",
+INSERT INTO "Company" ("id", "slug", "name", "shortName", "appUrl", "allowanceAmount", "featuredIncentiveCount",
                        "bambooEnabled", "bambooSubdomain", "chatSpace", "updatedAt")
-VALUES ('company_lced', 'lced', 'Louisville Center for Eating Disorders',
+VALUES ('company_lced', 'lced', 'Louisville Center for Eating Disorders', 'LCED',
         'https://spotlight.louisvillecenterforeatingdisorders.com',  -- change if the address differs
         100, 2,
         false,  -- turn on after setting BAMBOOHR_API_KEY_LCED in Vercel
@@ -120,6 +123,8 @@ ALTER TABLE "AuditLog"        ALTER COLUMN "companyId" SET NOT NULL;
 
 -- ── 3. User: roles, platform owner, per-company bambooId ────────────────────
 ALTER TABLE "User" ADD COLUMN "isPlatformOwner" BOOLEAN NOT NULL DEFAULT false;
+-- Set on each Google sign-in from now on; the old app never recorded it.
+ALTER TABLE "User" ADD COLUMN "lastSignInAt" TIMESTAMP(3);
 UPDATE "User" SET "isPlatformOwner" = true, "role" = 'admin' WHERE "role" = 'owner';
 UPDATE "User" SET "role" = 'member' WHERE "role" NOT IN ('admin', 'member');
 ALTER TABLE "User" DROP COLUMN IF EXISTS "domain";  -- now derived from CompanyDomain

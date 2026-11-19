@@ -18,7 +18,7 @@ type FilterTab = "all" | "approvals" | "grants" | "config"
 const FILTER_ACTIONS: Record<FilterTab, string[] | null> = {
   all:       null,
   approvals: ["approve_claim", "decline_claim", "approve_redemption", "decline_redemption"],
-  grants:    ["adjust_balance"],
+  grants:    ["adjust_balance", "fresh_start", "fresh_start_balance"],
   config:    [
     "change_role",
     "create_incentive", "edit_incentive", "disable_incentive", "enable_incentive",
@@ -43,6 +43,8 @@ const ACTION_LABELS: Record<string, string> = {
   disable_reward:     "disabled a reward",
   enable_reward:      "enabled a reward",
   sync_bamboo:        "ran a BambooHR sync",
+  fresh_start:         "reset the program for a fresh start",
+  fresh_start_balance: "reset balances (fresh start)",
 }
 
 const ACTION_CATEGORY: Record<string, FilterTab> = {

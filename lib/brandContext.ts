@@ -14,14 +14,14 @@ export async function getRequestBrand(): Promise<CompanyBrand | null> {
   if (actor) {
     return db.company.findUnique({
       where: { id: actor.companyId },
-      select: { name: true, logoUrl: true, brandColor: true },
+      select: { name: true, shortName: true, logoUrl: true, brandColor: true },
     })
   }
   const host = (await headers()).get("host")?.toLowerCase()
   if (!host) return null
   const candidates = await db.company.findMany({
     where: { active: true, appUrl: { not: null } },
-    select: { name: true, logoUrl: true, brandColor: true, appUrl: true },
+    select: { name: true, shortName: true, logoUrl: true, brandColor: true, appUrl: true },
   })
   const match = candidates.find((c) => {
     try {
@@ -30,5 +30,7 @@ export async function getRequestBrand(): Promise<CompanyBrand | null> {
       return false
     }
   })
-  return match ? { name: match.name, logoUrl: match.logoUrl, brandColor: match.brandColor } : null
+  return match
+    ? { name: match.name, shortName: match.shortName, logoUrl: match.logoUrl, brandColor: match.brandColor }
+    : null
 }

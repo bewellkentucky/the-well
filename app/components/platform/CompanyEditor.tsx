@@ -7,6 +7,7 @@ import { changeRole } from "@/app/actions/adminPeople"
 export type CompanyRow = {
   id: string
   name: string
+  shortName: string | null
   slug: string
   domains: string[]
   appUrl: string | null
@@ -23,13 +24,13 @@ export type CompanyRow = {
 }
 
 const EMPTY: CompanyInput = {
-  name: "", slug: "", domains: "", appUrl: null, logoUrl: null, brandColor: null,
+  name: "", shortName: null, slug: "", domains: "", appUrl: null, logoUrl: null, brandColor: null,
   bambooEnabled: false, bambooSubdomain: null, chatSpace: null, active: true,
 }
 
 function toInput(c: CompanyRow): CompanyInput {
   return {
-    name: c.name, slug: c.slug, domains: c.domains.join(", "), appUrl: c.appUrl, logoUrl: c.logoUrl,
+    name: c.name, shortName: c.shortName, slug: c.slug, domains: c.domains.join(", "), appUrl: c.appUrl, logoUrl: c.logoUrl,
     brandColor: c.brandColor, bambooEnabled: c.bambooEnabled, bambooSubdomain: c.bambooSubdomain,
     chatSpace: c.chatSpace, active: c.active,
   }
@@ -70,6 +71,7 @@ function CompanyForm({
     <div className="plat-form">
       <div className="plat-grid">
         <Field label="Name"><input {...text("name")} /></Field>
+        <Field label="Short name (phones)"><input {...text("shortName")} placeholder="e.g. LCED" maxLength={24} /></Field>
         <Field label="Slug (for env keys)"><input {...text("slug")} disabled={slugLocked} /></Field>
         <Field label="Sign-in email domains (comma separated)"><input {...text("domains")} placeholder="example.com, alias.com" /></Field>
         <Field label="Company address"><input {...text("appUrl")} placeholder="https://spotlight.example.com" /></Field>

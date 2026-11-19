@@ -3710,3 +3710,10 @@ input, textarea, select {
   -webkit-overflow-scrolling: touch;
 }
 .audit-filter-tab { white-space: nowrap; flex-shrink: 0; }
+
+/* Sign-in: full company name on wide screens, short name on phones. */
+.signin-company-short { display: none; }
+@media (max-width: 640px) {
+  .signin-company-full { display: none; }
+  .signin-company-short { display: inline; }
+}

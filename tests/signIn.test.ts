@@ -23,6 +23,23 @@ describe("Google sign-in resolver", () => {
     expect(u.companyId).toBe(lced.id)
     expect(u.givingBalance).toBe(120)
     expect(u.role).toBe("member")
+    expect(u.lastSignInAt).toBeInstanceOf(Date)
+  })
+
+  it("records the last sign-in time on every successful sign-in, not on refusals", async () => {
+    const lced = await makeCompany("lced", ["lcedky.com", "bewellkentucky.com"])
+    const pre = await makeUser(lced.id, { email: "sam.lee@lcedky.com" })
+    expect(pre.lastSignInAt).toBeNull()
+    await resolveGoogleSignIn(db, profile())
+    const first = (await db.user.findUniqueOrThrow({ where: { id: pre.id } })).lastSignInAt!
+    expect(first).toBeInstanceOf(Date)
+    await new Promise((r) => setTimeout(r, 5))
+    await resolveGoogleSignIn(db, profile())
+    const second = (await db.user.findUniqueOrThrow({ where: { id: pre.id } })).lastSignInAt!
+    expect(second.getTime()).toBeGreaterThan(first.getTime())
+    await db.user.update({ where: { id: pre.id }, data: { active: false } })
+    expect(await resolveGoogleSignIn(db, profile())).toEqual({ ok: false, reason: "inactive" })
+    expect((await db.user.findUniqueOrThrow({ where: { id: pre.id } })).lastSignInAt!.getTime()).toBe(second.getTime())
   })
 
   it("accepts the alias domain for the same company", async () => {

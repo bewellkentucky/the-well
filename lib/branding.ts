@@ -48,6 +48,15 @@ export function brandCss(brandColor: string | null | undefined): string {
 
 export type CompanyBrand = {
   name: string
+  shortName: string | null
   logoUrl: string | null
   brandColor: string | null
+}
+
+/** Short display name: trimmed, 1 to 24 characters, or null (falls back to name). */
+export function normalizeShortName(raw: string | null | undefined): string | null {
+  const v = String(raw ?? "").trim().replace(/\s+/g, " ")
+  if (!v) return null
+  if (v.length > 24) throw new Error("Short name must be 24 characters or fewer.")
+  return v
 }

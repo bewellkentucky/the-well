@@ -32,7 +32,7 @@ export default async function Home({
         : params.error
           ? "Sign-in didn't work. Please try again."
           : null
-    return <SignInPage companyName={brand?.name} logoUrl={brand?.logoUrl} error={error} />
+    return <SignInPage companyName={brand?.name} companyShortName={brand?.shortName} logoUrl={brand?.logoUrl} error={error} />
   }
 
   const now = new Date()
@@ -101,10 +101,12 @@ export default async function Home({
 
 function SignInPage({
   companyName,
+  companyShortName,
   logoUrl,
   error,
 }: {
   companyName?: string | null
+  companyShortName?: string | null
   logoUrl?: string | null
   error?: string | null
 }) {
@@ -120,7 +122,18 @@ function SignInPage({
           )}
           <div className="signin-titles">
             <h1 className="signin-title">Spotlight</h1>
-            {companyName && <p className="signin-company">{companyName}</p>}
+            {companyName && (
+              <p className="signin-company">
+                {companyShortName ? (
+                  <>
+                    <span className="signin-company-full">{companyName}</span>
+                    <span className="signin-company-short">{companyShortName}</span>
+                  </>
+                ) : (
+                  companyName
+                )}
+              </p>
+            )}
           </div>
         </div>
 

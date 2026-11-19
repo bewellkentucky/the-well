@@ -6,10 +6,11 @@ import { revalidatePath } from "next/cache"
 import { db } from "@/lib/db"
 import { requirePlatformOwner, ActionError, toActionError } from "@/lib/tenant"
 import { normalizeDomains, normalizeSlug } from "@/lib/companies"
-import { normalizeAppUrl, normalizeBrandColor, normalizeLogoUrl } from "@/lib/branding"
+import { normalizeAppUrl, normalizeBrandColor, normalizeLogoUrl, normalizeShortName } from "@/lib/branding"
 
 export type CompanyInput = {
   name: string
+  shortName: string | null
   slug: string
   domains: string
   appUrl: string | null
@@ -24,8 +25,9 @@ export type CompanyInput = {
 function clean(input: CompanyInput) {
   const name = String(input.name ?? "").trim()
   if (name.length < 2 || name.length > 120) throw new ActionError("Company name is required.")
-  let slug: string, domains: string[], appUrl: string | null, logoUrl: string | null, brandColor: string | null
+  let shortName: string | null, slug: string, domains: string[], appUrl: string | null, logoUrl: string | null, brandColor: string | null
   try {
+    shortName = normalizeShortName(input.shortName)
     slug = normalizeSlug(input.slug)
     domains = normalizeDomains(input.domains)
     appUrl = normalizeAppUrl(input.appUrl)
@@ -39,7 +41,7 @@ function clean(input: CompanyInput) {
   const chatSpace = input.chatSpace?.trim() || null
   if (chatSpace && !/^spaces\/[A-Za-z0-9_-]+$/.test(chatSpace)) throw new ActionError("Chat space must look like spaces/XXXX.")
   return {
-    name, slug, domains, appUrl, logoUrl, brandColor,
+    name, shortName, slug, domains, appUrl, logoUrl, brandColor,
     bambooEnabled: input.bambooEnabled === true && !!bambooSubdomain,
     bambooSubdomain, chatSpace, active: input.active !== false,
   }

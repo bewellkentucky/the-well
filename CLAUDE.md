@@ -67,7 +67,9 @@ No email provider in v1 (Resend removed). PWA, no app store.
 - The unscoped `db` may only be imported by files on the allowlist in
   `tests/unscoped-db.test.ts` (identity, platform, cron, seed). Adding a file
   there needs a reason.
-- Company settings are columns on `Company`: name, `appUrl` (company address,
+- Company settings are columns on `Company`: name, `shortName` (shown under
+  "Spotlight" on phones and on the phone sign-in page; LCED = "LCED"; null
+  falls back to name; 24 characters max), `appUrl` (company address,
   e.g. `https://spotlight.louisvillecenterforeatingdisorders.com`), `logoUrl`,
   `brandColor`, `allowanceAmount`, `featuredIncentiveCount`, BambooHR settings,
   `chatSpace`. There is no global settings table any more.
@@ -80,7 +82,13 @@ No email provider in v1 (Resend removed). PWA, no app store.
   incentives, balance adjustments, program settings, branding).
   `isPlatformOwner` (set by SQL only) sees `/platform`, manages companies and
   domains, and is the only one who can change roles. A company can't lose its
-  last admin.
+  last admin. **Role changes stay platform-owner-only for now (decided
+  2026-11-19). When a second customer exists, give company admins the ability
+  to change roles within their own company** (scoped `changeRole`, still
+  guarded by the last-admin rule, plus a tenant test).
+- `User.lastSignInAt` is set on every successful Google sign-in
+  (`lib/signIn.ts`). The old app never stored it, so it is null for everyone
+  until their first sign-in after the Spotlight deploy.
 - Branding: a validated `#rrggbb` replaces the `--accent` CSS variable
   (`lib/branding.ts`); everything accent-derived uses `color-mix`. Logos must be
   https URLs. The sign-in page picks branding by request host vs `appUrl`.
@@ -169,6 +177,12 @@ and group conversations" enabled, don't add `chat.bot` on the SDK scopes page.
   production DB (not yet run). Rehearsed locally; after it, `prisma migrate
   diff` shows only `AppSetting`, `BalanceAdjustment`, `User.entity`, which are
   deliberately left for later cleanup.
+- `prisma/sql/2026-11-19-spotlight-lced-fresh-start.sql` runs right after it
+  (not yet run): LCED only, one transaction, deletes activity (kudos,
+  reactions, pile-ons, claims, redemptions, old balance adjustments), sets
+  allowances to the company amount and earned wallets to 0, writes audit and
+  AllowanceReset rows. It has a people list (query B) for choosing who to
+  deactivate by hand; run that before the reset. It deactivates nobody.
 - Prisma 7: connection URLs live in `prisma.config.ts`, not `schema.prisma`.
 - "use server" files may export async functions only (types are fine).
 - Kudo seeding on render is gone for good; empty feed shows "No kudos yet. Be

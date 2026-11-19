@@ -266,7 +266,7 @@ describe("roles and platform", () => {
   it("non-owners can't create or edit companies", async () => {
     const { b, aAdmin } = await twoCompanies()
     setActor(aAdmin.id)
-    const input = { name: "Evil", slug: "evil", domains: "bravo.test", appUrl: null, logoUrl: null, brandColor: null, bambooEnabled: false, bambooSubdomain: null, chatSpace: null, active: true }
+    const input = { name: "Evil", shortName: null, slug: "evil", domains: "bravo.test", appUrl: null, logoUrl: null, brandColor: null, bambooEnabled: false, bambooSubdomain: null, chatSpace: null, active: true }
     expect((await createCompany(input)).error).toBe("Platform owner only.")
     expect((await updateCompany(b.id, input)).error).toBe("Platform owner only.")
   })
@@ -275,7 +275,20 @@ describe("roles and platform", () => {
     const { a } = await twoCompanies()
     const owner = await makeUser(a.id, { role: "admin", isPlatformOwner: true })
     setActor(owner.id)
-    const input = { name: "Copycat", slug: "copycat", domains: "bravo.test", appUrl: null, logoUrl: null, brandColor: null, bambooEnabled: false, bambooSubdomain: null, chatSpace: null, active: true }
+    const input = { name: "Copycat", shortName: null, slug: "copycat", domains: "bravo.test", appUrl: null, logoUrl: null, brandColor: null, bambooEnabled: false, bambooSubdomain: null, chatSpace: null, active: true }
     expect((await createCompany(input)).error).toMatch(/Already used by another company: bravo.test/)
+  })
+
+  it("platform owner sets a short name; too long is refused, blank falls back to null", async () => {
+    const { a } = await twoCompanies()
+    const owner = await makeUser(a.id, { role: "admin", isPlatformOwner: true })
+    setActor(owner.id)
+    const base = { name: "Northwind Family Practice", slug: "northwind", domains: "northwind.test", appUrl: null, logoUrl: null, brandColor: null, bambooEnabled: false, bambooSubdomain: null, chatSpace: null, active: true }
+    expect((await createCompany({ ...base, shortName: "x".repeat(25) })).error).toMatch(/24 characters/)
+    const created = await createCompany({ ...base, shortName: "  Northwind  " })
+    expect(created.error).toBeUndefined()
+    expect((await db.company.findUniqueOrThrow({ where: { id: created.id! } })).shortName).toBe("Northwind")
+    expect((await updateCompany(created.id!, { ...base, shortName: "  " })).error).toBeUndefined()
+    expect((await db.company.findUniqueOrThrow({ where: { id: created.id! } })).shortName).toBeNull()
   })
 })

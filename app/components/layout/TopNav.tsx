@@ -17,7 +17,7 @@ export default async function TopNav() {
         }),
         actor.db.company.findUnique({
           where: { id: actor.companyId },
-          select: { name: true, logoUrl: true },
+          select: { name: true, shortName: true, logoUrl: true },
         }),
       ])
     : [null, null]
@@ -27,6 +27,8 @@ export default async function TopNav() {
   const givingBalance = me?.givingBalance ?? 0
   const balance = me?.balance ?? 0
   const companyName = company?.name ?? ""
+  // Phones show the short name under "Spotlight"; desktop keeps the full name.
+  const companyShortName = company?.shortName || companyName
 
   return (
     <header className="tnav">
@@ -48,7 +50,7 @@ export default async function TopNav() {
             {companyName && <div className="tnav-parent">{companyName}</div>}
           </div>
           {/* Mobile: scroll-aware crossfade island */}
-          <NavWordmark givingBalance={givingBalance} balance={balance} companyName={companyName} />
+          <NavWordmark givingBalance={givingBalance} balance={balance} companyName={companyShortName} />
         </div>
 
         {/* ── Desktop nav tabs ───────────────────────────────── */}

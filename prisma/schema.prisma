@@ -22,6 +22,7 @@ model Company {
   id                     String   @id @default(cuid())
   slug                   String   @unique // lowercase, used for env-keyed secrets e.g. BAMBOOHR_API_KEY_LCED
   name                   String
+  shortName              String?  // shown under "Spotlight" on phones, e.g. "LCED"; null = name
   appUrl                 String?  // e.g. https://spotlight.louisvillecenterforeatingdisorders.com (platform owner sets)
   logoUrl                String?  // https URL; null = Spotlight mark
   brandColor             String?  // #rrggbb; null = Spotlight default
@@ -75,6 +76,7 @@ model User {
   active          Boolean   @default(true)
   role            String    @default("member") // member | admin (per company)
   isPlatformOwner Boolean   @default(false)    // Spotlight operator; set by SQL only
+  lastSignInAt    DateTime? // set on each successful Google sign-in; null = never (or before 2026-11-19)
 
   // BambooHR enrichment (optional, read-only connection per company)
   bambooId         String?

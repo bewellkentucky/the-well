@@ -56,6 +56,7 @@ export async function resolveGoogleSignIn(db: Db, profile: GoogleProfileLike | n
   if (!hd) return { ok: false, reason: "not_workspace" }
   const domain = email.split("@")[1]
   const name = profile?.name?.trim() || undefined
+  const now = new Date()
 
   // 1) Known Google account.
   const byGoogle = await db.user.findUnique({
@@ -70,7 +71,7 @@ export async function resolveGoogleSignIn(db: Db, profile: GoogleProfileLike | n
       const holder = await db.user.findUnique({ where: { email }, select: { id: true } })
       if (holder && holder.id !== byGoogle.id) return { ok: false, reason: "account_conflict" }
     }
-    await db.user.update({ where: { id: byGoogle.id }, data: { email, fullName: name } })
+    await db.user.update({ where: { id: byGoogle.id }, data: { email, fullName: name, lastSignInAt: now } })
     return { ok: true, userId: byGoogle.id, created: false }
   }
 
@@ -93,7 +94,7 @@ export async function resolveGoogleSignIn(db: Db, profile: GoogleProfileLike | n
     if (byEmail.companyId !== mapping.companyId) return { ok: false, reason: "domain_mismatch" }
     if (byEmail.googleId && byEmail.googleId !== sub) return { ok: false, reason: "account_conflict" }
     if (!byEmail.active) return { ok: false, reason: "inactive" }
-    await db.user.update({ where: { id: byEmail.id }, data: { googleId: sub, fullName: name } })
+    await db.user.update({ where: { id: byEmail.id }, data: { googleId: sub, fullName: name, lastSignInAt: now } })
     return { ok: true, userId: byEmail.id, created: false }
   }
 
@@ -105,6 +106,7 @@ export async function resolveGoogleSignIn(db: Db, profile: GoogleProfileLike | n
       googleId: sub,
       fullName: name ?? email,
       givingBalance: mapping.company.allowanceAmount,
+      lastSignInAt: now,
     },
     select: { id: true },
   })

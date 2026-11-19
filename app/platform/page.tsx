@@ -27,6 +27,7 @@ export default async function PlatformPage() {
   const rows: CompanyRow[] = companies.map((c) => ({
     id: c.id,
     name: c.name,
+    shortName: c.shortName,
     slug: c.slug,
     domains: c.domains.map((d) => d.domain),
     appUrl: c.appUrl,

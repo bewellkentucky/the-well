@@ -35,6 +35,7 @@ const mdFromToday = (days: number) => {
 const COMPANIES: {
   slug: string
   name: string
+  shortName: string | null
   domains: string[]
   appUrl: string | null
   brandColor: string | null
@@ -44,6 +45,7 @@ const COMPANIES: {
   {
     slug: "lced",
     name: "Louisville Center for Eating Disorders",
+    shortName: "LCED",
     domains: ["lcedky.com", "bewellkentucky.com"],
     appUrl: "https://spotlight.louisvillecenterforeatingdisorders.com",
     brandColor: null,
@@ -62,6 +64,7 @@ const COMPANIES: {
   {
     slug: "harborlight",
     name: "Harborlight Counseling",
+    shortName: "Harborlight",
     domains: ["harborlight.test"],
     appUrl: null,
     brandColor: "#2563eb",
@@ -108,8 +111,8 @@ export async function seedDemoData() {
   for (const c of COMPANIES) {
     const company = await db.company.upsert({
       where: { slug: c.slug },
-      create: { slug: c.slug, name: c.name, appUrl: c.appUrl, brandColor: c.brandColor, allowanceAmount: c.allowance },
-      update: { name: c.name, appUrl: c.appUrl, brandColor: c.brandColor, allowanceAmount: c.allowance },
+      create: { slug: c.slug, name: c.name, shortName: c.shortName, appUrl: c.appUrl, brandColor: c.brandColor, allowanceAmount: c.allowance },
+      update: { name: c.name, shortName: c.shortName, appUrl: c.appUrl, brandColor: c.brandColor, allowanceAmount: c.allowance },
     })
     for (const domain of c.domains) {
       await db.companyDomain.upsert({ where: { domain }, create: { domain, companyId: company.id }, update: {} })
