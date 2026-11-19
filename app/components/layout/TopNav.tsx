@@ -27,7 +27,8 @@ export default async function TopNav() {
   const givingBalance = me?.givingBalance ?? 0
   const balance = me?.balance ?? 0
   const companyName = company?.name ?? ""
-  // Phones show the short name under "Spotlight"; desktop keeps the full name.
+  // Under "Spotlight" (desktop and phones): the short name, never a truncated
+  // full name. The full name is the tooltip.
   const companyShortName = company?.shortName || companyName
 
   return (
@@ -47,10 +48,10 @@ export default async function TopNav() {
           {/* Desktop: static wordmark */}
           <div className="tnav-wordmark">
             <div className="tnav-name">Spotlight</div>
-            {companyName && <div className="tnav-parent">{companyName}</div>}
+            {companyName && <div className="tnav-parent" title={companyName}>{companyShortName}</div>}
           </div>
           {/* Mobile: scroll-aware crossfade island */}
-          <NavWordmark givingBalance={givingBalance} balance={balance} companyName={companyShortName} />
+          <NavWordmark givingBalance={givingBalance} balance={balance} companyName={companyShortName} companyFullName={companyName} />
         </div>
 
         {/* ── Desktop nav tabs ───────────────────────────────── */}

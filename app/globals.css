@@ -196,15 +196,6 @@ img.avatar  { object-fit: cover; }
   overflow: hidden;
 }
 
-.composer-glow {
-  position: absolute;
-  top: -40px; right: -40px;
-  width: 140px; height: 140px;
-  background: radial-gradient(circle, var(--primary) 0%, transparent 70%);
-  opacity: 0.12;
-  border-radius: 50%;
-  pointer-events: none;
-}
 
 .composer-header {
   display: flex;
@@ -256,7 +247,7 @@ img.avatar  { object-fit: cover; }
 .amount-input,
 .message-input {
   background: var(--card);
-  border: 1px solid var(--line);
+  border: 1px solid var(--subtle);
   border-radius: 10px;
   padding: 10px 14px;
   font-family: inherit;
@@ -631,6 +622,22 @@ img.avatar  { object-fit: cover; }
   }
   .reaction-choice { width: 44px; height: 44px; font-size: 22px; }
   .react-btn { min-height: 32px; }
+
+  /* Pile on on phones: a compact pill about the height of the value chips
+     (24px, the WCAG 2.5.8 minimum target) so the kudo text stays the focus. */
+  .pile-controls { gap: 6px; }
+  .pile-btn {
+    gap: 6px;
+    min-height: 24px;
+    padding: 3px 10px;
+    font-size: 11.5px;
+    font-weight: 600;
+    box-shadow: none;
+  }
+  .pile-btn:hover:not(:disabled) { box-shadow: none; }
+  .pile-dots { gap: 2px; }
+  .pile-dot { width: 4px; height: 4px; }
+  .pile-send-btn, .pile-cancel-btn { min-height: 28px; padding: 3px 10px; font-size: 12px; }
 }
 
 /* ── Home page layout ────────────────────────────────────── */
@@ -1104,22 +1111,6 @@ img.avatar  { object-fit: cover; }
   background: color-mix(in srgb, var(--card) 15%, transparent);
   margin: 0 6px;
   flex-shrink: 0;
-}
-
-.desktop-nav-link-admin {
-  color: var(--muted-on-dark);
-  font-size: 12px;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.desktop-nav-link-admin:hover {
-  color: var(--card);
-}
-
-.desktop-nav-link-admin.active {
-  background: color-mix(in srgb, var(--card) 14%, transparent);
-  color: var(--card);
 }
 
 @media (max-width: 640px) {
@@ -1918,7 +1909,7 @@ img.avatar  { object-fit: cover; }
 
 .incentive-proof-input {
   width: 100%;
-  border: 1px solid var(--line);
+  border: 1px solid var(--subtle);
   border-radius: 8px;
   padding: 9px 12px;
   font-size: 14px;
@@ -2155,7 +2146,7 @@ img.avatar  { object-fit: cover; }
 .adj-select,
 .adj-input {
   background: var(--tint);
-  border: 1.5px solid var(--line);
+  border: 1.5px solid var(--subtle);
   border-radius: 8px;
   padding: 8px 10px;
   font-size: 13px;
@@ -3346,7 +3337,7 @@ img.avatar  { object-fit: cover; }
 .prog-amount-input {
   width: 90px;
   padding: 7px 10px;
-  border: 1.5px solid var(--line);
+  border: 1.5px solid var(--subtle);
   border-radius: 8px;
   font-family: var(--font-mono), monospace;
   font-size: 16px;
@@ -3540,7 +3531,7 @@ input, textarea, select {
 .signin-dev select {
   width: 100%;
   padding: 8px 10px;
-  border: 1px solid var(--line);
+  border: 1px solid var(--subtle);
   border-radius: 8px;
   background: var(--card);
   font-size: 13px;
@@ -3712,3 +3703,11 @@ input, textarea, select {
 
 /* Placeholders: the browser default gray is about 2.5:1; use the AA-checked caption color. */
 ::placeholder { color: var(--text-muted); opacity: 1; }
+
+/* Form fields: border is --subtle (3:1 against page, card and tint; checked in
+   lib/theme.ts). Focus adds a ring so it doesn't rely on a color change alone. */
+.recipient-input:focus, .amount-input:focus, .message-input:focus,
+.incentive-proof-input:focus, .adj-input:focus, .prog-amount-input:focus {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 22%, transparent);
+}
+

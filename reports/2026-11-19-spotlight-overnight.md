@@ -437,10 +437,7 @@ other_companies_earned            340 ->  340
      - Input placeholders were the browser default gray (about 2.5:1); they
        are now `--text-muted`.
    - **Not changed:**
-     - Divider and input borders use Line `#C5CCD3`, about 1.6:1 against
-       Cream. Dividers are decorative; inputs are identified by their
-       placeholder and label text. **Consider Quiet Steel for input borders
-       if you want 3:1 component contrast.**
+     - ~~Input borders on Line~~: done in round 2 (Quiet Steel).
 5. **Icons.** `/brand-icon/[file]` draws the app icons (SVG, 16/32/48, 180
    Apple, 192, 512, 512 maskable) from the requesting company's palette:
    primary square, Ink disc, Fog ring, Cream star. The manifest and
@@ -475,4 +472,39 @@ other_companies_earned            340 ->  340
 - **Item colors.** LCED's existing rewards and incentives are recolored from
   the navy family by the migration. **Fine; admins can re-pick from the
   palette swatches.**
+
+## Round 2 polish (2026-11-19)
+
+Same rules: local only, nothing pushed or deployed, local databases only.
+
+1. **Composer example:** now "You covered my group on short notice and the
+   patients never felt the gap" beats "great job!" It names no patient and
+   fits any role.
+2. **Desktop nav:** shows the short name ("LCED") under Spotlight, with the
+   full name as a tooltip, the same as phones. Nothing is cut off any more.
+3. **Admin nav item:** same case, size and colors as Feed, Earn and the
+   others. The separate uppercase style is removed.
+4. **Pile on, phones:** a compact 24px pill, about the height of the value
+   chips and at the WCAG 2.5.8 minimum target size. It is Anchor Navy with
+   Cream text, keeps the tap dots (smaller), and drops the shadow. Desktop
+   keeps the larger pill.
+5. **Composer glow:** removed (markup and CSS; a test keeps it gone).
+6. **Form fields:**
+   - Inputs, textareas and selects use `--subtle` borders: Quiet Steel
+     `#3E6792` for LCED and `#4B5563` in the default palette. Focus adds a
+     ring.
+   - Dividers stay on Line.
+   - The palette check now includes three non-text pairs at 3:1 (field
+     border on card, page and tint). LCED measures 5.52 / 5.29 / 4.67; the
+     default 7.56 / 7.17 / 6.79. `/platform` refuses a palette that fails
+     any of them.
+7. **Palette editing:** stays platform-owner-only, and CLAUDE.md now says so
+   explicitly.
+8. **Screens:** `reports/screens/2026-11-19/round2/` has
+   `{home,feed}-{390,desktop}.png` (LCED, fictional admin, local dev). No
+   page scrolls sideways at 390.
+
+**Checks:** tests 95 of 95 pass across 9 files (new: field-border contrast
+and CSS, glow removed). Lint has 0 errors (same one warning). `next build`
+passes with local settings only.
 

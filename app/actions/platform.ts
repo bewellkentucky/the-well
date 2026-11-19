@@ -42,8 +42,8 @@ function clean(input: CompanyInput) {
     const problems = themeContrastProblems(theme)
     if (problems.length)
       throw new ActionError(
-        `These colors are too hard to read (WCAG AA needs 4.5:1): ${problems
-          .map((p) => `${p.use} ${p.ratio}:1`)
+        `These colors are too hard to read (WCAG AA): ${problems
+          .map((p) => `${p.use} ${p.ratio}:1, needs ${p.min}:1`)
           .join("; ")}`,
       )
   }

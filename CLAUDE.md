@@ -68,7 +68,8 @@ No email provider in v1 (Resend removed). PWA, no app store.
   `tests/unscoped-db.test.ts` (identity, platform, cron, seed). Adding a file
   there needs a reason.
 - Company settings are columns on `Company`: name, `shortName` (shown under
-  "Spotlight" on phones and on the phone sign-in page; LCED = "LCED"; null
+  "Spotlight" in the nav at every width, with the full name as a tooltip,
+  and on the phone sign-in page; LCED = "LCED"; null
   falls back to name; 24 characters max), `appUrl` (company address,
   e.g. `https://spotlight.louisvillecenterforeatingdisorders.com`), `logoUrl`,
   `theme` (palette JSON), `allowanceAmount`, `featuredIncentiveCount`, BambooHR settings,
@@ -145,13 +146,18 @@ replaces anything else (Prisma, network) with a generic message.
 - `globals.css` `:root` holds `DEFAULT_THEME` (deep teal `#0f766e`, neutral
   grays, accent = primary, so no second hue). A test keeps them in sync.
 - Fixed status colors outside palettes: `--danger`, `--success`, `--star`.
-- Every palette must pass WCAG AA (4.5:1) on every pair in
-  `themeContrastPairs()`; `/platform` refuses one that doesn't. When you add a
+- **Palette editing is platform-owner-only** (`/platform`), decided
+  2026-11-19: a bad palette can make the app unreadable. Company admins set
+  only their logo. Revisit if a customer asks.
+- Every palette must pass WCAG AA on every pair in `themeContrastPairs()`
+  (4.5:1 for text, 3:1 for form field borders); `/platform` refuses one that
+  doesn't. Form fields (inputs, textareas, selects) use `--subtle` borders
+  (LCED: Quiet Steel) plus a focus ring; dividers stay on `--line`. When you add a
   new text/background combination, add the pair there. Don't fade text with
   `opacity` (a test enforces this); use `--text-muted`.
 - Accent rules (LCED: Logo Mauve): at most one call to action per screen, the
   composer's Send kudos (`.btn-cta`), plus the occasional accent word on navy
-  (`--accent-soft`, e.g. the company name in the nav). Never a background,
+  (`--accent-soft`, e.g. the company short name in the nav). Never a background,
   panel, body text or full headline. Light text on Logo Mauve fails (3.1-3.3:1):
   the CTA uses Ink text, hover is Deep Mauve with Cream text (`onColor()`).
 - Primary buttons, nav, Pile on: solid `--primary` with `--card` text. The ⭐

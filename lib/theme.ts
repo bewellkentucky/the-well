@@ -30,7 +30,7 @@ export const THEME_LABELS: Record<ThemeKey, string> = {
   primary: "Primary (buttons, nav, panels)",
   primaryStrong: "Primary strong (darkest text and surfaces)",
   heading: "Headings and navigation",
-  subtle: "Subheads and icons",
+  subtle: "Subheads, icons, field borders",
   mutedOnDark: "Muted text on primary",
   tint: "Tinted panels",
   accent: "Accent (one call to action)",
@@ -132,10 +132,18 @@ export function onColor(bg: string, t: Theme): string {
   return contrast(t.card, bg) >= 4.5 ? t.card : t.primaryStrong
 }
 
-export type ContrastPair = { fg: string; bg: string; use: string; ratio: number; ok: boolean }
+export type ContrastPair = { fg: string; bg: string; use: string; ratio: number; min: number; ok: boolean }
 
-/** Every text and button pair the app draws, checked at AA (4.5:1). */
+/**
+ * Every text and button pair the app draws, checked at AA (4.5:1), plus form
+ * field borders as non-text UI (WCAG 1.4.11, 3:1).
+ */
 export function themeContrastPairs(t: Theme): ContrastPair[] {
+  const nonText: [string, string, string][] = [
+    [t.subtle, t.card, "Form field border on card"],
+    [t.subtle, t.page, "Form field border on page"],
+    [t.subtle, t.tint, "Form field border on tinted panel"],
+  ]
   const pairs: [string, string, string][] = [
     [t.text, t.page, "Body text on page"],
     [t.text, t.card, "Body text on card"],
@@ -166,10 +174,11 @@ export function themeContrastPairs(t: Theme): ContrastPair[] {
     [t.card, STATUS.danger, "Badge text on danger"],
     [STATUS.success, t.card, "Success on card"],
   ]
-  return pairs.map(([fg, bg, use]) => {
+  const check = (min: number) => ([fg, bg, use]: [string, string, string]): ContrastPair => {
     const ratio = Math.round(contrast(fg, bg) * 100) / 100
-    return { fg, bg, use, ratio, ok: ratio >= 4.5 }
-  })
+    return { fg, bg, use, ratio, min, ok: ratio >= min }
+  }
+  return [...pairs.map(check(4.5)), ...nonText.map(check(3))]
 }
 
 export function themeContrastProblems(t: Theme): ContrastPair[] {

@@ -59,6 +59,23 @@ describe("palettes", () => {
     expect(faded).toEqual([])
   })
 
+  it("form field borders use --subtle and reach 3:1 in both palettes (Quiet Steel for LCED)", () => {
+    for (const t of [DEFAULT_THEME, LCED_THEME]) {
+      const borders = themeContrastPairs(t).filter((p) => p.use.startsWith("Form field border"))
+      expect(borders).toHaveLength(3)
+      for (const b of borders) expect(b.ratio).toBeGreaterThanOrEqual(3)
+    }
+    expect(LCED_THEME.subtle).toBe("#3e6792")
+    for (const sel of [".adj-input", ".incentive-proof-input", ".prog-amount-input", ".message-input"]) {
+      const block = CSS.slice(CSS.indexOf(sel), CSS.indexOf("}", CSS.indexOf(sel)))
+      expect(block, sel).toMatch(/border: [0-9.]+px solid var\(--subtle\)/)
+    }
+  })
+
+  it("the composer's soft glow is gone", () => {
+    expect(CSS).not.toContain("composer-glow")
+  })
+
   it("item swatches never include the accent", () => {
     const values = itemSwatches(LCED_THEME).map((s) => s.value)
     expect(values).not.toContain(LCED_THEME.accent)

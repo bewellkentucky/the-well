@@ -82,7 +82,7 @@ export default function NavLinks({ showAdmin = false }: { showAdmin?: boolean })
           <Link
             href="/admin"
             prefetch={false}
-            className={`desktop-nav-link desktop-nav-link-admin${pathname.startsWith("/admin") ? " active" : ""}`}
+            className={`desktop-nav-link${pathname.startsWith("/admin") ? " active" : ""}`}
           >
             Admin
           </Link>

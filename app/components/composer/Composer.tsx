@@ -113,7 +113,6 @@ export default function Composer({
 
   return (
     <div className="composer">
-      <div className="composer-glow" aria-hidden="true" />
 
       <div className="composer-header">
         <div className="composer-title">Give kudos to a teammate</div>
@@ -176,7 +175,7 @@ export default function Composer({
 
       <textarea
         className="message-input"
-        placeholder={`What did they do? Be specific: "You stayed late to cover the front desk so the team could finish training" beats "great job!"`}
+        placeholder={`What did they do? Be specific: "You covered my group on short notice and the patients never felt the gap" beats "great job!"`}
         value={message}
         onChange={(e) => setMessage(e.target.value)}
       />

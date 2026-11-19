@@ -141,8 +141,8 @@ function ThemeEditor({ value, onChange }: { value: Theme | null; onChange: (t: T
       )}
       <p className={failing.length ? "prog-error" : "plat-theme-ok"}>
         {failing.length
-          ? `${failing.length} of ${pairs.length} pairs are below 4.5:1: ${failing.map((p) => `${p.use} (${p.ratio}:1)`).join(", ")}`
-          : `All ${pairs.length} text and button pairs pass WCAG AA (4.5:1).`}
+          ? `${failing.length} of ${pairs.length} pairs are too low: ${failing.map((p) => `${p.use} (${p.ratio}:1, needs ${p.min}:1)`).join(", ")}`
+          : `All ${pairs.length} pairs pass WCAG AA (4.5:1 for text, 3:1 for field borders).`}
       </p>
     </div>
   )

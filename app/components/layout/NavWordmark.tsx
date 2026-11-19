@@ -11,10 +11,12 @@ export default function NavWordmark({
   givingBalance,
   balance,
   companyName,
+  companyFullName,
 }: {
   givingBalance: number
   balance: number
   companyName: string
+  companyFullName?: string
 }) {
   const pathname = usePathname()
   const isHome = pathname === "/"
@@ -51,7 +53,7 @@ export default function NavWordmark({
     <div className="tnav-wm-slot">
       <div className={`tnav-wm-wordmark${showWordmark ? " visible" : ""}`}>
         <div className="tnav-name">Spotlight</div>
-        {companyName && <div className="tnav-parent">{companyName}</div>}
+        {companyName && <div className="tnav-parent" title={companyFullName ?? companyName}>{companyName}</div>}
       </div>
       <div className={`tnav-wm-balances${showWordmark ? "" : " visible"}`}>
         <span className="tnav-bal-num">{formatStars(givingBalance)}</span>
