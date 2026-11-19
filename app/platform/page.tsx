@@ -49,6 +49,7 @@ export default async function PlatformPage() {
     chatSpace: c.chatSpace,
     active: c.active,
     isOpen: c.isOpen,
+    blockedSignIns: c.blockedSignIns,
     refusedSignIns: c._count.auditLogs,
     kudoCount: c._count.kudos,
     people: c.users,

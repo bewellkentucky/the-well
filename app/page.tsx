@@ -27,9 +27,10 @@ export default async function Home({
 
   if (!actor) {
     const params = await searchParams
-    // Launch switch: a closed company shows "coming soon", never an error.
-    const soon = await getComingSoonBrand(params.signin === "closed" ? params.c : undefined)
-    if (soon || params.signin === "closed") {
+    // Launch switch or blocked address (shared mailbox): "coming soon", never an error.
+    const refused = params.signin === "closed" || params.signin === "blocked" ? params.signin : null
+    const soon = await getComingSoonBrand(refused ? params.c : undefined, refused ?? "closed")
+    if (soon || refused) {
       return <ComingSoonPage brand={soon ?? (await getRequestBrand())} />
     }
     const brand = await getRequestBrand()

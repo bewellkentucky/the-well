@@ -3679,6 +3679,9 @@ input, textarea, select {
   background: var(--tint);
 }
 .plat-launch-info { flex: 1; min-width: 0; }
+.plat-blocked { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; margin-top: 8px; }
+.plat-blocked-input { width: 100%; font-family: var(--font-mono, ui-monospace, monospace); font-size: 13px; }
+.plat-ok { font-size: 13px; color: var(--success); }
 .plat-launch-state { font-weight: 600; color: var(--heading); }
 .plat-launch-hint { font-size: 13px; color: var(--text); margin-top: 2px; }
 @media (max-width: 640px) {

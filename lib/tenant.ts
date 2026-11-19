@@ -20,6 +20,7 @@ export type { ScopedDb, ScopedTx } from "@/lib/scopedDb"
 export { ActionError, TenantError } from "@/lib/errors"
 import { scopedDb, type ScopedDb } from "@/lib/scopedDb"
 import { canUseCompany } from "@/lib/launch"
+import { isBlockedSignIn } from "@/lib/blockedSignIns"
 import { ActionError, TenantError } from "@/lib/errors"
 
 export type Actor = {
@@ -52,12 +53,15 @@ export async function getActor(): Promise<Actor | null> {
       active: true,
       isPlatformOwner: true,
       isTester: true,
-      company: { select: { active: true, isOpen: true } },
+      email: true,
+      company: { select: { active: true, isOpen: true, blockedSignIns: true } },
     },
   })
   if (!user || !user.active || !user.company.active) return null
   // Launch switch: a session from before the company closed gets nothing.
   if (!canUseCompany(user.company, user)) return null
+  // Blocked address (shared mailbox): never an actor, open or closed.
+  if (isBlockedSignIn(user.company, user.email)) return null
   return {
     userId: user.id,
     companyId: user.companyId,

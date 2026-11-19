@@ -25,6 +25,7 @@ const FILTER_ACTIONS: Record<FilterTab, string[] | null> = {
     "create_reward",    "edit_reward",    "disable_reward",    "enable_reward",
     "sync_bamboo",
     "open_company", "close_company", "add_tester", "remove_tester", "signin_refused_closed",
+    "set_blocked_signins", "signin_refused_blocked",
   ],
 }
 
@@ -51,6 +52,8 @@ const ACTION_LABELS: Record<string, string> = {
   add_tester:            "made a tester",
   remove_tester:         "removed a tester",
   signin_refused_closed: "tried to sign in before launch",
+  set_blocked_signins:    "changed blocked sign-in addresses",
+  signin_refused_blocked: "tried to sign in from a blocked address",
 }
 
 const ACTION_CATEGORY: Record<string, FilterTab> = {
@@ -74,6 +77,8 @@ const ACTION_CATEGORY: Record<string, FilterTab> = {
   add_tester:            "config",
   remove_tester:         "config",
   signin_refused_closed: "config",
+  set_blocked_signins:    "config",
+  signin_refused_blocked: "config",
 }
 
 function timeAgo(iso: string): string {

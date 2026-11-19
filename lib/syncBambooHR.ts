@@ -9,6 +9,7 @@
 import { db } from "@/lib/db"
 import { scopedDb } from "@/lib/scopedDb"
 import { ActionError } from "@/lib/errors"
+import { isBlockedSignIn } from "@/lib/blockedSignIns"
 
 /** Env var holding a company's BambooHR API key, e.g. BAMBOOHR_API_KEY_LCED. */
 export function bambooKeyEnvName(slug: string): string {
@@ -53,7 +54,7 @@ async function bambooGet(conn: BambooConn, path: string, attempt = 0): Promise<a
 export async function syncBambooHR(companyId: string, opts: { since?: Date; force?: boolean } = {}) {
   const company = await db.company.findUnique({
     where: { id: companyId },
-    select: { slug: true, bambooEnabled: true, bambooSubdomain: true, allowanceAmount: true, domains: { select: { domain: true } } },
+    select: { slug: true, blockedSignIns: true, bambooEnabled: true, bambooSubdomain: true, allowanceAmount: true, domains: { select: { domain: true } } },
   })
   if (!company) throw new ActionError("Company not found.")
   // Runs for closed companies too (launch switch, decided 2026-11-19): it is
@@ -92,6 +93,8 @@ export async function syncBambooHR(companyId: string, opts: { since?: Date; forc
       if (!emp.workEmail) { skipped++; continue }
       const email = String(emp.workEmail).toLowerCase()
       if (!employeeDomainAllowed(email, domains)) { skipped++; continue }
+      // Shared mailboxes never become people (lib/blockedSignIns.ts).
+      if (isBlockedSignIn(company, email)) { skipped++; continue }
 
       const reportsTo =
         typeof emp.reportsTo === "string" && emp.reportsTo

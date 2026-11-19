@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useTransition } from "react"
-import { createCompany, updateCompany, setCompanyOpen, setTester, type CompanyInput } from "@/app/actions/platform"
+import { createCompany, updateCompany, setCompanyOpen, setTester, setBlockedSignIns, type CompanyInput } from "@/app/actions/platform"
 import { changeRole } from "@/app/actions/adminPeople"
 import { DEFAULT_THEME, THEME_KEYS, THEME_LABELS, themeContrastPairs, type Theme } from "@/lib/theme"
 
@@ -21,6 +21,7 @@ export type CompanyRow = {
   chatSpace: string | null
   active: boolean
   isOpen: boolean
+  blockedSignIns: string[]
   refusedSignIns: number
   kudoCount: number
   people: { id: string; fullName: string; email: string; role: string; isPlatformOwner: boolean; isTester: boolean }[]
@@ -184,6 +185,41 @@ function LaunchSwitch({ c }: { c: CompanyRow }) {
   )
 }
 
+function BlockedSignIns({ c }: { c: CompanyRow }) {
+  const [value, setValue] = useState(c.blockedSignIns.join("\n"))
+  const [isPending, start] = useTransition()
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
+  return (
+    <div className="plat-blocked">
+      <h3 className="plat-subtitle">Blocked sign-in addresses</h3>
+      <p className="plat-launch-hint">
+        Shared mailboxes that must never become Spotlight people. They see &ldquo;coming soon&rdquo; whether
+        Spotlight is open or closed, and BambooHR sync skips them. One address per line, on{" "}
+        {c.domains.join(" or ")}.
+      </p>
+      <textarea
+        className="message-input plat-blocked-input"
+        rows={Math.min(10, Math.max(3, c.blockedSignIns.length + 1))}
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        aria-label="Blocked sign-in addresses"
+      />
+      {msg && <div className={msg.ok ? "plat-ok" : "prog-error"}>{msg.text}</div>}
+      <button
+        className="btn btn-primary"
+        disabled={isPending}
+        onClick={() => start(async () => {
+          setMsg(null)
+          const res = await setBlockedSignIns(c.id, value)
+          setMsg(res.error ? { ok: false, text: res.error } : { ok: true, text: "Saved." })
+        })}
+      >
+        Save blocked addresses
+      </button>
+    </div>
+  )
+}
+
 function RoleRow({ p }: { p: CompanyRow["people"][number] }) {
   const [isPending, start] = useTransition()
   const [error, setError] = useState<string | null>(null)
@@ -257,6 +293,7 @@ export default function CompanyEditor({ companies, currentCompanyId }: { compani
             <>
               <LaunchSwitch c={c} />
               <CompanyForm initial={toInput(c)} submitLabel="Save company" slugLocked onSubmit={(v) => updateCompany(c.id, v)} />
+              <BlockedSignIns c={c} />
               <h3 className="plat-subtitle">Roles and testers</h3>
               <div className="plat-people">
                 {c.people.map((p) => <RoleRow key={p.id} p={p} />)}

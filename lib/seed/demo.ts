@@ -5,6 +5,7 @@
 import { db } from "@/lib/db"
 import { scopedDb } from "@/lib/scopedDb"
 import { LCED_THEME, itemSwatches, type Theme } from "@/lib/theme"
+import { LCED_BLOCKED_SIGN_INS } from "@/lib/blockedSignIns"
 import { Prisma } from "@/app/generated/prisma/client"
 
 type Person = {
@@ -42,6 +43,7 @@ const COMPANIES: {
   domains: string[]
   appUrl: string | null
   theme: Theme | null
+  blockedSignIns?: string[] // shared mailboxes that may never sign in
   allowance: number
   people: Person[]
 }[] = [
@@ -52,6 +54,7 @@ const COMPANIES: {
     domains: ["lcedky.com", "bewellkentucky.com"],
     appUrl: "https://spotlight.louisvillecenterforeatingdisorders.com",
     theme: LCED_THEME,
+    blockedSignIns: LCED_BLOCKED_SIGN_INS,
     allowance: 100,
     people: [
       { first: "Morgan", last: "Reyes", title: "Operations Director", role: "admin", platformOwner: true, hire: "2019-03-11", birthday: mdFromToday(9), location: "Louisville" },
@@ -116,8 +119,8 @@ export async function seedDemoData() {
       where: { slug: c.slug },
       // Seeded open so local dev works for everyone. Production LCED starts
       // closed (migration); try the launch switch in /platform.
-      create: { slug: c.slug, name: c.name, shortName: c.shortName, appUrl: c.appUrl, theme: c.theme ?? Prisma.DbNull, allowanceAmount: c.allowance, isOpen: true },
-      update: { name: c.name, shortName: c.shortName, appUrl: c.appUrl, theme: c.theme ?? Prisma.DbNull, allowanceAmount: c.allowance },
+      create: { slug: c.slug, name: c.name, shortName: c.shortName, appUrl: c.appUrl, theme: c.theme ?? Prisma.DbNull, allowanceAmount: c.allowance, isOpen: true, blockedSignIns: c.blockedSignIns ?? [] },
+      update: { name: c.name, shortName: c.shortName, appUrl: c.appUrl, theme: c.theme ?? Prisma.DbNull, allowanceAmount: c.allowance, blockedSignIns: c.blockedSignIns ?? [] },
     })
     for (const domain of c.domains) {
       await db.companyDomain.upsert({ where: { domain }, create: { domain, companyId: company.id }, update: {} })

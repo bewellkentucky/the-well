@@ -650,3 +650,78 @@ also still runs cleanly on the old fictional rehearsal schema.
 **Checks:** the app never pointed at the copy (its database guard only
 allows `spotlight_dev` and `spotlight_test`). Tests: 116 of 116 pass.
 Lint: 0 errors. The production build passes with local settings only.
+
+## Follow-ups: blocked shared mailboxes, stray config (2026-11-19)
+
+Branch `spotlight-followups`, made from `main`. Local only.
+
+**Blocked sign-in addresses.** Each company has a list of shared mailboxes
+that must never become Spotlight people: `Company.blockedSignIns`, in
+`lib/blockedSignIns.ts`. LCED's list is intake@, reception@ and support@ at
+both lcedky.com and bewellkentucky.com (6 addresses).
+
+A blocked address:
+- is refused at Google sign-in whether the company is open or closed, and
+  sees the coming-soon page with the company logo;
+- never gets a user row. An existing row isn't touched (no Google link, no
+  sign-in time). Each refusal writes an audit row, `signin_refused_blocked`;
+- can't act through an old session or the local dev login;
+- is skipped by BambooHR sync, so it's never pre-created.
+
+The block wins over roles: an admin, tester or platform owner on a blocked
+address is still refused. The list only affects its own company.
+
+The platform owner edits the list in `/platform` → Manage → "Blocked sign-in
+addresses". Each entry must be a full address on the company's own domains.
+Each change writes an audit row listing what was added and removed (no row
+if nothing changed).
+
+**New SQL, not run:** `prisma/sql/2026-11-19-spotlight-blocked-signins.sql`.
+- Run it after the multitenant migration, either before or after the fresh
+  start.
+- It adds the column (matching Prisma exactly) and merges in LCED's six
+  addresses. It writes one audit row only if the list changed, so a second
+  run does nothing, and addresses added in `/platform` are kept.
+- It does **not** deactivate existing rows for those addresses. The check
+  query at the bottom lists any, so you can deactivate them by hand. Until
+  then they can't sign in or act, but they still appear in people lists.
+- I rehearsed it on the fictional old schema: after the migration, before
+  and after the fresh start, and twice in a row.
+
+**Tests:** the new `tests/blockedSignIns.test.ts` has 13 cases:
+- normalizing and validating the list;
+- every LCED address refused, open and closed, with no row created;
+- case-insensitive matching;
+- a normal person still admitted;
+- an admin or tester on a blocked address refused;
+- an existing row left untouched;
+- an already-linked Google account blocked;
+- another company unaffected;
+- an old session blocked;
+- coming-soon branding;
+- BambooHR skipping the address;
+- editing as platform owner only, with validation, audit, and immediate
+  effect both ways.
+
+I removed each check in turn (three in sign-in, `getActor`, BambooHR), and
+each time at least one test failed.
+
+**Stray config:** `vitest.config 2.mts` was byte-for-byte the same as
+`vitest.config.mts`, tracked by git and referenced nowhere, so I removed it
+with `git rm`.
+
+**Other strays (not touched):** the working tree has 27 untracked "… 2"
+copies, the kind Finder or iCloud makes, for example
+`app/actions/platform 2.ts`, `app/actions/pileOn 2.ts`,
+`public/spotlight-icon 2.svg` and several screenshots. The three I checked
+are exact copies of committed files. `app/actions/platform 2.ts` makes the
+unscoped-db allowlist test fail locally, because it imports the unscoped
+database client. With it moved aside the test passes, and I put it back.
+They're untracked, so they aren't in any commit.
+
+**Checks:**
+- Tests: 129, all of which pass except that one allowlist test, which fails
+  only because of `app/actions/platform 2.ts` (it passes with the file moved
+  aside).
+- Lint: 0 errors.
+- `next build` passes with local settings only.

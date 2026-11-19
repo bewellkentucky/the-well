@@ -102,6 +102,15 @@ No email provider in v1 (Resend removed). PWA, no app store.
   closing and tester flags are platform-owner actions in `/platform`, all
   audited. Seeds create both fictional companies open; new companies start
   closed. Any new cron or outbound call must check `isOpen`.
+- **Blocked sign-in addresses** (`Company.blockedSignIns`,
+  `lib/blockedSignIns.ts`): shared mailboxes (LCED: intake@, reception@,
+  support@ on both domains) never become people. Refused at Google sign-in
+  open or closed (coming-soon page, `signin_refused_blocked` audit row, no
+  user row created or changed), never an actor (`getActor`, dev login), and
+  skipped by BambooHR sync. Even an admin or tester on a blocked address is
+  refused. Platform owner edits the list in `/platform` (audited); entries
+  must be full addresses on the company's own domains. Existing rows for a
+  blocked address are not deactivated automatically.
 - `User.lastSignInAt` is set on every successful Google sign-in
   (`lib/signIn.ts`). The old app never stored it, so it is null for everyone
   until their first sign-in after the Spotlight deploy.
@@ -242,6 +251,10 @@ and group conversations" enabled, don't add `chat.bot` on the SDK scopes page.
   In hand-written SQL, always `DROP CONSTRAINT IF EXISTS` before `DROP INDEX
   IF EXISTS`, and rehearse against a local restore of a production backup
   (never commit it; drop it afterwards).
+- `prisma/sql/2026-11-19-spotlight-blocked-signins.sql` (not yet run) adds
+  `Company.blockedSignIns` and LCED's shared mailboxes. Run it after the
+  multitenant migration (before or after the fresh start); it is safe to run
+  twice and keeps entries added in `/platform`.
 - Prisma 7: connection URLs live in `prisma.config.ts`, not `schema.prisma`.
 - "use server" files may export async functions only (types are fine).
 - Kudo seeding on render is gone for good; empty feed shows "No kudos yet. Be

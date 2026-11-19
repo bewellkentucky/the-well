@@ -8,6 +8,7 @@ import { requirePlatformOwner, ActionError, toActionError } from "@/lib/tenant"
 import { normalizeDomains, normalizeSlug } from "@/lib/companies"
 import { normalizeAppUrl, normalizeLogoUrl, normalizeShortName } from "@/lib/branding"
 import { normalizeTheme, themeContrastProblems, type Theme } from "@/lib/theme"
+import { normalizeBlockedSignIns } from "@/lib/blockedSignIns"
 import { Prisma } from "@/app/generated/prisma/client"
 
 export type CompanyInput = {
@@ -181,6 +182,51 @@ export async function setTester(userId: string, isTester: boolean): Promise<{ er
           targetName: target.fullName,
           action: isTester ? "add_tester" : "remove_tester",
           details: isTester ? "Can sign in before launch" : "No longer a tester",
+        },
+      })
+    })
+    revalidatePath("/platform")
+    return {}
+  } catch (e) {
+    return toActionError(e)
+  }
+}
+
+/**
+ * Blocked sign-in addresses (shared mailboxes, lib/blockedSignIns.ts).
+ * Platform owner only, audit-logged with what was added and removed. Every
+ * address must be on one of the company's own domains. Existing user rows for
+ * a newly blocked address are not deactivated here (deactivate by hand).
+ */
+export async function setBlockedSignIns(companyId: string, input: string): Promise<{ error?: string }> {
+  try {
+    const actor = await requirePlatformOwner()
+    await db.$transaction(async (tx) => {
+      const company = await tx.company.findUnique({
+        where: { id: companyId },
+        select: { id: true, blockedSignIns: true, domains: { select: { domain: true } } },
+      })
+      if (!company) throw new ActionError("Company not found.")
+      let next: string[]
+      try {
+        next = normalizeBlockedSignIns(input, company.domains.map((d) => d.domain))
+      } catch (e) {
+        throw new ActionError((e as Error).message)
+      }
+      const added = next.filter((e) => !company.blockedSignIns.includes(e))
+      const removed = company.blockedSignIns.filter((e) => !next.includes(e))
+      if (!added.length && !removed.length) return
+      await tx.company.update({ where: { id: companyId }, data: { blockedSignIns: next } })
+      await tx.auditLog.create({
+        data: {
+          companyId,
+          actorId: actor.userId,
+          actorName: actor.fullName,
+          action: "set_blocked_signins",
+          details: [
+            added.length ? `Blocked: ${added.join(", ")}` : null,
+            removed.length ? `Unblocked: ${removed.join(", ")}` : null,
+          ].filter(Boolean).join(". "),
         },
       })
     })

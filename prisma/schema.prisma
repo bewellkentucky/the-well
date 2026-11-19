@@ -35,6 +35,9 @@ model Company {
   // Launch switch. Closed: only platform owners, company admins and testers
   // can sign in, and no cron, Chat post or BambooHR sync runs (lib/launch.ts).
   isOpen                 Boolean  @default(false)
+  // Shared mailboxes that may never sign in or become people, open or closed
+  // (lib/blockedSignIns.ts). Lowercase full addresses; platform owner edits.
+  blockedSignIns         String[] @default([])
   createdAt              DateTime @default(now())
   updatedAt              DateTime @updatedAt
 
