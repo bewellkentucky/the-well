@@ -19,6 +19,10 @@
 --      phones) and User.lastSignInAt (empty until people sign in again).
 --   8. Company.theme: LCED's 14-color palette (navy first, mauve accent).
 --      Recolors LCED's rewards and incentives from that palette.
+--   9. Launch switch: Company.isOpen (LCED starts CLOSED: only the platform
+--      owner, admins and testers can sign in until it is opened in
+--      /platform), User.isTester, and AuditLog.actorId nullable so refused
+--      sign-ins are audited without creating anyone.
 --
 -- What it deliberately does NOT do (commented out at the bottom):
 --   - drop AppSetting, BalanceAdjustment, User.entity. Drop them later once
@@ -45,6 +49,7 @@ CREATE TABLE "Company" (
     "bambooSubdomain" TEXT,
     "chatSpace" TEXT,
     "active" BOOLEAN NOT NULL DEFAULT true,
+    "isOpen" BOOLEAN NOT NULL DEFAULT false,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
     CONSTRAINT "Company_pkey" PRIMARY KEY ("id")
@@ -62,7 +67,7 @@ ALTER TABLE "CompanyDomain" ADD CONSTRAINT "CompanyDomain_companyId_fkey"
   FOREIGN KEY ("companyId") REFERENCES "Company"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 INSERT INTO "Company" ("id", "slug", "name", "shortName", "appUrl", "theme", "allowanceAmount", "featuredIncentiveCount",
-                       "bambooEnabled", "bambooSubdomain", "chatSpace", "updatedAt")
+                       "bambooEnabled", "bambooSubdomain", "chatSpace", "isOpen", "updatedAt")
 VALUES ('company_lced', 'lced', 'Louisville Center for Eating Disorders', 'LCED',
         'https://spotlight.louisvillecenterforeatingdisorders.com',  -- change if the address differs
         -- LCED palette: navy first, mauve accent only (lib/theme.ts LCED_THEME;
@@ -72,6 +77,7 @@ VALUES ('company_lced', 'lced', 'Louisville Center for Eating Disorders', 'LCED'
         false,  -- turn on after setting BAMBOOHR_API_KEY_LCED in Vercel
         NULL,   -- BambooHR subdomain, e.g. the old BAMBOOHR_SUBDOMAIN value
         NULL,   -- Google Chat space, e.g. the old GCHAT_KUDOS_SPACE value ('spaces/...')
+        false,  -- launch switch: closed until the platform owner opens it in /platform
         CURRENT_TIMESTAMP);
 
 INSERT INTO "CompanyDomain" ("domain", "companyId") VALUES
@@ -130,6 +136,8 @@ ALTER TABLE "AuditLog"        ALTER COLUMN "companyId" SET NOT NULL;
 ALTER TABLE "User" ADD COLUMN "isPlatformOwner" BOOLEAN NOT NULL DEFAULT false;
 -- Set on each Google sign-in from now on; the old app never recorded it.
 ALTER TABLE "User" ADD COLUMN "lastSignInAt" TIMESTAMP(3);
+-- Testers may sign in while their company is closed (launch switch).
+ALTER TABLE "User" ADD COLUMN "isTester" BOOLEAN NOT NULL DEFAULT false;
 UPDATE "User" SET "isPlatformOwner" = true, "role" = 'admin' WHERE "role" = 'owner';
 UPDATE "User" SET "role" = 'member' WHERE "role" NOT IN ('admin', 'member');
 ALTER TABLE "User" DROP COLUMN IF EXISTS "domain";  -- now derived from CompanyDomain
@@ -218,6 +226,9 @@ ALTER TABLE "AuditLog" ADD CONSTRAINT "AuditLog_companyId_fkey" FOREIGN KEY ("co
 ALTER TABLE "AuditLog" ADD CONSTRAINT "AuditLog_targetId_companyId_fkey" FOREIGN KEY ("targetId", "companyId") REFERENCES "User"("id", "companyId") ON DELETE RESTRICT ON UPDATE CASCADE;
 -- AuditLog_actorId_fkey (plain, actorId -> User.id) is kept as-is: a platform
 -- owner from another company can be the actor on a company's audit row.
+-- actorId may be NULL: a refused sign-in while the company is closed is
+-- audited without creating a Spotlight person.
+ALTER TABLE "AuditLog" ALTER COLUMN "actorId" DROP NOT NULL;
 
 -- ── 6. Tidy: contiguous incentive order per company, new reward color default
 WITH ordered AS (

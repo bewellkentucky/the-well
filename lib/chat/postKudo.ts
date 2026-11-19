@@ -2,6 +2,8 @@ import { GoogleAuth } from "google-auth-library"
 import { STAR, PRODUCT_NAME } from "@/lib/brand"
 
 type Params = {
+  /** Launch switch: a closed company never posts. */
+  companyOpen: boolean
   isPrivate: boolean
   /** The company's own Chat space. null = this company does not post. */
   chatSpace: string | null
@@ -26,7 +28,9 @@ function getAuth(saKey: string): GoogleAuth {
 }
 
 /** Pure: should this kudo be posted, and where? Exported for tests. */
-export function chatTarget(p: Pick<Params, "isPrivate" | "chatSpace">): string | null {
+export function chatTarget(p: Pick<Params, "isPrivate" | "chatSpace" | "companyOpen">): string | null {
+  // Launch gate: nothing leaves Spotlight for a closed company.
+  if (p.companyOpen !== true) return null
   // Privacy gate (permanent): post ONLY when isPrivate is explicitly false.
   if (p.isPrivate !== false) return null
   // Tenant gate: only into this company's own space; no space = no post.

@@ -1,6 +1,9 @@
-import { signIn } from "@/auth"
+import { signIn, signOut } from "@/auth"
 import { getActor } from "@/lib/tenant"
-import { getRequestBrand } from "@/lib/brandContext"
+import { getRequestBrand, getComingSoonBrand } from "@/lib/brandContext"
+import { COMING_SOON_BODY, COMING_SOON_TITLE } from "@/lib/launch"
+import { themeCss } from "@/lib/theme"
+import type { CompanyBrand } from "@/lib/branding"
 import { SIGN_IN_MESSAGES, type SignInDenied } from "@/lib/signIn"
 import { buildClaimStatuses } from "@/lib/incentives"
 import { listFeaturedIncentives } from "@/lib/incentiveQueries"
@@ -18,12 +21,17 @@ import DevLoginForm from "@/app/components/auth/DevLoginForm"
 export default async function Home({
   searchParams,
 }: {
-  searchParams: Promise<{ signin?: string; error?: string }>
+  searchParams: Promise<{ signin?: string; error?: string; c?: string }>
 }) {
   const actor = await getActor()
 
   if (!actor) {
     const params = await searchParams
+    // Launch switch: a closed company shows "coming soon", never an error.
+    const soon = await getComingSoonBrand(params.signin === "closed" ? params.c : undefined)
+    if (soon || params.signin === "closed") {
+      return <ComingSoonPage brand={soon ?? (await getRequestBrand())} />
+    }
     const brand = await getRequestBrand()
     const code = params.signin as SignInDenied | undefined
     const error =
@@ -154,6 +162,41 @@ function SignInPage({
             </button>
           </form>
           <DevLoginForm />
+        </div>
+      </div>
+    </main>
+  )
+}
+
+function ComingSoonPage({ brand }: { brand: CompanyBrand | null }) {
+  return (
+    <main className="signin-page">
+      {brand?.theme ? <style>{themeCss(brand.theme)}</style> : null}
+      <div className="signin-inner">
+        <div className="signin-brand">
+          {brand?.logoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={brand.logoUrl} alt={brand.name} className="signin-logo" />
+          ) : (
+            <SpotlightMark size={64} className="signin-mark" />
+          )}
+          <div className="signin-titles">
+            <h1 className="signin-title">Spotlight</h1>
+            {brand?.name && <p className="signin-company">{brand.name}</p>}
+          </div>
+        </div>
+
+        <div className="signin-card coming-soon-card">
+          <h2 className="signin-welcome">{COMING_SOON_TITLE}</h2>
+          <p className="signin-hint">{COMING_SOON_BODY}</p>
+          <form
+            action={async () => {
+              "use server"
+              await signOut({ redirectTo: "/" })
+            }}
+          >
+            <button type="submit" className="coming-soon-link">Use a different account</button>
+          </form>
         </div>
       </div>
     </main>

@@ -87,6 +87,19 @@ No email provider in v1 (Resend removed). PWA, no app store.
   2026-11-19). When a second customer exists, give company admins the ability
   to change roles within their own company** (scoped `changeRole`, still
   guarded by the last-admin rule, plus a tenant test).
+- **Launch switch** (`Company.isOpen`, `lib/launch.ts`; default false, LCED
+  starts closed in the migration). While closed, only platform owners,
+  company admins and testers (`User.isTester`) can sign in or resolve as an
+  actor (`getActor`, dev login, Google sign-in). Everyone else sees "Spotlight
+  is coming soon" (`/?signin=closed&c=<slug>`, or an old session), no user
+  row is created or updated, and an audit row `signin_refused_closed` is
+  written (`AuditLog.actorId` is null when there is no person). Nothing
+  outbound runs for a closed company: allowance-reset cron, BambooHR sync
+  (cron, admin button and CLI, enforced in `syncBambooHR`) and Chat posts
+  (`chatTarget` requires `companyOpen`). Keep-warm is unaffected. Opening,
+  closing and tester flags are platform-owner actions in `/platform`, all
+  audited. Seeds create both fictional companies open; new companies start
+  closed. Any new cron or outbound call must check `isOpen`.
 - `User.lastSignInAt` is set on every successful Google sign-in
   (`lib/signIn.ts`). The old app never stored it, so it is null for everyone
   until their first sign-in after the Spotlight deploy.

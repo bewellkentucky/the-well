@@ -85,9 +85,10 @@ export async function createKudo(params: Params): Promise<{ error: string } | un
     try {
       const company = await actor.db.company.findUnique({
         where: { id: actor.companyId },
-        select: { chatSpace: true, appUrl: true },
+        select: { chatSpace: true, appUrl: true, isOpen: true },
       })
       await postKudoToChat({
+        companyOpen: company?.isOpen === true,
         isPrivate,
         chatSpace: company?.chatSpace ?? null,
         appUrl: company?.appUrl ?? null,

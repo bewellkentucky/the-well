@@ -24,6 +24,7 @@ const FILTER_ACTIONS: Record<FilterTab, string[] | null> = {
     "create_incentive", "edit_incentive", "disable_incentive", "enable_incentive",
     "create_reward",    "edit_reward",    "disable_reward",    "enable_reward",
     "sync_bamboo",
+    "open_company", "close_company", "add_tester", "remove_tester", "signin_refused_closed",
   ],
 }
 
@@ -45,6 +46,11 @@ const ACTION_LABELS: Record<string, string> = {
   sync_bamboo:        "ran a BambooHR sync",
   fresh_start:         "reset the program for a fresh start",
   fresh_start_balance: "reset balances (fresh start)",
+  open_company:          "opened Spotlight for everyone",
+  close_company:         "closed Spotlight to all but admins and testers",
+  add_tester:            "made a tester",
+  remove_tester:         "removed a tester",
+  signin_refused_closed: "tried to sign in before launch",
 }
 
 const ACTION_CATEGORY: Record<string, FilterTab> = {
@@ -63,6 +69,11 @@ const ACTION_CATEGORY: Record<string, FilterTab> = {
   disable_reward:     "config",
   enable_reward:      "config",
   sync_bamboo:        "config",
+  open_company:          "config",
+  close_company:         "config",
+  add_tester:            "config",
+  remove_tester:         "config",
+  signin_refused_closed: "config",
 }
 
 function timeAgo(iso: string): string {

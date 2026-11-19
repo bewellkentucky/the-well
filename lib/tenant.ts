@@ -19,6 +19,7 @@ export { scopedDb, TENANT_MODELS } from "@/lib/scopedDb"
 export type { ScopedDb, ScopedTx } from "@/lib/scopedDb"
 export { ActionError, TenantError } from "@/lib/errors"
 import { scopedDb, type ScopedDb } from "@/lib/scopedDb"
+import { canUseCompany } from "@/lib/launch"
 import { ActionError, TenantError } from "@/lib/errors"
 
 export type Actor = {
@@ -32,7 +33,11 @@ export type Actor = {
   db: ScopedDb
 }
 
-/** The signed-in, active person in an active company, or null. Always re-read from the DB. */
+/**
+ * The signed-in, active person in an active company, or null. Always re-read
+ * from the DB. While the company is closed (lib/launch.ts), only platform
+ * owners, admins and testers resolve.
+ */
 export async function getActor(): Promise<Actor | null> {
   const session = await auth()
   const userId = session?.user?.id
@@ -46,10 +51,13 @@ export async function getActor(): Promise<Actor | null> {
       role: true,
       active: true,
       isPlatformOwner: true,
-      company: { select: { active: true } },
+      isTester: true,
+      company: { select: { active: true, isOpen: true } },
     },
   })
   if (!user || !user.active || !user.company.active) return null
+  // Launch switch: a session from before the company closed gets nothing.
+  if (!canUseCompany(user.company, user)) return null
   return {
     userId: user.id,
     companyId: user.companyId,

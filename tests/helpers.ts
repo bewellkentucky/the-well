@@ -15,14 +15,15 @@ let n = 0
 const uid = () => `${Date.now().toString(36)}${(n++).toString(36)}`
 
 export async function makeCompany(slug: string, domains: string[] = [`${slug}.test`], extra: Record<string, unknown> = {}) {
-  const company = await db.company.create({ data: { slug, name: slug.toUpperCase(), ...extra } })
+  // Open by default so tests exercise normal use; pass { isOpen: false } for the launch switch.
+  const company = await db.company.create({ data: { slug, name: slug.toUpperCase(), isOpen: true, ...extra } })
   for (const domain of domains) await db.companyDomain.create({ data: { domain, companyId: company.id } })
   return company
 }
 
 export async function makeUser(
   companyId: string,
-  opts: Partial<{ role: string; isPlatformOwner: boolean; givingBalance: number; balance: number; active: boolean; email: string; googleId: string; fullName: string }> = {}
+  opts: Partial<{ role: string; isPlatformOwner: boolean; isTester: boolean; givingBalance: number; balance: number; active: boolean; email: string; googleId: string; fullName: string }> = {}
 ) {
   const id = uid()
   return db.user.create({
@@ -32,6 +33,7 @@ export async function makeUser(
       fullName: opts.fullName ?? `Person ${id}`,
       role: opts.role ?? "member",
       isPlatformOwner: opts.isPlatformOwner ?? false,
+      isTester: opts.isTester ?? false,
       givingBalance: opts.givingBalance ?? 100,
       balance: opts.balance ?? 0,
       active: opts.active ?? true,

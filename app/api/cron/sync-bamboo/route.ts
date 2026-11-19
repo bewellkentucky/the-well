@@ -11,7 +11,8 @@ export async function GET(req: NextRequest) {
   }
   const force = req.nextUrl.searchParams.get("full") === "1"
   const companies = await db.company.findMany({
-    where: { active: true, bambooEnabled: true, bambooSubdomain: { not: null } },
+    // Closed companies (launch switch) never sync; syncBambooHR refuses them too.
+    where: { active: true, isOpen: true, bambooEnabled: true, bambooSubdomain: { not: null } },
     select: { id: true, slug: true },
   })
   const results: Record<string, unknown> = {}

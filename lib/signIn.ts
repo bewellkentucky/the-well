@@ -13,8 +13,12 @@
 //    domain must belong to the company they already belong to.
 //  - Inactive people and inactive companies are refused.
 //  - New people are created only when their domain maps to an active company.
+//  - Launch switch (lib/launch.ts): while the company is closed, only platform
+//    owners, admins and testers get in. Everyone else is refused with
+//    "closed", an audit row is written, and no user row is created or changed.
 
 import type { PrismaClient } from "@/app/generated/prisma/client"
+import { canUseCompany } from "@/lib/launch"
 
 export type GoogleProfileLike = {
   sub?: string | null
@@ -32,8 +36,12 @@ export type SignInDenied =
   | "domain_mismatch"
   | "inactive"
   | "account_conflict"
+  | "closed"
 
-export type SignInResult = { ok: true; userId: string; created: boolean } | { ok: false; reason: SignInDenied }
+export type SignInResult =
+  | { ok: true; userId: string; created: boolean }
+  | { ok: false; reason: Exclude<SignInDenied, "closed"> }
+  | { ok: false; reason: "closed"; companySlug: string }
 
 export const SIGN_IN_MESSAGES: Record<SignInDenied, string> = {
   missing_profile: "Google didn't send enough account details. Please try again.",
@@ -43,9 +51,32 @@ export const SIGN_IN_MESSAGES: Record<SignInDenied, string> = {
   domain_mismatch: "That account doesn't match your organization in Spotlight. Ask your admin.",
   inactive: "Your Spotlight account is turned off. Ask your admin.",
   account_conflict: "There's a conflict with an existing account. Ask your admin.",
+  closed: "Spotlight isn't open for your team yet.",
 }
 
-type Db = Pick<PrismaClient, "user" | "companyDomain" | "company">
+type Db = Pick<PrismaClient, "user" | "companyDomain" | "company" | "auditLog">
+
+const LAUNCH_SELECT = { role: true, isPlatformOwner: true, isTester: true } as const
+
+/** Refused while closed: audit row only. Never creates or updates a user. */
+async function refuseClosed(
+  db: Db,
+  company: { id: string; slug: string },
+  who: { userId: string | null; email: string; name?: string },
+): Promise<SignInResult> {
+  await db.auditLog.create({
+    data: {
+      companyId: company.id,
+      actorId: who.userId,
+      actorName: who.name ?? who.email,
+      targetId: who.userId,
+      targetName: who.userId ? (who.name ?? who.email) : null,
+      action: "signin_refused_closed",
+      details: `Sign-in refused before launch: ${who.email}${who.userId ? "" : " (no Spotlight account created)"}`,
+    },
+  })
+  return { ok: false, reason: "closed", companySlug: company.slug }
+}
 
 export async function resolveGoogleSignIn(db: Db, profile: GoogleProfileLike | null | undefined): Promise<SignInResult> {
   const sub = profile?.sub?.trim()
@@ -61,12 +92,17 @@ export async function resolveGoogleSignIn(db: Db, profile: GoogleProfileLike | n
   // 1) Known Google account.
   const byGoogle = await db.user.findUnique({
     where: { googleId: sub },
-    select: { id: true, email: true, active: true, companyId: true, company: { select: { active: true } } },
+    select: {
+      id: true, email: true, fullName: true, active: true, companyId: true, ...LAUNCH_SELECT,
+      company: { select: { id: true, slug: true, active: true, isOpen: true } },
+    },
   })
   if (byGoogle) {
     const domains = await companyDomains(db, byGoogle.companyId)
     if (!domains.includes(domain) || !domains.includes(hd)) return { ok: false, reason: "domain_mismatch" }
     if (!byGoogle.active || !byGoogle.company.active) return { ok: false, reason: "inactive" }
+    if (!canUseCompany(byGoogle.company, byGoogle))
+      return refuseClosed(db, byGoogle.company, { userId: byGoogle.id, email, name: byGoogle.fullName })
     if (byGoogle.email !== email) {
       const holder = await db.user.findUnique({ where: { email }, select: { id: true } })
       if (holder && holder.id !== byGoogle.id) return { ok: false, reason: "account_conflict" }
@@ -78,7 +114,7 @@ export async function resolveGoogleSignIn(db: Db, profile: GoogleProfileLike | n
   // 2) Domain must belong to a company, and hd must be one of its domains.
   const mapping = await db.companyDomain.findUnique({
     where: { domain },
-    select: { companyId: true, company: { select: { active: true, allowanceAmount: true } } },
+    select: { companyId: true, company: { select: { id: true, slug: true, active: true, isOpen: true, allowanceAmount: true } } },
   })
   if (!mapping) return { ok: false, reason: "unknown_domain" }
   const domains = await companyDomains(db, mapping.companyId)
@@ -88,17 +124,21 @@ export async function resolveGoogleSignIn(db: Db, profile: GoogleProfileLike | n
   // 3) Pre-created row (BambooHR sync or admin) with this email.
   const byEmail = await db.user.findUnique({
     where: { email },
-    select: { id: true, googleId: true, active: true, companyId: true },
+    select: { id: true, googleId: true, fullName: true, active: true, companyId: true, ...LAUNCH_SELECT },
   })
   if (byEmail) {
     if (byEmail.companyId !== mapping.companyId) return { ok: false, reason: "domain_mismatch" }
     if (byEmail.googleId && byEmail.googleId !== sub) return { ok: false, reason: "account_conflict" }
     if (!byEmail.active) return { ok: false, reason: "inactive" }
+    if (!canUseCompany(mapping.company, byEmail))
+      return refuseClosed(db, mapping.company, { userId: byEmail.id, email, name: byEmail.fullName })
     await db.user.update({ where: { id: byEmail.id }, data: { googleId: sub, fullName: name, lastSignInAt: now } })
     return { ok: true, userId: byEmail.id, created: false }
   }
 
-  // 4) Brand new person in a known company.
+  // 4) Brand new person in a known company. New people are never admins or
+  //    testers, so a closed company refuses them without creating a row.
+  if (!mapping.company.isOpen) return refuseClosed(db, mapping.company, { userId: null, email, name })
   const created = await db.user.create({
     data: {
       companyId: mapping.companyId,

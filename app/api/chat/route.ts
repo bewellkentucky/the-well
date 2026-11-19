@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { OAuth2Client } from "google-auth-library"
 import type { TokenPayload } from "google-auth-library"
 import { db } from "@/lib/db"
+import { canUseCompany, COMING_SOON_TITLE } from "@/lib/launch"
 
 export const maxDuration = 30
 
@@ -171,13 +172,18 @@ async function handleMessage(senderEmail: string): Promise<{ text: string }> {
   // NEVER auto-create an account from a Chat interaction.
   const wellUser = await db.user.findUnique({
     where:  { email: senderEmail },
-    select: { fullName: true },
+    select: { fullName: true, role: true, isPlatformOwner: true, isTester: true, company: { select: { isOpen: true } } },
   })
 
   if (!wellUser) {
     return {
       text: "I don't see a Spotlight account for your email. Sign in to Spotlight first, then come back.",
     }
+  }
+
+  // Launch switch: say nothing more than "coming soon" for a closed company.
+  if (!canUseCompany(wellUser.company, wellUser)) {
+    return { text: `${COMING_SOON_TITLE}.` }
   }
 
   const firstName = wellUser.fullName.split(" ")[0] ?? wellUser.fullName

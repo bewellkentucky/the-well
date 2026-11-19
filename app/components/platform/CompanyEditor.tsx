@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useTransition } from "react"
-import { createCompany, updateCompany, type CompanyInput } from "@/app/actions/platform"
+import { createCompany, updateCompany, setCompanyOpen, setTester, type CompanyInput } from "@/app/actions/platform"
 import { changeRole } from "@/app/actions/adminPeople"
 import { DEFAULT_THEME, THEME_KEYS, THEME_LABELS, themeContrastPairs, type Theme } from "@/lib/theme"
 
@@ -20,8 +20,10 @@ export type CompanyRow = {
   bambooKeyPresent: boolean
   chatSpace: string | null
   active: boolean
+  isOpen: boolean
+  refusedSignIns: number
   kudoCount: number
-  people: { id: string; fullName: string; email: string; role: string; isPlatformOwner: boolean }[]
+  people: { id: string; fullName: string; email: string; role: string; isPlatformOwner: boolean; isTester: boolean }[]
 }
 
 const EMPTY: CompanyInput = {
@@ -148,6 +150,40 @@ function ThemeEditor({ value, onChange }: { value: Theme | null; onChange: (t: T
   )
 }
 
+function LaunchSwitch({ c }: { c: CompanyRow }) {
+  const [isPending, start] = useTransition()
+  const [error, setError] = useState<string | null>(null)
+  const testers = c.people.filter((p) => p.isTester).length
+  return (
+    <div className={`plat-launch ${c.isOpen ? "is-open" : ""}`}>
+      <div className="plat-launch-info">
+        <div className="plat-launch-state">{c.isOpen ? "Open to everyone" : "Closed: coming soon"}</div>
+        <div className="plat-launch-hint">
+          {c.isOpen
+            ? "Everyone from this company's domains can sign in. Cron, Chat posts and BambooHR sync run."
+            : `Only platform owners, admins and testers (${testers}) can sign in. No cron, Chat posts or BambooHR sync. ${c.refusedSignIns} refused sign-in${c.refusedSignIns === 1 ? "" : "s"} so far.`}
+        </div>
+        {error && <div className="prog-error">{error}</div>}
+      </div>
+      <button
+        className={c.isOpen ? "role-change-btn" : "btn btn-primary"}
+        disabled={isPending}
+        onClick={() => start(async () => {
+          setError(null)
+          const msg = c.isOpen
+            ? `Close Spotlight for ${c.name}? Only admins and testers will be able to sign in.`
+            : `Open Spotlight for ${c.name}? Everyone from ${c.domains.join(", ")} will be able to sign in.`
+          if (!window.confirm(msg)) return
+          const res = await setCompanyOpen(c.id, !c.isOpen)
+          if (res.error) setError(res.error)
+        })}
+      >
+        {c.isOpen ? "Close Spotlight" : "Open Spotlight"}
+      </button>
+    </div>
+  )
+}
+
 function RoleRow({ p }: { p: CompanyRow["people"][number] }) {
   const [isPending, start] = useTransition()
   const [error, setError] = useState<string | null>(null)
@@ -159,6 +195,22 @@ function RoleRow({ p }: { p: CompanyRow["people"][number] }) {
         <div className="people-email">{p.email}</div>
         {error && <div className="prog-error">{error}</div>}
       </div>
+      <label className="plat-tester">
+        <input
+          type="checkbox"
+          checked={p.isTester}
+          disabled={isPending}
+          onChange={(e) => {
+            const value = e.target.checked
+            start(async () => {
+              setError(null)
+              const res = await setTester(p.id, value)
+              if (res.error) setError(res.error)
+            })
+          }}
+        />
+        Tester
+      </label>
       <span className={`role-badge role-badge-${p.role}`}>{p.role}</span>
       <button
         className="role-change-btn"
@@ -187,6 +239,7 @@ export default function CompanyEditor({ companies, currentCompanyId }: { compani
             <h2 className="card-title">
               {c.name} {c.id === currentCompanyId && <span className="people-you">yours</span>}
               {!c.active && <span className="inc-admin-badge inc-badge-inactive" style={{ marginLeft: 8 }}>Inactive</span>}
+              {!c.isOpen && <span className="inc-admin-badge inc-badge-inactive" style={{ marginLeft: 8 }}>Coming soon</span>}
             </h2>
             <button className="role-change-btn" onClick={() => setOpenId(openId === c.id ? null : c.id)}>
               {openId === c.id ? "Close" : "Manage"}
@@ -202,8 +255,9 @@ export default function CompanyEditor({ companies, currentCompanyId }: { compani
           </div>
           {openId === c.id && (
             <>
+              <LaunchSwitch c={c} />
               <CompanyForm initial={toInput(c)} submitLabel="Save company" slugLocked onSubmit={(v) => updateCompany(c.id, v)} />
-              <h3 className="plat-subtitle">Roles</h3>
+              <h3 className="plat-subtitle">Roles and testers</h3>
               <div className="plat-people">
                 {c.people.map((p) => <RoleRow key={p.id} p={p} />)}
               </div>

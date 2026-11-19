@@ -9,7 +9,8 @@ import { formatStars } from "@/lib/brand"
  * (balance) is never touched.
  */
 export async function resetAllowances(now = new Date()) {
-  const companies = await db.company.findMany({ where: { active: true }, select: { id: true, allowanceAmount: true } })
+  // Closed companies (launch switch, lib/launch.ts) are skipped entirely.
+  const companies = await db.company.findMany({ where: { active: true, isOpen: true }, select: { id: true, allowanceAmount: true } })
   const results: { companyId: string; usersReset: number; amount: number }[] = []
   for (const c of companies) {
     const sdb = scopedDb(c.id)

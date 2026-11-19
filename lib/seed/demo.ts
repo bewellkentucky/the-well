@@ -13,6 +13,7 @@ type Person = {
   title: string
   role?: "admin" | "member"
   platformOwner?: boolean
+  tester?: boolean // may sign in while the company is closed
   hire: string // YYYY-MM-DD
   birthday: string // MM-DD
   location?: string
@@ -55,7 +56,7 @@ const COMPANIES: {
     people: [
       { first: "Morgan", last: "Reyes", title: "Operations Director", role: "admin", platformOwner: true, hire: "2019-03-11", birthday: mdFromToday(9), location: "Louisville" },
       { first: "Dana", last: "Whitfield", title: "Practice Administrator", role: "admin", hire: "2020-06-01", birthday: "02-14", location: "Louisville" },
-      { first: "Priya", last: "Okafor", title: "Clinical Director", hire: "2018-09-17", birthday: "07-22", location: "Louisville" },
+      { first: "Priya", last: "Okafor", title: "Clinical Director", tester: true, hire: "2018-09-17", birthday: "07-22", location: "Louisville" },
       { first: "Sam", last: "Delgado", title: "Therapist", hire: "2022-01-10", birthday: mdFromToday(21), location: "Louisville" },
       { first: "Jordan", last: "Ellis", title: "Therapist", hire: "2023-04-03", birthday: "11-30", location: "Lexington" },
       { first: "Avery", last: "Kim", title: "Registered Dietitian Liaison", hire: "2021-08-23", birthday: "05-05", location: "Lexington" },
@@ -113,7 +114,9 @@ export async function seedDemoData() {
   for (const c of COMPANIES) {
     const company = await db.company.upsert({
       where: { slug: c.slug },
-      create: { slug: c.slug, name: c.name, shortName: c.shortName, appUrl: c.appUrl, theme: c.theme ?? Prisma.DbNull, allowanceAmount: c.allowance },
+      // Seeded open so local dev works for everyone. Production LCED starts
+      // closed (migration); try the launch switch in /platform.
+      create: { slug: c.slug, name: c.name, shortName: c.shortName, appUrl: c.appUrl, theme: c.theme ?? Prisma.DbNull, allowanceAmount: c.allowance, isOpen: true },
       update: { name: c.name, shortName: c.shortName, appUrl: c.appUrl, theme: c.theme ?? Prisma.DbNull, allowanceAmount: c.allowance },
     })
     for (const domain of c.domains) {
@@ -136,6 +139,7 @@ export async function seedDemoData() {
           title: p.title,
           role: p.role ?? "member",
           isPlatformOwner: p.platformOwner ?? false,
+          isTester: p.tester ?? false,
           hireDate: day(p.hire),
           birthday: bday(p.birthday),
           location: p.location ?? null,

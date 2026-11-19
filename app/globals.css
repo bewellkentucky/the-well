@@ -3490,6 +3490,16 @@ input, textarea, select {
 }
 .signin-welcome { font-weight: 600; color: var(--heading); }
 .signin-hint { font-size: 14px; color: var(--text); margin-top: -8px; }
+.coming-soon-card .signin-hint { margin-top: 0; line-height: 1.5; }
+.coming-soon-link {
+  background: none;
+  border: 0;
+  padding: 4px 8px;
+  font-size: 13px;
+  color: var(--subtle);
+  text-decoration: underline;
+  cursor: pointer;
+}
 .signin-error {
   font-size: 13px;
   color: var(--danger);
@@ -3650,6 +3660,30 @@ input, textarea, select {
   border-top: 1px solid var(--line);
 }
 .plat-person-info { flex: 1; min-width: 0; }
+.plat-tester {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text);
+  margin-right: 8px;
+}
+.plat-launch {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--tint);
+}
+.plat-launch-info { flex: 1; min-width: 0; }
+.plat-launch-state { font-weight: 600; color: var(--heading); }
+.plat-launch-hint { font-size: 13px; color: var(--text); margin-top: 2px; }
+@media (max-width: 640px) {
+  .plat-launch { flex-direction: column; align-items: stretch; }
+}
 
 /* ── Phone layout pass (390px) ───────────────────────────── */
 /* Long company names stay on one line under "Spotlight". */

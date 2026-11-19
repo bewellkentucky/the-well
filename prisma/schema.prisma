@@ -32,6 +32,9 @@ model Company {
   bambooSubdomain        String?
   chatSpace              String?  // Google Chat space for public kudos; null = never post
   active                 Boolean  @default(true)
+  // Launch switch. Closed: only platform owners, company admins and testers
+  // can sign in, and no cron, Chat post or BambooHR sync runs (lib/launch.ts).
+  isOpen                 Boolean  @default(false)
   createdAt              DateTime @default(now())
   updatedAt              DateTime @updatedAt
 
@@ -76,6 +79,7 @@ model User {
   active          Boolean   @default(true)
   role            String    @default("member") // member | admin (per company)
   isPlatformOwner Boolean   @default(false)    // Spotlight operator; set by SQL only
+  isTester        Boolean   @default(false)    // may sign in while the company is closed; platform owner sets
   lastSignInAt    DateTime? // set on each successful Google sign-in; null = never (or before 2026-11-19)
 
   // BambooHR enrichment (optional, read-only connection per company)
@@ -286,8 +290,9 @@ model AuditLog {
   company    Company  @relation(fields: [companyId], references: [id])
   createdAt  DateTime @default(now())
   // Actor may be a platform owner from another company, so this FK is plain.
-  actorId    String
-  actor      User     @relation("AuditActor", fields: [actorId], references: [id])
+  // null = no Spotlight person (a refused sign-in while the company is closed).
+  actorId    String?
+  actor      User?    @relation("AuditActor", fields: [actorId], references: [id])
   // Target is always in the same company.
   targetId   String?
   target     User?    @relation("AuditTarget", fields: [targetId, companyId], references: [id, companyId])

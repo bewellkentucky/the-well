@@ -26,10 +26,10 @@ export default async function PlatformPage() {
       domains: { select: { domain: true }, orderBy: { domain: "asc" } },
       users: {
         where: { active: true },
-        select: { id: true, fullName: true, email: true, role: true, isPlatformOwner: true },
+        select: { id: true, fullName: true, email: true, role: true, isPlatformOwner: true, isTester: true },
         orderBy: [{ role: "asc" }, { fullName: "asc" }],
       },
-      _count: { select: { kudos: true } },
+      _count: { select: { kudos: true, auditLogs: { where: { action: "signin_refused_closed" } } } },
     },
   })
 
@@ -48,6 +48,8 @@ export default async function PlatformPage() {
     bambooKeyPresent: !!process.env[bambooKeyEnvName(c.slug)],
     chatSpace: c.chatSpace,
     active: c.active,
+    isOpen: c.isOpen,
+    refusedSignIns: c._count.auditLogs,
     kudoCount: c._count.kudos,
     people: c.users,
   }))

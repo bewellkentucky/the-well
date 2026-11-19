@@ -53,9 +53,11 @@ async function bambooGet(conn: BambooConn, path: string, attempt = 0): Promise<a
 export async function syncBambooHR(companyId: string, opts: { since?: Date; force?: boolean } = {}) {
   const company = await db.company.findUnique({
     where: { id: companyId },
-    select: { slug: true, bambooEnabled: true, bambooSubdomain: true, allowanceAmount: true, domains: { select: { domain: true } } },
+    select: { slug: true, isOpen: true, bambooEnabled: true, bambooSubdomain: true, allowanceAmount: true, domains: { select: { domain: true } } },
   })
   if (!company) throw new ActionError("Company not found.")
+  // Launch switch: no outbound calls for a closed company.
+  if (!company.isOpen) throw new ActionError("BambooHR sync starts when Spotlight opens for this company.")
   if (!company.bambooEnabled || !company.bambooSubdomain) {
     throw new ActionError("BambooHR is not connected for this company.")
   }

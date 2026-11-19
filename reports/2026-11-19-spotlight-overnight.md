@@ -508,3 +508,60 @@ Same rules: local only, nothing pushed or deployed, local databases only.
 and CSS, glow removed). Lint has 0 errors (same one warning). `next build`
 passes with local settings only.
 
+
+## Launch switch (2026-11-19)
+
+- **`Company.isOpen`** (default false). The migration creates LCED **closed**,
+  with a new step 9 in the header. While closed, only the platform owner,
+  LCED admins and testers can sign in. **`User.isTester`** is set per person
+  in `/platform` under "Roles and testers".
+- **Everyone else** from lcedky.com or bewellkentucky.com gets a calm
+  "Spotlight is coming soon" page with the company name and logo, and a
+  "Use a different account" link.
+  - No user row is created, and an existing row isn't touched (no Google
+    link, no last sign-in).
+  - Each refusal writes an audit row, `signin_refused_closed`. Its actor is
+    empty for people with no account. To allow that, the migration now makes
+    `AuditLog.actorId` nullable.
+  - `/platform` shows how many refused sign-ins there have been so far.
+- **Sessions:** someone already signed in when a company closes gets the same
+  page. `getActor` returns nothing for them, so they can't take any action.
+- **Opening and closing:** "Open Spotlight" (and "Close Spotlight") in
+  `/platform` are platform-owner only. Each asks for confirmation and writes
+  an audit row (`open_company` / `close_company`). Tester changes are audited
+  too.
+- **Nothing outbound for a closed company:**
+  - the allowance-reset cron skips it;
+  - BambooHR sync refuses it before making any request (cron, admin button
+    and CLI);
+  - Chat never posts, even for an admin's public kudo;
+  - the Chat bot replies only "Spotlight is coming soon".
+
+  Keep-warm is unchanged.
+- **Decision for you:** I read "no outbound action" strictly, so an admin
+  can't run a BambooHR sync to pre-load people before launch. If you'd like
+  that, it's a one-line change in `syncBambooHR`.
+- **Local seed:** both fictional companies are seeded open so dev works, with
+  one fictional tester (Priya Okafor). New companies created in `/platform`
+  start closed.
+- **Screens:** `reports/screens/2026-11-19/launch/` contains:
+  - the coming-soon page after a refused sign-in (390 and desktop);
+  - the same page for an old session (390);
+  - the closed LCED launch card in `/platform`;
+  - the tester checkboxes.
+
+**Checks:**
+- Tests: 112 of 112 pass across 10 files. The new `tests/launch.test.ts` has
+  16 cases, covering:
+  - a member refused and audited, with their row left alone;
+  - no row created for new people (including the alias domain);
+  - owner, admin and tester admitted;
+  - an old session blocked;
+  - opening as owner only, with audit, after which everyone gets in;
+  - an open second company unaffected;
+  - testers set by owner only;
+  - cron, BambooHR and Chat skipped while closed.
+- Mutation check: I disabled each gate in turn (sign-in, getActor, Chat,
+  cron, Bamboo), and each time at least one test failed.
+- Lint: 0 errors.
+- `next build` passes with local settings only.

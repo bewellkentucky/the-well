@@ -124,3 +124,69 @@ export async function updateCompany(id: string, input: CompanyInput): Promise<{ 
     return toActionError(e)
   }
 }
+
+/**
+ * Launch switch (lib/launch.ts). Platform owner only, audit-logged. Opening
+ * lets everyone from the company's domains sign in and turns on its cron,
+ * Chat posts and BambooHR sync. Closing is allowed too (same audit).
+ */
+export async function setCompanyOpen(id: string, open: boolean): Promise<{ error?: string }> {
+  try {
+    const actor = await requirePlatformOwner()
+    if (typeof open !== "boolean") throw new ActionError("Invalid value.")
+    await db.$transaction(async (tx) => {
+      const before = await tx.company.findUnique({ where: { id }, select: { id: true, name: true, isOpen: true } })
+      if (!before) throw new ActionError("Company not found.")
+      if (before.isOpen === open) return
+      await tx.company.update({ where: { id }, data: { isOpen: open } })
+      await tx.auditLog.create({
+        data: {
+          companyId: id,
+          actorId: actor.userId,
+          actorName: actor.fullName,
+          action: open ? "open_company" : "close_company",
+          details: open
+            ? `Opened Spotlight for ${before.name}: everyone from its domains can sign in`
+            : `Closed Spotlight for ${before.name}: only admins and testers can sign in`,
+        },
+      })
+    })
+    revalidatePath("/platform")
+    revalidatePath("/", "layout")
+    return {}
+  } catch (e) {
+    return toActionError(e)
+  }
+}
+
+/** Tester flag: may sign in while the company is closed. Platform owner only, audit-logged. */
+export async function setTester(userId: string, isTester: boolean): Promise<{ error?: string }> {
+  try {
+    const actor = await requirePlatformOwner()
+    if (typeof isTester !== "boolean") throw new ActionError("Invalid value.")
+    await db.$transaction(async (tx) => {
+      const target = await tx.user.findUnique({
+        where: { id: userId },
+        select: { id: true, fullName: true, companyId: true, isTester: true },
+      })
+      if (!target) throw new ActionError("Person not found.")
+      if (target.isTester === isTester) return
+      await tx.user.update({ where: { id: target.id }, data: { isTester } })
+      await tx.auditLog.create({
+        data: {
+          companyId: target.companyId,
+          actorId: actor.userId,
+          actorName: actor.fullName,
+          targetId: target.id,
+          targetName: target.fullName,
+          action: isTester ? "add_tester" : "remove_tester",
+          details: isTester ? "Can sign in before launch" : "No longer a tester",
+        },
+      })
+    })
+    revalidatePath("/platform")
+    return {}
+  } catch (e) {
+    return toActionError(e)
+  }
+}

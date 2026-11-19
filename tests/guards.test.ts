@@ -9,11 +9,16 @@ import { normalizeDomains } from "@/lib/companies"
 
 describe("Google Chat posting gate", () => {
   it("posts only public kudos, only to the company's own valid space", () => {
-    expect(chatTarget({ isPrivate: false, chatSpace: "spaces/AAA1" })).toBe("spaces/AAA1")
-    expect(chatTarget({ isPrivate: true, chatSpace: "spaces/AAA1" })).toBeNull()
-    expect(chatTarget({ isPrivate: undefined as unknown as boolean, chatSpace: "spaces/AAA1" })).toBeNull()
-    expect(chatTarget({ isPrivate: false, chatSpace: null })).toBeNull()
-    expect(chatTarget({ isPrivate: false, chatSpace: "spaces/x/../../users/me" })).toBeNull()
+    expect(chatTarget({ companyOpen: true, isPrivate: false, chatSpace: "spaces/AAA1" })).toBe("spaces/AAA1")
+    expect(chatTarget({ companyOpen: true, isPrivate: true, chatSpace: "spaces/AAA1" })).toBeNull()
+    expect(chatTarget({ companyOpen: true, isPrivate: undefined as unknown as boolean, chatSpace: "spaces/AAA1" })).toBeNull()
+    expect(chatTarget({ companyOpen: true, isPrivate: false, chatSpace: null })).toBeNull()
+    expect(chatTarget({ companyOpen: true, isPrivate: false, chatSpace: "spaces/x/../../users/me" })).toBeNull()
+  })
+
+  it("never posts for a closed company (launch switch)", () => {
+    expect(chatTarget({ companyOpen: false, isPrivate: false, chatSpace: "spaces/AAA1" })).toBeNull()
+    expect(chatTarget({ companyOpen: undefined as unknown as boolean, isPrivate: false, chatSpace: "spaces/AAA1" })).toBeNull()
   })
 })
 
