@@ -10,6 +10,7 @@ export type OverviewData = {
   pendingCount: number
   lastSync: { lastRunAt: string; errors: number; recordsProcessed: number } | null
   recentHireCount: number
+  bambooConnected: boolean
 }
 
 function timeAgo(iso: string): string {
@@ -23,7 +24,7 @@ function timeAgo(iso: string): string {
 export default function OverviewPanel({ data }: { data: OverviewData }) {
   const {
     totalUsers, earnedOutstanding, participationRate, totalKudos,
-    uniqueGivers, noKudosCount, pendingCount, lastSync, recentHireCount,
+    uniqueGivers, noKudosCount, pendingCount, lastSync, recentHireCount, bambooConnected,
   } = data
 
   const pct = Math.round(participationRate * 100)
@@ -35,12 +36,14 @@ export default function OverviewPanel({ data }: { data: OverviewData }) {
   if (pendingCount > 0) {
     flags.push({
       level: "warn",
-      message: `${pendingCount} pending ${pendingCount === 1 ? "approval" : "approvals"} — ${pendingCount === 1 ? "a claim or redemption needs" : "claims or redemptions need"} review.`,
+      message: `${pendingCount} pending ${pendingCount === 1 ? "approval" : "approvals"}: ${pendingCount === 1 ? "a claim or redemption needs" : "claims or redemptions need"} review.`,
       href: "/admin?tab=approvals",
     })
   }
 
-  if (lastSync === null) {
+  if (!bambooConnected) {
+    // BambooHR is optional; nothing to flag.
+  } else if (lastSync === null) {
     flags.push({
       level: "warn",
       message: "BambooHR has never been synced. Staff data (location, title, hire date) is missing.",
@@ -55,14 +58,14 @@ export default function OverviewPanel({ data }: { data: OverviewData }) {
   } else {
     flags.push({
       level: "info",
-      message: `BambooHR synced ${timeAgo(lastSync.lastRunAt)} — ${lastSync.recordsProcessed} ${lastSync.recordsProcessed === 1 ? "record" : "records"} processed, no errors.`,
+      message: `BambooHR synced ${timeAgo(lastSync.lastRunAt)}: ${lastSync.recordsProcessed} ${lastSync.recordsProcessed === 1 ? "record" : "records"} processed, no errors.`,
     })
   }
 
   if (recentHireCount > 0) {
     flags.push({
       level: "info",
-      message: `${recentHireCount} staff member${recentHireCount === 1 ? "" : "s"} joined in the last 30 days — verify ${recentHireCount === 1 ? "they have" : "they have all"} logged in.`,
+      message: `${recentHireCount} staff member${recentHireCount === 1 ? "" : "s"} joined in the last 30 days. Check that ${recentHireCount === 1 ? "they have" : "they have all"} signed in.`,
     })
   }
 
@@ -93,7 +96,7 @@ export default function OverviewPanel({ data }: { data: OverviewData }) {
           <div className="stat-value">
             {earnedOutstanding.toLocaleString()} ⭐
           </div>
-          <div className="stat-label">Stars earned, unspent</div>
+          <div className="stat-label">Earned, unspent</div>
           <div className="stat-sub">earned wallet balance, all staff</div>
         </div>
 

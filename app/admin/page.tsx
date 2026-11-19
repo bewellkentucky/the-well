@@ -397,6 +397,7 @@ export default async function AdminPage({
     pendingCount,
     lastSync:          null,
     recentHireCount:   0,
+    bambooConnected:   !!(company?.bambooEnabled && company?.bambooSubdomain),
   }
 
   if (activeTab === "overview") {
@@ -437,6 +438,7 @@ export default async function AdminPage({
           }
         : null,
       recentHireCount,
+      bambooConnected: !!(company?.bambooEnabled && company?.bambooSubdomain),
     }
   }
 

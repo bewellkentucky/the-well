@@ -86,7 +86,7 @@ function ClaimRow({ claim }: { claim: ApprovalClaim }) {
                 </a>
               </span>
             )}
-            {claim.note && <span>{claim.proofLink ? " — " : ""}{claim.note}</span>}
+            {claim.note && <span>{claim.proofLink ? " · " : ""}{claim.note}</span>}
           </div>
         )}
         {error && <div className="approval-error">{error}</div>}

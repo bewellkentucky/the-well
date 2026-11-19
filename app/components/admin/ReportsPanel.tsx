@@ -60,7 +60,7 @@ function BarChart({
             />
           </div>
           <span className="report-bar-value">
-            {row.value > 0 ? `${row.value.toLocaleString()} ⭐` : "—"}
+            {row.value > 0 ? `${row.value.toLocaleString()} ⭐` : "0"}
           </span>
         </div>
       ))}
@@ -121,7 +121,7 @@ export default function ReportsPanel({
         </div>
         <p className="people-explainer" style={{ marginBottom: 20 }}>
           Stars redeemed by staff at each location. Only accounts with a BambooHR location
-          set are attributed — {usersWithLocation} of {activeUserCount}
+          set are attributed: {usersWithLocation} of {activeUserCount}
           {activeUserCount === 1 ? " account has" : " accounts have"} a location synced.
         </p>
         {locationStats.length === 0 ? (
@@ -158,7 +158,7 @@ export default function ReportsPanel({
 
           <div className="health-stat">
             <div className="health-stat-value">
-              {uniqueGivers > 0 ? avgKudosPerGiver.toFixed(1) : "—"}
+              {uniqueGivers > 0 ? avgKudosPerGiver.toFixed(1) : "n/a"}
             </div>
             <div className="health-stat-label">Avg per giver</div>
             <div className="health-stat-note">kudos per active giver</div>
