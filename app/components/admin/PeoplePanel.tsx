@@ -142,7 +142,7 @@ export default function PeoplePanel({
         setAdjActionError(result.error)
       } else {
         const sign = confirmingAdj.amount > 0 ? "+" : ""
-        setAdjSuccess(`${sign}${confirmingAdj.amount}đ applied to ${confirmingAdj.targetName}.`)
+        setAdjSuccess(`${sign}${confirmingAdj.amount} ⭐ applied to ${confirmingAdj.targetName}.`)
         setConfirmingAdj(null)
         setAdjAmount("")
         setAdjReason("")
@@ -212,7 +212,7 @@ export default function PeoplePanel({
                 </div>
                 <div className="people-balance-col">
                   <span className="people-bal-amount">
-                    {person.balance.toLocaleString()}đ
+                    {person.balance.toLocaleString()} ⭐
                   </span>
                   <span className="people-bal-label">earned</span>
                 </div>
@@ -228,7 +228,7 @@ export default function PeoplePanel({
           <h2 className="card-title">Adjust someone's balance</h2>
         </div>
         <p className="people-explainer">
-          One-off grants or corrections to a staff member's earned drops. All adjustments are logged for the audit trail.
+          One-off grants or corrections to a staff member's earned stars. All adjustments are logged for the audit trail.
         </p>
 
         <div className="adj-form">
@@ -248,7 +248,7 @@ export default function PeoplePanel({
               </select>
             </div>
             <div className="adj-field adj-field-amount">
-              <label className="adj-label">Amount (đ)</label>
+              <label className="adj-label">Amount (stars)</label>
               <input
                 className="adj-input"
                 type="number"
@@ -298,7 +298,7 @@ export default function PeoplePanel({
                   </span>
                 </div>
                 <div className={`adj-history-amount${adj.amount > 0 ? " positive" : " negative"}`}>
-                  {adj.amount > 0 ? "+" : ""}{adj.amount}đ
+                  {adj.amount > 0 ? "+" : ""}{adj.amount} ⭐
                 </div>
               </div>
             ))}
@@ -394,13 +394,13 @@ export default function PeoplePanel({
                     }`}
                   >
                     {confirmingAdj.amount > 0 ? "+" : ""}
-                    {confirmingAdj.amount}đ earned drops
+                    {confirmingAdj.amount} ⭐ to earned stars
                   </span>
                 </div>
                 <div className="adj-confirm-row">
                   <span className="adj-confirm-label">New balance</span>
                   <span className="adj-confirm-value">
-                    {(confirmingAdj.currentBalance + confirmingAdj.amount).toLocaleString()}đ
+                    {(confirmingAdj.currentBalance + confirmingAdj.amount).toLocaleString()} ⭐
                   </span>
                 </div>
                 <div className="adj-confirm-row">

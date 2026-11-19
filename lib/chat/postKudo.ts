@@ -37,7 +37,7 @@ export async function postKudoToChat(params: Params): Promise<void> {
     if (!token) throw new Error("empty access token")
 
     const text =
-      `💧 ${params.giverName} recognized ${params.recipientName} — ${params.amount}đ · ${params.values.join(", ")}\n${params.message}\n<https://thewell.bewellkentucky.com|View in The Well →>`
+      `⭐ ${params.giverName} recognized ${params.recipientName} — ${params.amount} ⭐ · ${params.values.join(", ")}\n${params.message}\n<https://thewell.bewellkentucky.com|View in Spotlight>`
 
     const res = await fetch(`https://chat.googleapis.com/v1/${spaceId}/messages`, {
       method: "POST",

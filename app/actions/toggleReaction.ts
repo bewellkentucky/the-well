@@ -3,8 +3,9 @@
 import { revalidatePath } from "next/cache"
 import { auth } from "@/auth"
 import { db } from "@/lib/db"
+import { REACTION_CHOICES } from "@/lib/brand"
 
-const VALID_EMOJIS = new Set(["💧", "💛", "🙌", "🎉", "👏", "🔥", "💯", "🙏", "✨", "❤️"])
+const VALID_EMOJIS = new Set<string>(REACTION_CHOICES)
 
 export async function toggleReaction(
   kudoId: string,

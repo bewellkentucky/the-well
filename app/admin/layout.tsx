@@ -15,7 +15,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   if (!user || (user.role !== "owner" && user.role !== "admin")) redirect("/")
 
   return (
-    <div style={{ minHeight: "100vh", background: "var(--cream)" }}>
+    <div style={{ minHeight: "100vh", background: "var(--canvas)" }}>
       <TopNav />
       {children}
     </div>

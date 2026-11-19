@@ -4,6 +4,7 @@ import { db } from "@/lib/db"
 import NavLinks from "./NavLinks"
 import NavWordmark from "./NavWordmark"
 import UserDropdown from "./UserDropdown"
+import SpotlightMark from "@/app/components/brand/SpotlightMark"
 
 export default async function TopNav() {
   const session = await auth()
@@ -28,12 +29,11 @@ export default async function TopNav() {
         {/* ── Brand ──────────────────────────────────────────── */}
         <div className="tnav-brand">
           <Link href="/" prefetch={false} className="tnav-mark-link">
-            <div className="tnav-mark" role="img" aria-label="Be Well Kentucky" />
+            <SpotlightMark />
           </Link>
           {/* Desktop: static wordmark */}
           <div className="tnav-wordmark">
-            <div className="tnav-name">The Well</div>
-            <div className="tnav-parent">by Be Well Kentucky</div>
+            <div className="tnav-name">Spotlight</div>
           </div>
           {/* Mobile: scroll-aware crossfade island */}
           <NavWordmark givingBalance={givingBalance} balance={balance} />
@@ -46,10 +46,10 @@ export default async function TopNav() {
         <div className="tnav-right">
           <div className="tnav-desktop-bal">
             <span className="tnav-bal-num">{givingBalance}</span>
-            <span className="tnav-bal-unit">đ give</span>
+            <span className="tnav-bal-unit"> ⭐ give</span>
             <span className="tnav-bal-dot">·</span>
             <span className="tnav-bal-num">{balance}</span>
-            <span className="tnav-bal-unit">đ earned</span>
+            <span className="tnav-bal-unit"> ⭐ earned</span>
           </div>
           <UserDropdown name={displayName} thumbnailUrl={thumbnailUrl} showAdmin={showAdmin} />
         </div>

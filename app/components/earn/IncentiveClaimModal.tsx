@@ -49,9 +49,9 @@ export default function IncentiveClaimModal({
             <div className="incentive-success">
               {incentive.verification === "self" ? (
                 <>
-                  <div className="incentive-success-icon">💧</div>
+                  <div className="incentive-success-icon">⭐</div>
                   <div className="incentive-success-title">
-                    {incentive.reward}đ added to your balance
+                    {incentive.reward} ⭐ added to your balance
                   </div>
                   <p className="incentive-success-sub">Nice work. Keep it up.</p>
                 </>
@@ -73,7 +73,7 @@ export default function IncentiveClaimModal({
               <div className="reward-modal-title">{incentive.title}</div>
               <p className="reward-modal-desc">{incentive.description}</p>
               <div className="reward-modal-cost">
-                <span>{incentive.reward}đ</span> reward
+                <span>{incentive.reward} ⭐</span> reward
                 {incentive.verification === "admin" && (
                   <span style={{ marginLeft: 12, fontSize: 12, color: "var(--ink-soft)", fontFamily: "var(--font-inter), sans-serif" }}>
                     pending admin review
@@ -121,7 +121,7 @@ export default function IncentiveClaimModal({
                   {isPending
                     ? "Submitting..."
                     : incentive.verification === "self"
-                      ? `Claim ${incentive.reward}đ`
+                      ? `Claim ${incentive.reward} ⭐`
                       : "Submit for review"}
                 </button>
                 <button className="reward-btn-cancel" onClick={onClose}>Cancel</button>

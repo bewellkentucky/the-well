@@ -47,11 +47,11 @@ export default function FeaturedIncentives({
               <div className="featured-incentive-icon">{inc.icon}</div>
               <div className="featured-incentive-body">
                 <div className="featured-incentive-eyebrow">
-                  {badge ?? "Earn drops"}
+                  {badge ?? "Earn stars"}
                 </div>
                 <div className="featured-incentive-title">{inc.title}</div>
               </div>
-              <div className="featured-incentive-reward">+{inc.reward}đ</div>
+              <div className="featured-incentive-reward">+{inc.reward} ⭐</div>
             </button>
           )
         })}

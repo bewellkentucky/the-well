@@ -3,6 +3,7 @@
 import { useState, useTransition, useRef, useEffect } from "react"
 import { createKudo } from "@/app/actions/createKudo"
 import Avatar from "@/app/components/ui/Avatar"
+import { COMPANY_VALUES, PATIENT_NOTICE, STAR } from "@/lib/brand"
 
 type User = {
   id: string
@@ -12,14 +13,7 @@ type User = {
   thumbnailUrl: string | null
 }
 
-const VALUES = [
-  { label: "Compassion",     emoji: "💛" },
-  { label: "Ownership",      emoji: "🛠️" },
-  { label: "Curiosity",      emoji: "🔍" },
-  { label: "Team-First",     emoji: "🤝" },
-  { label: "Excellence",     emoji: "✨" },
-  { label: "Above & Beyond", emoji: "🌟" },
-] as const
+const VALUES = COMPANY_VALUES
 
 export default function Composer({
   users,
@@ -82,9 +76,9 @@ export default function Composer({
 
   function handleSubmit() {
     if (!selectedUser)          { setError("Pick a recipient first."); return }
-    if (!message.trim())        { setError("Add a message — be specific!"); return }
-    if (amount < 1)             { setError("Minimum 1 drop."); return }
-    if (amount > givingBalance) { setError(`You only have ${givingBalance}đ to give.`); return }
+    if (!message.trim())        { setError("Add a message. Be specific!"); return }
+    if (amount < 1)             { setError("Minimum 1 star."); return }
+    if (amount > givingBalance) { setError(`You only have ${givingBalance} ⭐ to give.`); return }
     if (selectedValues.size === 0) { setError("Select at least one value."); return }
 
     setError(null)
@@ -118,8 +112,8 @@ export default function Composer({
       <div className="composer-header">
         <div className="composer-title">Give kudos to a teammate</div>
         <div className="composer-balance">
-          <span className="composer-balance-amount">{givingBalance}đ</span>
-          <span className="composer-balance-label">to give</span>
+          <span className="composer-balance-amount">{givingBalance} {STAR}</span>
+          <span className="composer-balance-label">to give this month</span>
         </div>
       </div>
 
@@ -167,9 +161,16 @@ export default function Composer({
         />
       </div>
 
+      <p className="composer-notice" role="note">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M12 9v4" /><path d="M12 17h.01" /><circle cx="12" cy="12" r="9" />
+        </svg>
+        {PATIENT_NOTICE}
+      </p>
+
       <textarea
         className="message-input"
-        placeholder={`What did they do? Be specific: "You stayed late to walk a patient through their first session" beats "great job!"`}
+        placeholder={`What did they do? Be specific: "You stayed late to cover the front desk so the team could finish training" beats "great job!"`}
         value={message}
         onChange={(e) => setMessage(e.target.value)}
       />

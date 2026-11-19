@@ -18,11 +18,12 @@ const jetbrainsMono = JetBrains_Mono({
 })
 
 export const metadata: Metadata = {
-  title: "The Well",
-  description: "Employee recognition by Be Well Kentucky",
+  title: "Spotlight",
+  description: "Peer recognition for your team",
   icons: {
     icon: [
       { url: "/favicon.ico",        sizes: "any" },
+      { url: "/spotlight-icon.svg", type: "image/svg+xml" },
       { url: "/favicon-16x16.png",  sizes: "16x16",  type: "image/png" },
       { url: "/favicon-32x32.png",  sizes: "32x32",  type: "image/png" },
       { url: "/favicon-48x48.png",  sizes: "48x48",  type: "image/png" },
@@ -33,13 +34,13 @@ export const metadata: Metadata = {
   },
   appleWebApp: {
     capable: true,
-    title: "The Well",
+    title: "Spotlight",
     statusBarStyle: "default",
   },
 }
 
 export const viewport: Viewport = {
-  themeColor: "#2a3441",
+  themeColor: "#1f2633",
   viewportFit: "cover",
 }
 

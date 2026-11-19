@@ -4,15 +4,9 @@ import { revalidatePath } from "next/cache"
 import { auth } from "@/auth"
 import { db } from "@/lib/db"
 import { postKudoToChat } from "@/lib/chat/postKudo"
+import { COMPANY_VALUE_NAMES } from "@/lib/brand"
 
-const VALID_VALUES = new Set([
-  "Compassion",
-  "Ownership",
-  "Curiosity",
-  "Team-First",
-  "Excellence",
-  "Above & Beyond",
-])
+const VALID_VALUES = new Set(COMPANY_VALUE_NAMES)
 
 type Params = {
   toId: string
@@ -33,7 +27,7 @@ export async function createKudo(params: Params): Promise<{ error: string } | un
   if (!toId) return { error: "Pick a recipient." }
   if (toId === currentUserId) return { error: "You can't send kudos to yourself." }
   if (!message.trim()) return { error: "Add a message." }
-  if (!Number.isInteger(amount) || amount < 1) return { error: "Minimum 1 drop." }
+  if (!Number.isInteger(amount) || amount < 1) return { error: "Minimum 1 star." }
   if (values.length === 0) return { error: "Select at least one value." }
   if (!values.every((v) => VALID_VALUES.has(v))) return { error: "Invalid value." }
 
@@ -43,7 +37,7 @@ export async function createKudo(params: Params): Promise<{ error: string } | un
   })
   if (!sender) return { error: "Sender not found." }
   if (amount > sender.givingBalance) {
-    return { error: `You only have ${sender.givingBalance}đ to give.` }
+    return { error: `You only have ${sender.givingBalance} ⭐ to give.` }
   }
 
   const recipient = await db.user.findUnique({

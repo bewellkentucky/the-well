@@ -181,7 +181,7 @@ export async function approveRedemption(redemptionId: string): Promise<{ error?:
           action:     "approve_redemption",
           actorName:  actor!.fullName,
           targetName: current.user.fullName,
-          details:    `Approved redemption: ${current.reward.title} (${current.cost}đ)`,
+          details:    `Approved redemption: ${current.reward.title} (${current.cost} ⭐)`,
         },
       })
     })
@@ -226,7 +226,7 @@ export async function declineRedemption(redemptionId: string): Promise<{ error?:
         where: { id: redemptionId },
         data: { status: "declined" },
       })
-      // Refund the drops that were deducted at redemption time
+      // Refund the stars that were deducted at redemption time
       await tx.user.update({
         where: { id: current.userId },
         data: { balance: { increment: current.cost } },
@@ -239,7 +239,7 @@ export async function declineRedemption(redemptionId: string): Promise<{ error?:
           actorName:  actor!.fullName,
           targetName: current.user.fullName,
           amount:     current.cost,
-          details:    `Declined redemption: ${current.reward.title} — ${current.cost}đ refunded`,
+          details:    `Declined redemption: ${current.reward.title} — ${current.cost} ⭐ refunded`,
         },
       })
     })

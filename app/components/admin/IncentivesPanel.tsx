@@ -255,7 +255,7 @@ export default function IncentivesPanel({
                   <div className="inc-admin-title">{inc.title}</div>
                   <div className="inc-admin-desc">{inc.description}</div>
                   <div className="inc-admin-meta">
-                    <span className="inc-admin-badge inc-badge-reward">{inc.reward}đ</span>
+                    <span className="inc-admin-badge inc-badge-reward">{inc.reward} ⭐</span>
                     <span className={`inc-admin-badge ${inc.verification === "admin" ? "inc-badge-admin-verify" : "inc-badge-self"}`}>
                       {inc.verification === "admin" ? "Admin review" : "Self-attest"}
                     </span>
@@ -334,7 +334,7 @@ export default function IncentivesPanel({
                   <span className={`claim-status ${claimStatusClass(claim)}`}>
                     {claimLabel(claim)}
                   </span>
-                  <span className="claim-hist-amount">{claimAmount(claim)}đ</span>
+                  <span className="claim-hist-amount">{claimAmount(claim)} ⭐</span>
                   <span className="claim-hist-time">{timeAgo(claim.createdAt)}</span>
                 </div>
               </div>
@@ -423,7 +423,7 @@ export default function IncentivesPanel({
                 {/* Reward + Sort order */}
                 <div className="inc-form-row">
                   <div className="inc-form-field" style={{ flex: 1 }}>
-                    <label className="adj-label">Reward (đ)</label>
+                    <label className="adj-label">Reward (stars)</label>
                     <input
                       className="adj-input"
                       type="number"

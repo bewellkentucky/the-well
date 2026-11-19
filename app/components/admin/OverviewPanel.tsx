@@ -91,9 +91,9 @@ export default function OverviewPanel({ data }: { data: OverviewData }) {
 
         <div className="stat-card">
           <div className="stat-value">
-            {earnedOutstanding.toLocaleString()}đ
+            {earnedOutstanding.toLocaleString()} ⭐
           </div>
-          <div className="stat-label">Drops earned, unspent</div>
+          <div className="stat-label">Stars earned, unspent</div>
           <div className="stat-sub">earned wallet balance, all staff</div>
         </div>
 

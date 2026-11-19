@@ -1,7 +1,6 @@
 import { auth } from "@/auth"
 import { redirect } from "next/navigation"
 import { db } from "@/lib/db"
-import { seedRewards } from "@/lib/seedRewards"
 import PageShell from "@/app/components/layout/PageShell"
 import RewardsGrid from "@/app/components/rewards/RewardsGrid"
 
@@ -9,13 +8,11 @@ export default async function RewardsPage() {
   const session = await auth()
   if (!session?.user?.id) redirect("/")
 
-  await seedRewards()
-
   const [rewards, user] = await Promise.all([
     db.reward.findMany({
       where: { active: true },
       orderBy: { cost: "asc" },
-      select: { id: true, title: true, description: true, cost: true, category: true, inventory: true },
+      select: { id: true, title: true, description: true, cost: true, category: true, inventory: true, icon: true, color: true, imageUrl: true },
     }),
     db.user.findUnique({
       where: { id: session.user.id },

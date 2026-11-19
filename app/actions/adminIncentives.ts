@@ -91,7 +91,7 @@ export async function createIncentive(
           actorId,
           action:   "create_incentive",
           actorName,
-          details:  `Created: ${incentive.title} (${incentive.reward}đ, ${incentive.cap}, ${incentive.verification})`,
+          details:  `Created: ${incentive.title} (${incentive.reward} ⭐, ${incentive.cap}, ${incentive.verification})`,
         },
       })
     })

@@ -8,6 +8,8 @@ import Leaderboard from "@/app/components/rail/Leaderboard"
 import ComingUp from "@/app/components/rail/ComingUp"
 import OutToday from "@/app/components/rail/OutToday"
 import { buildRelevantClaims } from "@/lib/relevantClaims"
+import SpotlightMark from "@/app/components/brand/SpotlightMark"
+import DevLoginForm from "@/app/components/auth/DevLoginForm"
 
 export default async function Home() {
   const session = await auth()
@@ -64,7 +66,7 @@ export default async function Home() {
         <div className="feed-title-col">
           <h1 className="feed-topbar-title">Recognize the work.</h1>
           <p className="feed-topbar-subtitle">
-            Send kudos, give drops, celebrate your team. Be Well Kentucky.
+            Send kudos, give stars, celebrate your team.
           </p>
         </div>
 
@@ -79,12 +81,12 @@ export default async function Home() {
         <aside className="home-rail">
           <div className="drops-balance rail-section">
             <div className="drops-pool">
-              <div className="balance-amount">{user?.givingBalance ?? 0}đ</div>
+              <div className="balance-amount">{user?.givingBalance ?? 0} ⭐</div>
               <div className="balance-label">To give this month</div>
             </div>
             <div className="drops-balance-h-divider" />
             <div className="drops-pool">
-              <div className="balance-amount">{user?.balance ?? 0}đ</div>
+              <div className="balance-amount">{user?.balance ?? 0} ⭐</div>
               <div className="balance-label" style={{ color: "rgba(244,241,236,0.5)" }}>
                 Earned&nbsp;&middot;&nbsp;yours to spend
               </div>
@@ -99,48 +101,48 @@ export default async function Home() {
   )
 }
 
-function SignInPage() {
+function SignInPage({
+  companyName,
+  logoUrl,
+  error,
+}: {
+  companyName?: string | null
+  logoUrl?: string | null
+  error?: string | null
+}) {
   return (
-    <main className="min-h-full flex items-center justify-center bg-[#2a3441]">
-      <div className="w-full max-w-sm mx-4">
-        <div className="flex flex-col items-center gap-6 mb-10">
-          <img
-            src="/Be_Well_Icon_Color_transparent.png"
-            alt="Be Well Kentucky"
-            style={{ height: 72, width: "auto" }}
-          />
-          <div className="text-center">
-            <h1 className="font-[family-name:var(--font-lora)] text-3xl text-[#f4f1ec]">
-              The Well
-            </h1>
-            <p className="text-sm text-[#7a9b7e] mt-1">by Be Well Kentucky</p>
+    <main className="signin-page">
+      <div className="signin-inner">
+        <div className="signin-brand">
+          {logoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={logoUrl} alt={companyName ?? ""} className="signin-logo" />
+          ) : (
+            <SpotlightMark size={64} className="signin-mark" />
+          )}
+          <div className="signin-titles">
+            <h1 className="signin-title">Spotlight</h1>
+            {companyName && <p className="signin-company">{companyName}</p>}
           </div>
         </div>
 
-        <div className="bg-[#f4f1ec] rounded-2xl p-8 shadow-lg">
-          <div className="flex flex-col items-center gap-5 text-center">
-            <div>
-              <h2 className="font-semibold text-[#2a3441]">Welcome back</h2>
-              <p className="text-sm text-[#2a3441]/60 mt-1">
-                Sign in with your Be Well Kentucky account.
-              </p>
-            </div>
-            <form
-              action={async () => {
-                "use server"
-                await signIn("google", { redirectTo: "/" })
-              }}
-              className="w-full"
-            >
-              <button
-                type="submit"
-                className="w-full flex items-center justify-center gap-3 bg-[#2a3441] hover:bg-[#3a4a5a] text-[#f4f1ec] rounded-xl px-5 py-3 text-sm font-medium transition-colors"
-              >
-                <GoogleIcon />
-                Sign in with Google
-              </button>
-            </form>
-          </div>
+        <div className="signin-card">
+          <h2 className="signin-welcome">Welcome back</h2>
+          <p className="signin-hint">Sign in with your work Google account.</p>
+          {error && <p className="signin-error">{error}</p>}
+          <form
+            action={async () => {
+              "use server"
+              await signIn("google", { redirectTo: "/" })
+            }}
+            className="w-full"
+          >
+            <button type="submit" className="signin-btn">
+              <GoogleIcon />
+              Sign in with Google
+            </button>
+          </form>
+          <DevLoginForm />
         </div>
       </div>
     </main>

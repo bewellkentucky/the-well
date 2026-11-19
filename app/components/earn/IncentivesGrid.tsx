@@ -60,7 +60,7 @@ export default function IncentivesGrid({ incentives, claims }: Props) {
                 </div>
               </div>
               <div className="incentive-action">
-                <div className="incentive-reward">{inc.reward}đ</div>
+                <div className="incentive-reward">{inc.reward} ⭐</div>
                 {badge ? (
                   <span className={`claim-status ${status === "pending" ? "status-pending" : "status-credited"}`}>
                     {badge}
@@ -77,19 +77,19 @@ export default function IncentivesGrid({ incentives, claims }: Props) {
 
         {/* Suggest an incentive — UI only */}
         <div className="incentive-card incentive-card-suggest">
-          <div className="incentive-icon" style={{ background: "var(--cream-2)", color: "var(--ink-soft)" }}>
+          <div className="incentive-icon" style={{ background: "var(--canvas-2)", color: "var(--ink-soft)" }}>
             💡
           </div>
           <div className="incentive-body">
             <div className="incentive-title" style={{ color: "var(--ink-soft)" }}>Suggest an incentive</div>
             <div className="incentive-desc">
-              Have an idea for a new way to earn drops? Let us know and we'll consider adding it.
+              Have an idea for a new way to earn stars? Let us know and we'll consider adding it.
             </div>
           </div>
           <div className="incentive-action">
             <button
               className="incentive-claim-btn"
-              style={{ background: "var(--cream-2)", color: "var(--ink-soft)" }}
+              style={{ background: "var(--canvas-2)", color: "var(--ink-soft)" }}
               disabled
             >
               Coming soon

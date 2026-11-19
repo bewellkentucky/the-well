@@ -2,15 +2,9 @@
 
 import { useState, useTransition } from "react"
 import { setAllowanceSetting } from "@/app/actions/adminProgram"
+import { COMPANY_VALUE_NAMES } from "@/lib/brand"
 
-const COMPANY_VALUES = [
-  "Compassion",
-  "Ownership",
-  "Curiosity",
-  "Team-First",
-  "Excellence",
-  "Above & Beyond",
-]
+const COMPANY_VALUES = COMPANY_VALUE_NAMES
 
 export default function ProgramPanel({
   allowanceAmount,
@@ -47,7 +41,7 @@ export default function ProgramPanel({
           <h2 className="card-title">Monthly giving allowance</h2>
         </div>
         <p className="prog-section-desc">
-          Each staff member receives this many drops to give out per month. The monthly
+          Each staff member receives this many stars to give out per month. The monthly
           reset cron reads this value and applies it on the 1st of each month.
         </p>
 
@@ -61,9 +55,9 @@ export default function ProgramPanel({
               value={amount}
               onChange={(e) => { setAmount(e.target.value); setSaved(false) }}
               className="prog-amount-input"
-              aria-label="Allowance amount in drops"
+              aria-label="Allowance amount in stars"
             />
-            <span className="prog-amount-unit">đ per person</span>
+            <span className="prog-amount-unit"> ⭐ per person</span>
           </div>
           <button
             type="button"
@@ -83,7 +77,7 @@ export default function ProgramPanel({
           <span className="prog-notice-icon">ⓘ</span>
           <span>
             The reset cron runs automatically on the 1st of each month and sets every
-            active staff member's giving allowance to this amount. Unused drops do not
+            active staff member's giving allowance to this amount. Unused stars do not
             roll over.
           </span>
         </div>
@@ -96,7 +90,7 @@ export default function ProgramPanel({
         </div>
         <div className="prog-placeholder-row">
           <span className="prog-cadence-value">Monthly</span>
-          <span className="prog-coming-soon-badge" style={{ background: "color-mix(in srgb, var(--sage) 15%, transparent)", color: "var(--sage)" }}>Automated · 1st of month</span>
+          <span className="prog-coming-soon-badge" style={{ background: "color-mix(in srgb, var(--fern) 15%, transparent)", color: "var(--fern)" }}>Automated · 1st of month</span>
         </div>
         <p className="prog-section-desc" style={{ marginTop: 10 }}>
           Giving allowances reset automatically on the 1st of each month at 06:00 UTC.
@@ -104,10 +98,10 @@ export default function ProgramPanel({
         </p>
       </div>
 
-      {/* ── Drops value ───────────────────────────────────────── */}
+      {/* ── Stars value ───────────────────────────────────────── */}
       <div className="card">
         <div className="card-header">
-          <h2 className="card-title">Drops value (đ → USD)</h2>
+          <h2 className="card-title">Star value in USD</h2>
         </div>
         <div className="prog-placeholder-row">
           <span className="prog-section-desc" style={{ margin: 0 }}>

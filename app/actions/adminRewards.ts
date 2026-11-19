@@ -81,7 +81,7 @@ export async function createReward(
           actorId,
           action:   "create_reward",
           actorName,
-          details:  `Created: ${reward.title} (${reward.cost}đ, ${reward.category})`,
+          details:  `Created: ${reward.title} (${reward.cost} ⭐, ${reward.category})`,
         },
       })
     })

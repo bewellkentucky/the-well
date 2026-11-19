@@ -41,7 +41,7 @@ export async function setAllowanceSetting(
           action:    "update_setting",
           actorId:   actor.id,
           actorName: actor.fullName,
-          details:   `allowanceAmount → ${amount}đ`,
+          details:   `allowanceAmount → ${amount} ⭐`,
           amount,
         },
       })

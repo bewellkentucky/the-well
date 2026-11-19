@@ -42,11 +42,11 @@ function isValidTab(tab: string): tab is AdminTabId {
 }
 
 const PLACEHOLDER: Record<AdminTabId, { heading: string; description: string }> = {
-  overview:     { heading: "Overview",          description: "Program health at a glance — kudos volume, drop balances, pending approvals, and recent activity." },
+  overview:     { heading: "Overview",          description: "Program health at a glance — kudos volume, star balances, pending approvals, and recent activity." },
   approvals:    { heading: "Approvals",         description: "" },
   rewards:      { heading: "Rewards",           description: "Manage the reward catalog — add, edit, and retire items. Set inventory limits and costs." },
   incentives:   { heading: "Incentives",        description: "Manage the incentive catalog — create activities, set caps, configure time windows, and toggle active state." },
-  people:       { heading: "People",            description: "Staff roster, drop balances, giving history, and manual adjustments. Deactivate leavers." },
+  people:       { heading: "People",            description: "Staff roster, star balances, giving history, and manual adjustments. Deactivate leavers." },
   reports:      { heading: "Reports",           description: "Export kudo and redemption data. Cost attribution by entity for accounting purposes." },
   integrations: { heading: "Integrations",      description: "BambooHR sync status and manual trigger. Google Chat connection and channel configuration." },
   program:      { heading: "Program settings",  description: "Monthly giving allowance per staff member. Company values. Recognition program name and branding." },

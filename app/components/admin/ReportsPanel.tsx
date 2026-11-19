@@ -60,7 +60,7 @@ function BarChart({
             />
           </div>
           <span className="report-bar-value">
-            {row.value > 0 ? `${row.value.toLocaleString()}đ` : "—"}
+            {row.value > 0 ? `${row.value.toLocaleString()} ⭐` : "—"}
           </span>
         </div>
       ))}
@@ -120,7 +120,7 @@ export default function ReportsPanel({
           <span className="report-period">Since launch</span>
         </div>
         <p className="people-explainer" style={{ marginBottom: 20 }}>
-          Drops redeemed by staff at each location. Only accounts with a BambooHR location
+          Stars redeemed by staff at each location. Only accounts with a BambooHR location
           set are attributed — {usersWithLocation} of {activeUserCount}
           {activeUserCount === 1 ? " account has" : " accounts have"} a location synced.
         </p>
@@ -168,27 +168,27 @@ export default function ReportsPanel({
             <div className="health-stat-value">{pct(allowanceUtilization)}</div>
             <div className="health-stat-label">Allowance utilization</div>
             <div className="health-stat-note">
-              {totalDropsGiven.toLocaleString()}đ given of {(activeUserCount * 100).toLocaleString()}đ total capacity*
+              {totalDropsGiven.toLocaleString()} ⭐ given of {(activeUserCount * 100).toLocaleString()} ⭐ total capacity*
             </div>
           </div>
 
           <div className="health-stat">
-            <div className="health-stat-value">{totalEarned.toLocaleString()}đ</div>
+            <div className="health-stat-value">{totalEarned.toLocaleString()} ⭐</div>
             <div className="health-stat-label">Total earned</div>
-            <div className="health-stat-note">earned drops across all staff</div>
+            <div className="health-stat-note">earned stars across all staff</div>
           </div>
 
           <div className="health-stat">
             <div className="health-stat-value">{pct(redemptionRate)}</div>
             <div className="health-stat-label">Redemption rate</div>
             <div className="health-stat-note">
-              {totalRedeemed.toLocaleString()}đ of {totalEarned.toLocaleString()}đ earned spent
+              {totalRedeemed.toLocaleString()} ⭐ of {totalEarned.toLocaleString()} ⭐ earned spent
             </div>
           </div>
         </div>
 
         <p className="report-footnote">
-          * Utilization denominator assumes 100đ default allowance per active account
+          * Utilization denominator assumes 100 ⭐ default allowance per active account
           and no resets (reset cadence not yet configured).
         </p>
       </div>
@@ -200,7 +200,7 @@ export default function ReportsPanel({
           <span className="report-period">Since launch</span>
         </div>
         <p className="people-explainer" style={{ marginBottom: 20 }}>
-          Drops spent on each reward type. Fulfillment costs in dollars are deferred
+          Stars spent on each reward type. Fulfillment costs in dollars are deferred
           until the admin approval queue triggers external APIs.
         </p>
         {categoryStats.length === 0 ? (

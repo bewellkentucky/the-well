@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
       source:           "allowance-reset",
       lastRunAt:        ts,
       recordsProcessed: usersReset,
-      notes:            `Reset givingBalance to ${amount}đ for ${usersReset} active users`,
+      notes:            `Reset givingBalance to ${amount} ⭐ for ${usersReset} active users`,
     },
   })
 

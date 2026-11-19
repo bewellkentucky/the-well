@@ -3,13 +3,10 @@ import { redirect } from "next/navigation"
 import { db } from "@/lib/db"
 import PageShell from "@/app/components/layout/PageShell"
 import IncentivesGrid from "@/app/components/earn/IncentivesGrid"
-import { seedIncentives } from "@/lib/seedIncentives"
 
 export default async function EarnPage() {
   const session = await auth()
   if (!session?.user?.id) redirect("/")
-
-  await seedIncentives()
 
   const now = new Date()
 
@@ -73,15 +70,15 @@ export default async function EarnPage() {
       <main style={{ maxWidth: 1100, margin: "0 auto", padding: "32px 24px 100px" }}>
         <div className="dir-topbar" style={{ marginBottom: 28 }}>
           <div>
-            <h1 className="page-title">Earn drops</h1>
+            <h1 className="page-title">Earn stars</h1>
             <p className="page-subtitle">
-              Complete activities to earn extra drops for your balance.
+              Complete activities to earn extra stars for your balance.
             </p>
           </div>
           {user && (
             <div className="balance-chip">
-              <span className="balance-chip-label">Your drops</span>
-              <span className="balance-chip-amount">{user.balance}đ</span>
+              <span className="balance-chip-label">Your stars</span>
+              <span className="balance-chip-amount">{user.balance} ⭐</span>
               <span className="balance-chip-sublabel">Earned&nbsp;&middot;&nbsp;yours to spend</span>
             </div>
           )}

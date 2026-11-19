@@ -266,7 +266,7 @@ export default function RewardsPanel({
 
                 {/* Cost */}
                 <div className="inc-form-field">
-                  <label className="adj-label">Cost (đ)</label>
+                  <label className="adj-label">Cost (stars)</label>
                   <input
                     className="adj-input"
                     type="number"
@@ -361,7 +361,7 @@ function RewardRow({
         <div className="inc-admin-title">{row.title}</div>
         <div className="inc-admin-desc">{row.description}</div>
         <div className="inc-admin-meta">
-          <span className="inc-admin-badge inc-badge-reward">{row.cost}đ</span>
+          <span className="inc-admin-badge inc-badge-reward">{row.cost} ⭐</span>
           <span className="inc-admin-badge">{CATEGORY_LABELS[row.category] ?? row.category}</span>
           {row.inventory !== null && (
             <span className="inc-admin-badge">

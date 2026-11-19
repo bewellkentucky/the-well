@@ -46,15 +46,14 @@ export default function NavWordmark({
   return (
     <div className="tnav-wm-slot">
       <div className={`tnav-wm-wordmark${showWordmark ? " visible" : ""}`}>
-        <div className="tnav-name">The Well</div>
-        <div className="tnav-parent">by Be Well Kentucky</div>
+        <div className="tnav-name">Spotlight</div>
       </div>
       <div className={`tnav-wm-balances${showWordmark ? "" : " visible"}`}>
         <span className="tnav-bal-num">{givingBalance}</span>
-        <span className="tnav-bal-unit">đ give</span>
+        <span className="tnav-bal-unit"> ⭐ give</span>
         <span className="tnav-bal-dot"> · </span>
         <span className="tnav-bal-num">{balance}</span>
-        <span className="tnav-bal-unit">đ earned</span>
+        <span className="tnav-bal-unit"> ⭐ earned</span>
       </div>
     </div>
   )

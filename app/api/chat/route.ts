@@ -163,7 +163,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
 async function handleMessage(senderEmail: string): Promise<{ text: string }> {
   if (!senderEmail) {
-    return { text: "I couldn't identify your account. Sign in at thewell.bewellkentucky.com first." }
+    return { text: "I couldn't identify your account. Sign in to Spotlight first." }
   }
 
   // Resolve Chat identity → Well user by email.
@@ -176,7 +176,7 @@ async function handleMessage(senderEmail: string): Promise<{ text: string }> {
 
   if (!wellUser) {
     return {
-      text: "I don't see a Well account for your email. Sign in at thewell.bewellkentucky.com first, then come back.",
+      text: "I don't see a Spotlight account for your email. Sign in to Spotlight first, then come back.",
     }
   }
 
@@ -185,6 +185,6 @@ async function handleMessage(senderEmail: string): Promise<{ text: string }> {
   // First-pass confirmation — verifies the full round-trip is working.
   // Command routing and money logic will be added in later passes.
   return {
-    text: `Hi ${firstName}, The Well is connected.`,
+    text: `Hi ${firstName}, Spotlight is connected.`,
   }
 }

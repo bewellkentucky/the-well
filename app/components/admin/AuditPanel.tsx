@@ -132,7 +132,7 @@ export default function AuditPanel({ logs }: { logs: AuditLogEntry[] }) {
                     )}
                     {log.amount != null && (
                       <span className={`audit-amount${log.amount >= 0 ? " positive" : " negative"}`}>
-                        {log.amount > 0 ? "+" : ""}{log.amount}đ
+                        {log.amount > 0 ? "+" : ""}{log.amount} ⭐
                       </span>
                     )}
                   </div>

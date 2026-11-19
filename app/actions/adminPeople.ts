@@ -75,7 +75,7 @@ export async function adjustBalance(
   if (!Number.isInteger(amount) || amount === 0)
     return { error: "Amount must be a non-zero integer." }
   if (Math.abs(amount) > 10_000)
-    return { error: "Amount cannot exceed ±10,000đ." }
+    return { error: "Amount cannot exceed ±10,000 ⭐." }
 
   const trimmedReason = reason.trim()
   if (trimmedReason.length < 3)
@@ -102,7 +102,7 @@ export async function adjustBalance(
 
       if (amount < 0 && target.balance + amount < 0)
         throw new Error(
-          `Cannot deduct more than the current balance (${target.balance}đ).`
+          `Cannot deduct more than the current balance (${target.balance} ⭐).`
         )
 
       await tx.user.update({

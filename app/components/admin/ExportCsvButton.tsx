@@ -17,13 +17,13 @@ function buildCsv(
 
   const lines: string[] = []
 
-  lines.push("The Well — Program Report")
+  lines.push("Spotlight program report")
   lines.push("Period: Since launch")
   lines.push(`Generated: ${date}`)
   lines.push("")
 
   lines.push("SPEND BY LOCATION")
-  lines.push("Location,Staff,Drops Redeemed (đ)")
+  lines.push("Location,Staff,Stars Redeemed (stars)")
   for (const s of locationStats) {
     lines.push(`"${s.location}",${s.userCount},${s.redeemed}`)
   }
@@ -35,16 +35,16 @@ function buildCsv(
   lines.push(`Kudos sent,${healthStats.totalKudos}`)
   lines.push(`Avg kudos per giver,${healthStats.uniqueGivers > 0 ? healthStats.avgKudosPerGiver.toFixed(1) : "0"}`)
   lines.push(`Allowance utilization (approx),${pct(healthStats.allowanceUtilization)}`)
-  lines.push(`Total drops given (đ),${healthStats.totalDropsGiven}`)
-  lines.push(`Total drops earned (đ),${healthStats.totalEarned}`)
-  lines.push(`Total drops redeemed (đ),${healthStats.totalRedeemed}`)
+  lines.push(`Total stars given (stars),${healthStats.totalDropsGiven}`)
+  lines.push(`Total stars earned (stars),${healthStats.totalEarned}`)
+  lines.push(`Total stars redeemed (stars),${healthStats.totalRedeemed}`)
   lines.push(`Redemption rate,${pct(healthStats.redemptionRate)}`)
   lines.push(`Accounts,${healthStats.activeUserCount}`)
   lines.push(`Accounts with location synced,${healthStats.usersWithLocation}`)
   lines.push("")
 
   lines.push("REDEMPTIONS BY CATEGORY")
-  lines.push("Category,Drops Redeemed (đ)")
+  lines.push("Category,Stars Redeemed (stars)")
   if (categoryStats.length === 0) {
     lines.push("No redemptions recorded,0")
   } else {
@@ -53,7 +53,7 @@ function buildCsv(
     }
   }
 
-  // BOM ensures Excel opens UTF-8 correctly (đ renders without mojibake)
+  // BOM ensures Excel opens UTF-8 correctly ( ⭐ renders without mojibake)
   return "﻿" + lines.join("\n")
 }
 

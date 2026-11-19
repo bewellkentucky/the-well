@@ -7,12 +7,7 @@ import { avatarColor } from "@/lib/avatarColor"
 import Avatar from "@/app/components/ui/Avatar"
 import type { Kudo, User, Reaction } from "@/app/generated/prisma/client"
 
-// Mirrored from makeItRain.ts — kept here as plain constants so they never
-// touch the "use server" file (non-function exports break that module).
-const RAIN_STEP = 5
-const RAIN_CAP  = 25
-
-const REACTION_CHOICES = ["💧", "💛", "🙌", "🎉", "👏", "🔥", "💯", "🙏", "✨", "❤️"]
+import { REACTION_CHOICES, PILE_ON_STEP as RAIN_STEP, PILE_ON_CAP as RAIN_CAP, PILE_ON_BUTTON } from "@/lib/brand"
 
 type RainRow = {
   userId: string
@@ -103,8 +98,8 @@ export default function KudoCard({
   )
 
   // Rain — stage-then-commit model.
-  // staged:   local drops queued but not yet sent (no DB write until commit).
-  // committed: drops already sent on prior commits for this kudo (from server).
+  // staged:   local stars queued but not yet sent (no DB write until commit).
+  // committed: stars already sent on prior commits for this kudo (from server).
   const committed = kudo.rains.find((r) => r.userId === currentUserId)?.amount ?? 0
   const headroom  = RAIN_CAP - committed            // how much more can be staged
   const [staged, setStaged]           = useState(0)
@@ -183,7 +178,7 @@ export default function KudoCard({
             <span className="kudo-from">{kudo.from.fullName}</span>
             <span className="kudo-arrow">→</span>
             <span className="kudo-to">{kudo.to.fullName}</span>
-            <span className="kudo-amount">+{kudo.amount}đ</span>
+            <span className="kudo-amount">+{kudo.amount} ⭐</span>
             {kudo.isPrivate && (
               <span className="kudo-private-badge">
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
@@ -248,15 +243,15 @@ export default function KudoCard({
               disabled={!canStageMore}
               title={
                 isStageCapped
-                  ? `You've reached the ${RAIN_CAP}đ limit`
+                  ? `You've reached the ${RAIN_CAP} ⭐ limit`
                   : staged > 0
-                  ? `Add ${RAIN_STEP}đ more (${staged}đ to add)`
-                  : `Stage ${RAIN_STEP}đ — commit to send`
+                  ? `Add ${RAIN_STEP} ⭐ more (${staged} ⭐ to add)`
+                  : `Add ${RAIN_STEP} ⭐, then send`
               }
             >
-              <span key={rainAnimKey} className={rainAnimKey > 0 ? "rain-pop" : ""}>💧</span>
-              <span>{isStageCapped ? "Maxed" : `+${RAIN_STEP}đ`}</span>
-              {staged > 0 && <span className="rain-staged-badge">{staged}đ to add</span>}
+              <span key={rainAnimKey} className={rainAnimKey > 0 ? "rain-pop" : ""}>⭐</span>
+              <span>{isStageCapped ? "Maxed" : PILE_ON_BUTTON}</span>
+              {staged > 0 && <span className="rain-staged-badge">{staged} ⭐ to add</span>}
             </button>
 
             {staged > 0 && (
@@ -267,7 +262,7 @@ export default function KudoCard({
                   disabled={isCommitPending}
                 >
                   <span key={commitAnimKey} className={commitAnimKey > 0 ? "rain-commit-pop" : ""}>
-                    {isCommitPending ? "Sending…" : `Send ${staged}đ`}
+                    {isCommitPending ? "Sending…" : `Send ${staged} ⭐`}
                   </span>
                 </button>
                 <button
@@ -294,7 +289,7 @@ export default function KudoCard({
               ))}
             </div>
             <span>
-              +{serverTotal}đ from {kudo.rains.length}{" "}
+              +{serverTotal} ⭐ from {kudo.rains.length}{" "}
               {kudo.rains.length === 1 ? "person" : "people"}
             </span>
           </div>

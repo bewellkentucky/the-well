@@ -55,10 +55,10 @@ export async function makeItRain(
       const committed = existing?.amount ?? 0
       if (committed + amount > RAIN_CAP)
         throw new Error(
-          `This would exceed the ${RAIN_CAP}đ limit. You've already committed ${committed}đ on this kudo.`
+          `This would exceed the ${RAIN_CAP} ⭐ limit. You've already committed ${committed} ⭐ on this kudo.`
         )
       if (actor.givingBalance < amount)
-        throw new Error("Not enough drops in your giving balance.")
+        throw new Error("Not enough stars in your giving balance.")
 
       const next = committed + amount
 
@@ -80,7 +80,7 @@ export async function makeItRain(
           targetId:   kudo.toId,
           targetName: kudo.to.fullName,
           action:     "make_it_rain",
-          details:    `Committed +${amount}đ rain on kudo ${kudoId} (actor total: ${next}đ)`,
+          details:    `Committed +${amount} ⭐ rain on kudo ${kudoId} (actor total: ${next} ⭐)`,
           amount,
         },
       })

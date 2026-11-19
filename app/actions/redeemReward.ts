@@ -16,7 +16,7 @@ export async function redeemReward(rewardId: string): Promise<{ error?: string }
   if (!reward || !reward.active) return { error: "Reward not available." }
   if (!user) return { error: "User not found." }
   if (reward.inventory !== null && reward.inventory <= 0) return { error: "This reward is out of stock." }
-  if (user.balance < reward.cost) return { error: "Not enough drops." }
+  if (user.balance < reward.cost) return { error: "Not enough stars." }
 
   await db.$transaction([
     db.redemption.create({

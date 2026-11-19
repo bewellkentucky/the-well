@@ -93,7 +93,7 @@ function ClaimRow({ claim }: { claim: ApprovalClaim }) {
         <div className="approval-meta">{timeAgo(claim.createdAt)}</div>
       </div>
       <div className="approval-right">
-        <div className="approval-amount">{claim.incentive.reward}đ</div>
+        <div className="approval-amount">{claim.incentive.reward} ⭐</div>
         <div className="approval-actions">
           <button
             className="approval-btn approve"
@@ -143,7 +143,7 @@ function RedemptionRow({ redemption }: { redemption: ApprovalRedemption }) {
         <div className="approval-meta">{timeAgo(redemption.createdAt)}</div>
       </div>
       <div className="approval-right">
-        <div className="approval-amount">{redemption.cost}đ</div>
+        <div className="approval-amount">{redemption.cost} ⭐</div>
         <div className="approval-actions">
           <button
             className="approval-btn approve"
@@ -190,7 +190,7 @@ export default function ApprovalsPanel({
           )}
         </div>
         <p style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 16, lineHeight: 1.5 }}>
-          Incentive claims and reward redemptions that need admin sign-off before drops are credited or fulfillment begins.
+          Incentive claims and reward redemptions that need admin sign-off before stars are credited or fulfillment begins.
         </p>
 
         {totalPending === 0 ? (
@@ -226,7 +226,7 @@ export default function ApprovalsPanel({
                   )}
                 </div>
                 <div className="approval-right">
-                  <div className="approval-amount" style={{ opacity: 0.6 }}>{d.incentive.reward}đ</div>
+                  <div className="approval-amount" style={{ opacity: 0.6 }}>{d.incentive.reward} ⭐</div>
                   <span className={`claim-status ${d.status === "credited" ? "status-credited" : "status-declined"}`}>
                     {d.status === "credited" ? "Credited" : "Declined"}
                   </span>
