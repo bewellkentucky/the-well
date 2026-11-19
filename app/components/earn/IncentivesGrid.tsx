@@ -83,7 +83,7 @@ export default function IncentivesGrid({ incentives, claims }: Props) {
           <div className="incentive-body">
             <div className="incentive-title" style={{ color: "var(--ink-soft)" }}>Suggest an incentive</div>
             <div className="incentive-desc">
-              Have an idea for a new way to earn stars? Let us know and we'll consider adding it.
+              Have an idea for a new way to earn stars? Let us know and we&apos;ll consider adding it.
             </div>
           </div>
           <div className="incentive-action">

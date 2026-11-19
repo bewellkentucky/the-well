@@ -24,12 +24,11 @@ export type RecentAdjustment = {
   createdAt: string
 }
 
-const ROLES = ["owner", "admin", "member"] as const
+const ROLES = ["admin", "member"] as const
 type Role = typeof ROLES[number]
 
 const ROLE_DESC: Record<Role, string> = {
-  owner:  "Full access including billing",
-  admin:  "Approvals and catalog management",
+  admin:  "Approvals, rewards, incentives and balance adjustments",
   member: "Give and receive kudos",
 }
 
@@ -48,12 +47,12 @@ function timeAgo(iso: string): string {
 export default function PeoplePanel({
   people,
   actorId,
-  actorRole,
+  canChangeRoles,
   recentAdjustments,
 }: {
   people: PersonRow[]
   actorId: string
-  actorRole: string
+  canChangeRoles: boolean
   recentAdjustments: RecentAdjustment[]
 }) {
   // ── Role change ───────────────────────────────────────────────
@@ -151,8 +150,7 @@ export default function PeoplePanel({
     })
   }
 
-  const isOwner = actorRole === "owner"
-  const ownerCount = people.filter((p) => p.role === "owner").length
+  const adminCount = people.filter((p) => p.role === "admin").length
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -163,7 +161,8 @@ export default function PeoplePanel({
           <h2 className="card-title">Roles & permissions</h2>
         </div>
         <p className="people-explainer">
-          Owners can do everything including billing. Admins can approve redemptions and edit the catalog. Members can give and receive kudos.
+          Everyone can give and receive kudos. Spotlight admins handle approvals, rewards, incentives and balance adjustments.
+          {canChangeRoles ? "" : " Role changes are made by the Spotlight platform owner."}
         </p>
 
         <div className="people-list">
@@ -196,14 +195,14 @@ export default function PeoplePanel({
                   <span className={`role-badge role-badge-${person.role}`}>
                     {person.role}
                   </span>
-                  {isOwner && (() => {
-                    const lastOwner = person.role === "owner" && ownerCount <= 1
+                  {canChangeRoles && (() => {
+                    const lastAdmin = person.role === "admin" && adminCount <= 1
                     return (
                       <button
                         className="role-change-btn"
-                        onClick={() => !lastOwner && openRoleModal(person)}
-                        disabled={lastOwner}
-                        title={lastOwner ? "Can't change the only owner's role" : undefined}
+                        onClick={() => !lastAdmin && openRoleModal(person)}
+                        disabled={lastAdmin}
+                        title={lastAdmin ? "Can't change the only admin's role" : undefined}
                       >
                         Change
                       </button>
@@ -225,10 +224,10 @@ export default function PeoplePanel({
       {/* ── Section 2: Balance adjustment ─────────────────────── */}
       <div className="card">
         <div className="card-header">
-          <h2 className="card-title">Adjust someone's balance</h2>
+          <h2 className="card-title">Adjust someone&apos;s earned stars</h2>
         </div>
         <p className="people-explainer">
-          One-off grants or corrections to a staff member's earned stars. All adjustments are logged for the audit trail.
+          One-off grants or corrections to a staff member&apos;s earned stars. All adjustments are logged for the audit trail.
         </p>
 
         <div className="adj-form">

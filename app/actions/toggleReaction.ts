@@ -1,40 +1,40 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
-import { auth } from "@/auth"
-import { db } from "@/lib/db"
+import { requireActor, ActionError, toActionError } from "@/lib/tenant"
 import { REACTION_CHOICES } from "@/lib/brand"
 
 const VALID_EMOJIS = new Set<string>(REACTION_CHOICES)
 
-export async function toggleReaction(
-  kudoId: string,
-  emoji: string
-): Promise<{ error: string } | undefined> {
-  const session = await auth()
-  if (!session?.user?.id) return { error: "Not signed in." }
-  if (!VALID_EMOJIS.has(emoji)) return { error: "Invalid emoji." }
+export async function toggleReaction(kudoId: string, emoji: string): Promise<{ error: string } | undefined> {
+  try {
+    const actor = await requireActor()
+    if (!VALID_EMOJIS.has(emoji)) throw new ActionError("Invalid emoji.")
 
-  const userId = session.user.id
+    const kudo = await actor.db.kudo.findUnique({
+      where: { id: kudoId },
+      select: { isPrivate: true, fromId: true, toId: true },
+    })
+    if (!kudo) throw new ActionError("Kudo not found.")
+    if (kudo.isPrivate && kudo.fromId !== actor.userId && kudo.toId !== actor.userId) {
+      throw new ActionError("Kudo not found.")
+    }
 
-  const kudo = await db.kudo.findUnique({
-    where: { id: kudoId },
-    select: { isPrivate: true, fromId: true, toId: true },
-  })
-  if (!kudo) return { error: "Kudo not found." }
-  if (kudo.isPrivate && kudo.fromId !== userId && kudo.toId !== userId) {
-    return { error: "Not authorized." }
+    const key = { kudoId_userId_emoji: { kudoId, userId: actor.userId, emoji } }
+    const existing = await actor.db.reaction.findUnique({ where: key, select: { id: true } })
+    if (existing) {
+      await actor.db.reaction.deleteMany({ where: { id: existing.id } })
+    } else {
+      await actor.db.reaction
+        .create({ data: { companyId: actor.companyId, kudoId, userId: actor.userId, emoji } })
+        .catch((e: { code?: string }) => {
+          if (e?.code !== "P2002") throw e // double tap: already reacted, fine
+        })
+    }
+
+    revalidatePath("/")
+    return undefined
+  } catch (e) {
+    return toActionError(e)
   }
-
-  const existing = await db.reaction.findUnique({
-    where: { kudoId_userId_emoji: { kudoId, userId, emoji } },
-  })
-
-  if (existing) {
-    await db.reaction.delete({ where: { id: existing.id } })
-  } else {
-    await db.reaction.create({ data: { kudoId, userId, emoji } })
-  }
-
-  revalidatePath("/")
 }

@@ -6,6 +6,7 @@ import {
   createIncentive,
   updateIncentive,
   setIncentiveActive,
+  moveIncentive,
   type IncentiveFormData,
 } from "@/app/actions/adminIncentives"
 import EmojiPicker from "@/app/components/ui/EmojiPicker"
@@ -43,12 +44,12 @@ export type ClaimHistoryRow = {
 }
 
 const COLORS = [
-  { label: "Sage",       value: "#7a9b7e" },
-  { label: "Terracotta", value: "#c97b5c" },
-  { label: "Plum",       value: "#6b5b73" },
-  { label: "Slate",      value: "#2a3441" },
-  { label: "Honey",      value: "#a89060" },
-  { label: "Teal",       value: "#4a8fa8" },
+  { label: "Ember",  value: "#c2410c" },
+  { label: "Green",  value: "#5a7d5e" },
+  { label: "Violet", value: "#6d5b86" },
+  { label: "Slate",  value: "#1f2633" },
+  { label: "Gold",   value: "#b7791f" },
+  { label: "Teal",   value: "#2c7a7b" },
 ]
 
 const CAP_LABELS: Record<string, string> = {
@@ -112,9 +113,8 @@ const EMPTY_FORM = {
   verification: "self",
   cap:          "once",
   icon:         "⭐",
-  color:        "#7a9b7e",
+  color:        "#c2410c",
   proofPrompt:  "",
-  sortOrder:    "0",
   startsAt:     "",
   endsAt:       "",
 }
@@ -131,7 +131,6 @@ function rowToForm(inc: IncentiveAdminRow): FormState {
     icon:         inc.icon,
     color:        inc.color,
     proofPrompt:  inc.proofPrompt ?? "",
-    sortOrder:    String(inc.sortOrder),
     startsAt:     inc.startsAt ? inc.startsAt.slice(0, 10) : "",
     endsAt:       inc.endsAt   ? inc.endsAt.slice(0, 10)   : "",
   }
@@ -140,10 +139,15 @@ function rowToForm(inc: IncentiveAdminRow): FormState {
 export default function IncentivesPanel({
   incentives,
   claimHistory,
+  featuredIds,
+  featuredCount,
 }: {
-  incentives:   IncentiveAdminRow[]
-  claimHistory: ClaimHistoryRow[]
+  incentives:    IncentiveAdminRow[]
+  claimHistory:  ClaimHistoryRow[]
+  featuredIds:   string[]
+  featuredCount: number
 }) {
+  const featured = new Set(featuredIds)
   const [modal, setModal] = useState<{ mode: "new" | "edit"; id: string | null } | null>(null)
   const [form, setForm]   = useState<FormState>(EMPTY_FORM)
   const [formError, setFormError] = useState<string | null>(null)
@@ -177,12 +181,6 @@ export default function IncentivesPanel({
       return
     }
 
-    const sortOrderNum = parseInt(form.sortOrder, 10)
-    if (isNaN(sortOrderNum) || sortOrderNum < 0) {
-      setFormError("Sort order must be a non-negative whole number.")
-      return
-    }
-
     const data: IncentiveFormData = {
       title:        form.title,
       description:  form.description,
@@ -192,7 +190,6 @@ export default function IncentivesPanel({
       icon:         form.icon || "⭐",
       color:        form.color,
       proofPrompt:  form.proofPrompt || null,
-      sortOrder:    sortOrderNum,
       startsAt:     form.startsAt || null,
       endsAt:       form.endsAt   || null,
     }
@@ -204,6 +201,12 @@ export default function IncentivesPanel({
         : await updateIncentive(modal!.id!, data)
       if (result.error) setFormError(result.error)
       else closeModal()
+    })
+  }
+
+  function move(inc: IncentiveAdminRow, direction: "up" | "down") {
+    startTransition(async () => {
+      await moveIncentive(inc.id, direction)
     })
   }
 
@@ -231,19 +234,38 @@ export default function IncentivesPanel({
           </button>
         </div>
         <p className="people-explainer">
-          Active incentives appear on the Earn page. Inactive ones are hidden from staff
-          but existing claims and credits are preserved.
+          This order is used everywhere: here, the Earn page, and Home. The top{" "}
+          {featuredCount === 1 ? "active incentive is" : `${featuredCount} active incentives are`} featured on
+          Home (change the number on the Program tab). Inactive ones are hidden from staff, but existing
+          claims and credits are kept.
         </p>
 
         {incentives.length === 0 ? (
           <p className="report-empty">No incentives yet. Create one above.</p>
         ) : (
           <div className="inc-admin-list">
-            {incentives.map((inc) => (
+            {incentives.map((inc, idx) => (
               <div
                 key={inc.id}
                 className={`inc-admin-row${inc.active ? "" : " inc-admin-row-inactive"}`}
               >
+                <div className="inc-order-col">
+                  <button
+                    type="button"
+                    className="inc-order-btn"
+                    onClick={() => move(inc, "up")}
+                    disabled={isPending || idx === 0}
+                    aria-label={`Move ${inc.title} up`}
+                  >▲</button>
+                  <span className="inc-order-num">{idx + 1}</span>
+                  <button
+                    type="button"
+                    className="inc-order-btn"
+                    onClick={() => move(inc, "down")}
+                    disabled={isPending || idx === incentives.length - 1}
+                    aria-label={`Move ${inc.title} down`}
+                  >▼</button>
+                </div>
                 <div
                   className="inc-admin-icon"
                   style={{ background: inc.color + "22", color: inc.color }}
@@ -262,6 +284,9 @@ export default function IncentivesPanel({
                     <span className="inc-admin-badge">{CAP_LABELS[inc.cap] ?? inc.cap}</span>
                     {!inc.active && (
                       <span className="inc-admin-badge inc-badge-inactive">Inactive</span>
+                    )}
+                    {featured.has(inc.id) && (
+                      <span className="inc-admin-badge inc-badge-featured">Featured on Home</span>
                     )}
                     <span className="inc-admin-claimcount">
                       {inc.claimCount} {inc.claimCount === 1 ? "claim" : "claims"}
@@ -349,7 +374,7 @@ export default function IncentivesPanel({
           <h2 className="card-title">Staff suggestions</h2>
         </div>
         <p className="people-explainer">
-          Staff-submitted incentive ideas will appear here once the "Suggest an incentive"
+          Staff-submitted incentive ideas will appear here once the &ldquo;Suggest an incentive&rdquo;
           feature is built. The submission form on the Earn page is currently a placeholder.
         </p>
       </div>
@@ -431,16 +456,6 @@ export default function IncentivesPanel({
                       max={10000}
                       value={form.reward}
                       onChange={(e) => setField("reward", e.target.value)}
-                    />
-                  </div>
-                  <div className="inc-form-field" style={{ flex: "0 0 120px" }}>
-                    <label className="adj-label">Sort order</label>
-                    <input
-                      className="adj-input"
-                      type="number"
-                      min={0}
-                      value={form.sortOrder}
-                      onChange={(e) => setField("sortOrder", e.target.value)}
                     />
                   </div>
                 </div>

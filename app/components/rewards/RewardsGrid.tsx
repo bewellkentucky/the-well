@@ -112,7 +112,7 @@ export default function RewardsGrid({
       <div className="dir-topbar" style={{ marginBottom: 20 }}>
         <div>
           <h1 className="page-title">Rewards</h1>
-          <p className="page-subtitle">Spend what you've earned.</p>
+          <p className="page-subtitle">Spend what you&apos;ve earned.</p>
         </div>
         <div className="balance-chip">
           <span className="balance-chip-label">Your stars</span>

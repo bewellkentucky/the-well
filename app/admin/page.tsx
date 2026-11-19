@@ -1,5 +1,4 @@
-import { auth } from "@/auth"
-import { db } from "@/lib/db"
+import { requireAdmin } from "@/lib/tenant"
 import AdminTabs from "@/app/components/admin/AdminTabs"
 import ApprovalsPanel, {
   type ApprovalClaim,
@@ -32,8 +31,8 @@ import IntegrationsPanel, {
   type BambooSyncStatus,
 } from "@/app/components/admin/IntegrationsPanel"
 import ProgramPanel from "@/app/components/admin/ProgramPanel"
-import { getAllowanceSetting } from "@/app/actions/adminProgram"
 import { ADMIN_TABS, type AdminTabId } from "@/lib/adminTabsConfig"
+import { INCENTIVE_ORDER, isInWindow } from "@/lib/incentives"
 
 const TAB_IDS = ADMIN_TABS.map((t) => t.id)
 
@@ -41,17 +40,6 @@ function isValidTab(tab: string): tab is AdminTabId {
   return (TAB_IDS as readonly string[]).includes(tab)
 }
 
-const PLACEHOLDER: Record<AdminTabId, { heading: string; description: string }> = {
-  overview:     { heading: "Overview",          description: "Program health at a glance — kudos volume, star balances, pending approvals, and recent activity." },
-  approvals:    { heading: "Approvals",         description: "" },
-  rewards:      { heading: "Rewards",           description: "Manage the reward catalog — add, edit, and retire items. Set inventory limits and costs." },
-  incentives:   { heading: "Incentives",        description: "Manage the incentive catalog — create activities, set caps, configure time windows, and toggle active state." },
-  people:       { heading: "People",            description: "Staff roster, star balances, giving history, and manual adjustments. Deactivate leavers." },
-  reports:      { heading: "Reports",           description: "Export kudo and redemption data. Cost attribution by entity for accounting purposes." },
-  integrations: { heading: "Integrations",      description: "BambooHR sync status and manual trigger. Google Chat connection and channel configuration." },
-  program:      { heading: "Program settings",  description: "Monthly giving allowance per staff member. Company values. Recognition program name and branding." },
-  audit:        { heading: "Audit log",         description: "Immutable record of all admin actions — balance adjustments, reward changes, approval decisions." },
-}
 
 export default async function AdminPage({
   searchParams,
@@ -62,16 +50,21 @@ export default async function AdminPage({
   const rawTab = params.tab ?? "overview"
   const activeTab: AdminTabId = isValidTab(rawTab) ? rawTab : "overview"
 
-  const session = await auth()
-  const user = await db.user.findUnique({
-    where: { id: session!.user!.id! },
-    select: { fullName: true, role: true },
+  const actor = await requireAdmin()
+  const sdb = actor.db
+  const company = await sdb.company.findUnique({
+    where: { id: actor.companyId },
+    select: {
+      name: true, allowanceAmount: true, featuredIncentiveCount: true, logoUrl: true, brandColor: true,
+      bambooEnabled: true, bambooSubdomain: true, slug: true,
+    },
   })
+  const allowance = company?.allowanceAmount ?? 100
 
   // Always fetch pending count so the Approvals tab badge stays current
-  const pendingCount = await db.$transaction([
-    db.incentiveClaim.count({ where: { status: "pending", incentive: { verification: "admin" } } }),
-    db.redemption.count({ where: { status: "pending" } }),
+  const pendingCount = await Promise.all([
+    sdb.incentiveClaim.count({ where: { status: "pending", incentive: { verification: "admin" } } }),
+    sdb.redemption.count({ where: { status: "pending" } }),
   ]).then(([claims, redemptions]) => claims + redemptions)
 
   // ── People tab data ────────────────────────────────────────
@@ -79,10 +72,10 @@ export default async function AdminPage({
   let recentAdjustments: RecentAdjustment[] = []
 
   if (activeTab === "people") {
-    const rolePriority: Record<string, number> = { owner: 0, admin: 1, member: 2 }
+    const rolePriority: Record<string, number> = { admin: 0, member: 1 }
 
     const [rawPeople, rawAdj] = await Promise.all([
-      db.user.findMany({
+      sdb.user.findMany({
         select: {
           id: true,
           fullName: true,
@@ -95,7 +88,7 @@ export default async function AdminPage({
         },
         orderBy: { fullName: "asc" },
       }),
-      db.auditLog.findMany({
+      sdb.auditLog.findMany({
         where:   { action: "adjust_balance" },
         orderBy: { createdAt: "desc" },
         take:    10,
@@ -129,11 +122,11 @@ export default async function AdminPage({
 
   if (activeTab === "reports") {
     const [rawUsers, rawKudos, rawRedemptions] = await Promise.all([
-      db.user.findMany({
+      sdb.user.findMany({
         select: { id: true, location: true, balance: true },
       }),
-      db.kudo.findMany({ select: { fromId: true, amount: true } }),
-      db.redemption.findMany({
+      sdb.kudo.findMany({ select: { fromId: true, amount: true } }),
+      sdb.redemption.findMany({
         where: { status: { not: "declined" } },
         select: {
           cost: true,
@@ -178,7 +171,7 @@ export default async function AdminPage({
       totalKudos,
       avgKudosPerGiver:     uniqueGivers > 0 ? totalKudos / uniqueGivers : 0,
       totalDropsGiven,
-      allowanceUtilization: activeUserCount > 0 ? totalDropsGiven / (activeUserCount * 100) : 0,
+      allowanceUtilization: activeUserCount > 0 && allowance > 0 ? totalDropsGiven / (activeUserCount * allowance) : 0,
       totalEarned,
       totalRedeemed,
       redemptionRate:       totalEarned > 0 ? totalRedeemed / totalEarned : 0,
@@ -202,7 +195,7 @@ export default async function AdminPage({
 
   if (activeTab === "approvals") {
     const [rawClaims, rawRedemptions, rawDecided] = await Promise.all([
-      db.incentiveClaim.findMany({
+      sdb.incentiveClaim.findMany({
         where: { status: "pending", incentive: { verification: "admin" } },
         include: {
           user:      { select: { fullName: true, email: true, thumbnailUrl: true } },
@@ -210,7 +203,7 @@ export default async function AdminPage({
         },
         orderBy: { createdAt: "asc" },
       }),
-      db.redemption.findMany({
+      sdb.redemption.findMany({
         where: { status: "pending" },
         include: {
           user:   { select: { fullName: true, email: true, thumbnailUrl: true } },
@@ -218,7 +211,7 @@ export default async function AdminPage({
         },
         orderBy: { createdAt: "asc" },
       }),
-      db.incentiveClaim.findMany({
+      sdb.incentiveClaim.findMany({
         where: {
           status:    { in: ["credited", "declined"] },
           incentive: { verification: "admin" },
@@ -265,7 +258,7 @@ export default async function AdminPage({
   let rewards: RewardAdminRow[] = []
 
   if (activeTab === "rewards") {
-    const rawRewards = await db.reward.findMany({
+    const rawRewards = await sdb.reward.findMany({
       orderBy: [{ active: "desc" }, { title: "asc" }],
       include: { _count: { select: { redemptions: true } } },
     })
@@ -287,14 +280,15 @@ export default async function AdminPage({
   // ── Incentives tab data ────────────────────────────────────
   let incentives: IncentiveAdminRow[] = []
   let claimHistory: ClaimHistoryRow[] = []
+  let featuredIds: string[] = []
 
   if (activeTab === "incentives") {
     const [rawIncentives, rawClaims] = await Promise.all([
-      db.incentive.findMany({
-        orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
+      sdb.incentive.findMany({
+        orderBy: INCENTIVE_ORDER,
         include: { _count: { select: { claims: true } } },
       }),
-      db.incentiveClaim.findMany({
+      sdb.incentiveClaim.findMany({
         include: {
           user:      { select: { fullName: true, email: true, thumbnailUrl: true } },
           incentive: { select: { title: true, icon: true, color: true, reward: true } },
@@ -321,6 +315,12 @@ export default async function AdminPage({
       claimCount:   i._count.claims,
     }))
 
+    const now = new Date()
+    featuredIds = rawIncentives
+      .filter((i) => i.active && isInWindow(i, now))
+      .slice(0, company?.featuredIncentiveCount ?? 2)
+      .map((i) => i.id)
+
     claimHistory = rawClaims.map((c) => ({
       id:              c.id,
       createdAt:       c.createdAt.toISOString(),
@@ -340,15 +340,18 @@ export default async function AdminPage({
   // ── Integrations tab data ──────────────────────────────────
   let bambooLastSync: BambooSyncStatus | null = null
   let workspaceUserCount = 0
+  let domains: string[] = []
 
   if (activeTab === "integrations") {
-    const [lastSync, userCount] = await Promise.all([
-      db.integrationSync.findFirst({
+    const [lastSync, userCount, domainRows] = await Promise.all([
+      sdb.integrationSync.findFirst({
         where:   { source: "bamboohr" },
         orderBy: { lastRunAt: "desc" },
       }),
-      db.user.count(),
+      sdb.user.count(),
+      sdb.companyDomain.findMany({ where: { companyId: actor.companyId }, select: { domain: true }, orderBy: { domain: "asc" } }),
     ])
+    domains = domainRows.map((d) => d.domain)
     bambooLastSync = lastSync
       ? {
           id:               lastSync.id,
@@ -365,7 +368,7 @@ export default async function AdminPage({
   let auditLogs: AuditLogEntry[] = []
 
   if (activeTab === "audit") {
-    const rows = await db.auditLog.findMany({
+    const rows = await sdb.auditLog.findMany({
       orderBy: { createdAt: "desc" },
       take:    100,
     })
@@ -382,11 +385,6 @@ export default async function AdminPage({
   }
 
   // ── Program tab data ───────────────────────────────────────
-  let allowanceAmount = 100
-
-  if (activeTab === "program") {
-    allowanceAmount = await getAllowanceSetting()
-  }
 
   // ── Overview tab data ──────────────────────────────────────
   let overviewData: OverviewData = {
@@ -406,9 +404,9 @@ export default async function AdminPage({
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
 
     const [rawUsers, rawKudos, lastSyncRow] = await Promise.all([
-      db.user.findMany({ select: { id: true, balance: true, hireDate: true } }),
-      db.kudo.findMany({ select: { fromId: true } }),
-      db.integrationSync.findFirst({
+      sdb.user.findMany({ select: { id: true, balance: true, hireDate: true } }),
+      sdb.kudo.findMany({ select: { fromId: true } }),
+      sdb.integrationSync.findFirst({
         where:   { source: "bamboohr" },
         orderBy: { lastRunAt: "desc" },
       }),
@@ -448,7 +446,7 @@ export default async function AdminPage({
         <div>
           <h1 className="page-title">Admin</h1>
           <p className="page-subtitle">
-            Signed in as <strong>{user?.fullName}</strong> ({user?.role}). Changes apply to the whole program.
+            Signed in as <strong>{actor.fullName}</strong>{actor.isPlatformOwner ? " (platform owner)" : " (admin)"}. Changes apply to {company?.name ?? "your company"} only.
           </p>
         </div>
       </div>
@@ -467,8 +465,8 @@ export default async function AdminPage({
         ) : activeTab === "people" ? (
           <PeoplePanel
             people={people}
-            actorId={session!.user!.id!}
-            actorRole={user?.role ?? "member"}
+            actorId={actor.userId}
+            canChangeRoles={actor.isPlatformOwner}
             recentAdjustments={recentAdjustments}
           />
         ) : activeTab === "reports" ? (
@@ -483,16 +481,25 @@ export default async function AdminPage({
           <IntegrationsPanel
             bambooLastSync={bambooLastSync}
             userCount={workspaceUserCount}
+            bambooConnected={!!(company?.bambooEnabled && company?.bambooSubdomain)}
+            domains={domains}
           />
         ) : activeTab === "incentives" ? (
           <IncentivesPanel
             incentives={incentives}
             claimHistory={claimHistory}
+            featuredIds={featuredIds}
+            featuredCount={company?.featuredIncentiveCount ?? 2}
           />
         ) : activeTab === "audit" ? (
           <AuditPanel logs={auditLogs} />
         ) : activeTab === "program" ? (
-          <ProgramPanel allowanceAmount={allowanceAmount} />
+          <ProgramPanel
+            allowanceAmount={allowance}
+            featuredCount={company?.featuredIncentiveCount ?? 2}
+            logoUrl={company?.logoUrl ?? null}
+            brandColor={company?.brandColor ?? null}
+          />
         ) : null}
 
       </div>

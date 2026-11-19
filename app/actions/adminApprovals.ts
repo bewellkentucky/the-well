@@ -1,252 +1,166 @@
 "use server"
 
-import { auth } from "@/auth"
-import { db } from "@/lib/db"
 import { revalidatePath } from "next/cache"
+import { requireAdmin, ActionError, toActionError } from "@/lib/tenant"
+import { lockUsers, MONEY_TX } from "@/lib/money"
+import { formatStars } from "@/lib/brand"
 
-async function getActorRole(): Promise<string | null> {
-  const session = await auth()
-  if (!session?.user?.id) return null
-  const user = await db.user.findUnique({
-    where: { id: session.user.id },
-    select: { role: true },
-  })
-  return user?.role ?? null
-}
-
-function isAdmin(role: string | null): role is "owner" | "admin" {
-  return role === "owner" || role === "admin"
-}
-
-// ── Incentive claims ──────────────────────────────────────────
+// Every decision: conditional status transition (pending -> x, count must be
+// 1) so a double click or two admins at once can't double-credit or
+// double-refund. All lookups are company-scoped.
 
 export async function approveIncentiveClaim(claimId: string): Promise<{ error?: string }> {
-  const session = await auth()
-  if (!session?.user?.id) return { error: "Not signed in." }
-
-  const role = await getActorRole()
-  if (!isAdmin(role)) return { error: "Not authorized." }
-
-  const actorId = session.user.id
-
   try {
-    await db.$transaction(async (tx) => {
-      // Re-read inside the transaction — prevents double-credit on rapid re-submission
-      const current = await tx.incentiveClaim.findUnique({
+    const actor = await requireAdmin()
+    await actor.db.$transaction(async (tx) => {
+      const claim = await tx.incentiveClaim.findUnique({
         where: { id: claimId },
         select: {
-          status:         true,
-          userId:         true,
-          incentiveId:    true,
+          userId: true,
           rewardSnapshot: true,
-          user:           { select: { fullName: true } },
+          user: { select: { fullName: true } },
+          incentive: { select: { reward: true, title: true } },
         },
       })
-      if (!current) throw new Error("Claim not found.")
-      if (current.status !== "pending") throw new Error("Already processed.")
+      if (!claim) throw new ActionError("Claim not found.")
+      await lockUsers(tx, actor.companyId, [claim.userId])
 
-      const [incentive, actor] = await Promise.all([
-        tx.incentive.findUnique({
-          where: { id: current.incentiveId },
-          select: { reward: true, title: true },
-        }),
-        tx.user.findUnique({
-          where: { id: actorId },
-          select: { fullName: true },
-        }),
-      ])
-      if (!incentive) throw new Error("Incentive not found.")
-
-      // Use snapshot if available; fall back to live reward for pre-snapshot claims
-      const rewardAmount = current.rewardSnapshot ?? incentive.reward
-
-      await tx.incentiveClaim.update({
-        where: { id: claimId },
-        data: { status: "credited", decidedAt: new Date(), decidedById: actorId },
+      const { count } = await tx.incentiveClaim.updateMany({
+        where: { id: claimId, status: "pending" },
+        data: { status: "credited", decidedAt: new Date(), decidedById: actor.userId },
       })
-      await tx.user.update({
-        where: { id: current.userId },
-        data: { balance: { increment: rewardAmount } },
-      })
+      if (count !== 1) throw new ActionError("Already processed.")
+
+      const amount = claim.rewardSnapshot ?? claim.incentive.reward
+      await tx.user.update({ where: { id: claim.userId }, data: { balance: { increment: amount } } })
       await tx.auditLog.create({
         data: {
-          actorId,
-          targetId:   current.userId,
-          action:     "approve_claim",
-          actorName:  actor!.fullName,
-          targetName: current.user.fullName,
-          amount:     rewardAmount,
-          details:    `Approved claim: ${incentive.title}`,
+          companyId: actor.companyId,
+          actorId: actor.userId,
+          actorName: actor.fullName,
+          targetId: claim.userId,
+          targetName: claim.user.fullName,
+          action: "approve_claim",
+          amount,
+          details: `Approved claim: ${claim.incentive.title}`,
         },
       })
-    })
-  } catch (e: any) {
-    return { error: e.message ?? "Failed to approve claim." }
+    }, MONEY_TX)
+    revalidatePath("/admin")
+    return {}
+  } catch (e) {
+    return toActionError(e, "Failed to approve claim.")
   }
-
-  revalidatePath("/admin")
-  return {}
 }
 
 export async function declineIncentiveClaim(claimId: string): Promise<{ error?: string }> {
-  const session = await auth()
-  if (!session?.user?.id) return { error: "Not signed in." }
-
-  const role = await getActorRole()
-  if (!isAdmin(role)) return { error: "Not authorized." }
-
-  const actorId = session.user.id
-
   try {
-    await db.$transaction(async (tx) => {
-      const current = await tx.incentiveClaim.findUnique({
+    const actor = await requireAdmin()
+    await actor.db.$transaction(async (tx) => {
+      const claim = await tx.incentiveClaim.findUnique({
         where: { id: claimId },
-        select: {
-          status:    true,
-          userId:    true,
-          user:      { select: { fullName: true } },
-          incentive: { select: { title: true } },
-        },
+        select: { userId: true, user: { select: { fullName: true } }, incentive: { select: { title: true } } },
       })
-      if (!current) throw new Error("Claim not found.")
-      if (current.status !== "pending") throw new Error("Already processed.")
-
-      const actor = await tx.user.findUnique({
-        where: { id: actorId },
-        select: { fullName: true },
+      if (!claim) throw new ActionError("Claim not found.")
+      const { count } = await tx.incentiveClaim.updateMany({
+        where: { id: claimId, status: "pending" },
+        data: { status: "declined", decidedAt: new Date(), decidedById: actor.userId },
       })
-
-      await tx.incentiveClaim.update({
-        where: { id: claimId },
-        data: { status: "declined", decidedAt: new Date(), decidedById: actorId },
-      })
+      if (count !== 1) throw new ActionError("Already processed.")
       await tx.auditLog.create({
         data: {
-          actorId,
-          targetId:   current.userId,
-          action:     "decline_claim",
-          actorName:  actor!.fullName,
-          targetName: current.user.fullName,
-          details:    `Declined claim: ${current.incentive.title}`,
+          companyId: actor.companyId,
+          actorId: actor.userId,
+          actorName: actor.fullName,
+          targetId: claim.userId,
+          targetName: claim.user.fullName,
+          action: "decline_claim",
+          details: `Declined claim: ${claim.incentive.title}`,
         },
       })
-    })
-  } catch (e: any) {
-    return { error: e.message ?? "Failed to decline claim." }
+    }, MONEY_TX)
+    revalidatePath("/admin")
+    return {}
+  } catch (e) {
+    return toActionError(e, "Failed to decline claim.")
   }
-
-  revalidatePath("/admin")
-  return {}
 }
 
-// ── Reward redemptions ────────────────────────────────────────
-
 export async function approveRedemption(redemptionId: string): Promise<{ error?: string }> {
-  const session = await auth()
-  if (!session?.user?.id) return { error: "Not signed in." }
-
-  const role = await getActorRole()
-  if (!isAdmin(role)) return { error: "Not authorized." }
-
-  const actorId = session.user.id
-
   try {
-    await db.$transaction(async (tx) => {
-      const current = await tx.redemption.findUnique({
+    const actor = await requireAdmin()
+    await actor.db.$transaction(async (tx) => {
+      const r = await tx.redemption.findUnique({
         where: { id: redemptionId },
-        select: {
-          status: true,
-          cost:   true,
-          userId: true,
-          user:   { select: { fullName: true } },
-          reward: { select: { title: true } },
-        },
+        select: { cost: true, userId: true, user: { select: { fullName: true } }, reward: { select: { title: true } } },
       })
-      if (!current) throw new Error("Redemption not found.")
-      if (current.status !== "pending") throw new Error("Already processed.")
-
-      const actor = await tx.user.findUnique({
-        where: { id: actorId },
-        select: { fullName: true },
-      })
-
-      await tx.redemption.update({
-        where: { id: redemptionId },
+      if (!r) throw new ActionError("Redemption not found.")
+      const { count } = await tx.redemption.updateMany({
+        where: { id: redemptionId, status: "pending" },
         data: { status: "processing" },
       })
+      if (count !== 1) throw new ActionError("Already processed.")
       await tx.auditLog.create({
         data: {
-          actorId,
-          targetId:   current.userId,
-          action:     "approve_redemption",
-          actorName:  actor!.fullName,
-          targetName: current.user.fullName,
-          details:    `Approved redemption: ${current.reward.title} (${current.cost} ⭐)`,
+          companyId: actor.companyId,
+          actorId: actor.userId,
+          actorName: actor.fullName,
+          targetId: r.userId,
+          targetName: r.user.fullName,
+          action: "approve_redemption",
+          details: `Approved redemption: ${r.reward.title} (${formatStars(r.cost)})`,
         },
       })
-    })
-  } catch (e: any) {
-    return { error: e.message ?? "Failed to approve redemption." }
+    }, MONEY_TX)
+    revalidatePath("/admin")
+    return {}
+  } catch (e) {
+    return toActionError(e, "Failed to approve redemption.")
   }
-
-  revalidatePath("/admin")
-  return {}
 }
 
 export async function declineRedemption(redemptionId: string): Promise<{ error?: string }> {
-  const session = await auth()
-  if (!session?.user?.id) return { error: "Not signed in." }
-
-  const role = await getActorRole()
-  if (!isAdmin(role)) return { error: "Not authorized." }
-
-  const actorId = session.user.id
-
   try {
-    await db.$transaction(async (tx) => {
-      const current = await tx.redemption.findUnique({
+    const actor = await requireAdmin()
+    await actor.db.$transaction(async (tx) => {
+      const r = await tx.redemption.findUnique({
         where: { id: redemptionId },
         select: {
-          status: true,
-          cost:   true,
+          cost: true,
           userId: true,
-          user:   { select: { fullName: true } },
-          reward: { select: { title: true } },
+          rewardId: true,
+          user: { select: { fullName: true } },
+          reward: { select: { title: true, inventory: true } },
         },
       })
-      if (!current) throw new Error("Redemption not found.")
-      if (current.status !== "pending") throw new Error("Already processed.")
-
-      const actor = await tx.user.findUnique({
-        where: { id: actorId },
-        select: { fullName: true },
-      })
-
-      await tx.redemption.update({
-        where: { id: redemptionId },
+      if (!r) throw new ActionError("Redemption not found.")
+      await lockUsers(tx, actor.companyId, [r.userId])
+      const { count } = await tx.redemption.updateMany({
+        where: { id: redemptionId, status: "pending" },
         data: { status: "declined" },
       })
-      // Refund the stars that were deducted at redemption time
-      await tx.user.update({
-        where: { id: current.userId },
-        data: { balance: { increment: current.cost } },
-      })
+      if (count !== 1) throw new ActionError("Already processed.")
+      // Refund the snapshot cost (what they actually paid), and put the item back.
+      await tx.user.update({ where: { id: r.userId }, data: { balance: { increment: r.cost } } })
+      if (r.reward.inventory !== null) {
+        await tx.reward.updateMany({ where: { id: r.rewardId }, data: { inventory: { increment: 1 } } })
+      }
       await tx.auditLog.create({
         data: {
-          actorId,
-          targetId:   current.userId,
-          action:     "decline_redemption",
-          actorName:  actor!.fullName,
-          targetName: current.user.fullName,
-          amount:     current.cost,
-          details:    `Declined redemption: ${current.reward.title} — ${current.cost} ⭐ refunded`,
+          companyId: actor.companyId,
+          actorId: actor.userId,
+          actorName: actor.fullName,
+          targetId: r.userId,
+          targetName: r.user.fullName,
+          action: "decline_redemption",
+          amount: r.cost,
+          details: `Declined redemption: ${r.reward.title}. ${formatStars(r.cost)} refunded`,
         },
       })
-    })
-  } catch (e: any) {
-    return { error: e.message ?? "Failed to decline redemption." }
+    }, MONEY_TX)
+    revalidatePath("/admin")
+    return {}
+  } catch (e) {
+    return toActionError(e, "Failed to decline redemption.")
   }
-
-  revalidatePath("/admin")
-  return {}
 }

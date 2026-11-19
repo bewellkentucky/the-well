@@ -498,128 +498,124 @@ img.avatar  { object-fit: cover; }
 }
 .reaction-choice:hover { background: var(--canvas-2); }
 
-/* ── Make it rain ────────────────────────────────────────── */
-.kudo-rain-btn {
+/* ── Pile on ──────────────────────────────────────────────
+   A solid accent pill on its own row. Deliberately unlike the small outlined
+   reaction chips (including the ⭐ reaction) above it. */
+.pile-controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+.pile-btn {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 3px 10px;
-  border: 1px solid var(--line);
-  border-radius: 100px;
-  background: var(--paper);
-  font-size: 12px;
-  font-weight: 600;
+  gap: 10px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  border: none;
+  background: linear-gradient(135deg, var(--accent), var(--accent-deep));
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 35%, transparent);
   cursor: pointer;
-  color: var(--star);
-  transition: all 0.12s;
+  transition: transform 0.08s, box-shadow 0.15s, opacity 0.15s;
+  touch-action: manipulation;
+  min-height: 36px;
 }
-.kudo-rain-btn:hover:not(:disabled):not(.capped) {
-  background: var(--star-soft);
-  border-color: var(--star);
+.pile-btn:hover:not(:disabled) { box-shadow: 0 4px 14px color-mix(in srgb, var(--accent) 45%, transparent); }
+.pile-btn:active:not(:disabled) { transform: scale(0.97); }
+.pile-btn.capped, .pile-btn:disabled { opacity: 0.55; cursor: default; box-shadow: none; }
+.pile-dots { display: inline-flex; gap: 3px; }
+.pile-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.35);
 }
-.kudo-rain-btn.capped { opacity: 0.5; cursor: default; }
-.kudo-rain-btn:disabled { opacity: 0.6; cursor: default; }
-
-.kudo-rain-strip {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 6px;
+.pile-dot.staged { background: #fff; }
+.pile-dot.sent { background: var(--star); }
+.pile-send-btn {
+  padding: 7px 14px;
+  min-height: 36px;
+  border-radius: 999px;
+  border: 1.5px solid var(--accent);
+  background: var(--paper);
+  color: var(--accent-deep);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.pile-send-btn:disabled { opacity: 0.55; cursor: default; }
+.pile-cancel-btn {
+  padding: 7px 8px;
+  min-height: 36px;
+  border: none;
+  background: none;
+  color: var(--ink-soft);
   font-size: 12px;
-  color: var(--star);
-  font-weight: 500;
+  text-decoration: underline;
+  cursor: pointer;
 }
-
-.kudo-rain-avatars {
+.pile-cancel-btn:disabled { opacity: 0.4; cursor: default; }
+.pile-error { font-size: 12px; color: #9f1239; flex-basis: 100%; }
+.pile-strip {
   display: flex;
   align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--ink-soft);
 }
-
-.rain-avatar {
+.pile-avatars { display: flex; }
+.pile-avatar {
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  border: 1.5px solid var(--paper);
-  margin-left: -5px;
-  font-size: 7px;
-  font-weight: 700;
-  font-family: var(--font-inter), sans-serif;
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  border: 2px solid var(--paper);
+  margin-left: -6px;
+  font-size: 8px;
   object-fit: cover;
   flex-shrink: 0;
-  background: linear-gradient(135deg, var(--star), var(--accent));
 }
-.rain-avatar:first-child { margin-left: 0; }
-
-.rain-staged-badge {
-  font-size: 10px;
-  font-weight: 700;
-  background: var(--star-soft);
-  color: var(--star);
-  border-radius: 100px;
-  padding: 1px 6px;
-  margin-left: 2px;
-}
-
-.kudo-rain-controls {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
-  margin-top: 8px;
-}
-
-.kudo-rain-commit-btn {
-  display: inline-flex;
-  align-items: center;
-  padding: 3px 12px;
-  border: none;
-  border-radius: 100px;
-  background: var(--star);
-  color: #fff;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: opacity 0.12s;
-}
-.kudo-rain-commit-btn:hover:not(:disabled) { opacity: 0.88; }
-.kudo-rain-commit-btn:disabled { opacity: 0.55; cursor: default; }
-
-.kudo-rain-cancel-btn {
-  background: none;
-  border: none;
-  padding: 3px 6px;
-  font-size: 12px;
-  color: var(--ink-soft);
-  cursor: pointer;
-  opacity: 0.7;
-  transition: opacity 0.12s;
-}
-.kudo-rain-cancel-btn:hover:not(:disabled) { opacity: 1; }
-.kudo-rain-cancel-btn:disabled { opacity: 0.4; cursor: default; }
-
-.kudo-rain-error {
-  font-size: 11px;
-  color: var(--coral);
-  flex-basis: 100%;
-}
-
-@keyframes rain-pop {
-  0%   { transform: translateY(-6px) scale(1.3); opacity: 0; }
-  50%  { opacity: 1; }
-  100% { transform: translateY(0) scale(1); opacity: 1; }
-}
-.rain-pop { animation: rain-pop 0.22s ease-out; }
-
-@keyframes rain-commit-pop {
-  0%   { transform: scale(0.85); opacity: 0.6; }
-  60%  { transform: scale(1.08); opacity: 1; }
+.pile-avatar:first-child { margin-left: 0; }
+@keyframes pile-pop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.12); }
   100% { transform: scale(1); }
 }
-.rain-commit-pop { animation: rain-commit-pop 0.3s ease-out; }
+.pile-pop { display: inline-block; animation: pile-pop 0.22s ease-out; }
+@keyframes pile-sent-pop {
+  0% { transform: scale(0.9); opacity: 0.6; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.pile-sent-pop { display: inline-block; animation: pile-sent-pop 0.3s ease-out; }
+
+/* Reaction picker: on phones, pin it inside the viewport (above the bottom
+   nav) instead of hanging off the "+" button, which could push it off screen. */
+@media (max-width: 640px) {
+  .reaction-picker {
+    position: fixed;
+    left: 16px;
+    right: 16px;
+    bottom: calc(84px + env(safe-area-inset-bottom));
+    width: auto;
+    max-width: 420px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    justify-items: center;
+    gap: 4px;
+    padding: 10px;
+    z-index: 60;
+    box-shadow: var(--shadow-lg);
+  }
+  .reaction-choice { width: 44px; height: 44px; font-size: 22px; }
+  .react-btn { min-height: 32px; }
+}
 
 /* ── Home page layout ────────────────────────────────────── */
 /* ── Feed page header (left column) ─────────────────────── */
@@ -3587,3 +3583,93 @@ input, textarea, select {
   margin: 0 0 10px;
   position: relative;
 }
+
+/* ── Program panel: branding ─────────────────────────────── */
+.prog-brand-grid {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 10px 12px;
+  align-items: center;
+}
+@media (max-width: 560px) {
+  .prog-brand-grid { grid-template-columns: 1fr; gap: 6px; }
+}
+.prog-color-row { display: flex; gap: 8px; align-items: center; }
+.prog-color-swatch {
+  width: 40px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: none;
+  flex-shrink: 0;
+}
+.prog-brand-preview { display: flex; align-items: center; gap: 10px; margin-top: 14px; }
+.prog-brand-chip {
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 14px;
+  border-radius: 10px;
+}
+
+/* ── Admin incentives: order controls ────────────────────── */
+.inc-order-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+  width: 28px;
+}
+.inc-order-btn {
+  width: 28px;
+  height: 22px;
+  border-radius: 6px;
+  font-size: 10px;
+  color: var(--ink-soft);
+  background: var(--canvas);
+  border: 1px solid var(--line);
+  line-height: 1;
+}
+.inc-order-btn:hover:not(:disabled) { background: var(--canvas-2); color: var(--ink); }
+.inc-order-btn:disabled { opacity: 0.3; cursor: default; }
+.inc-order-num {
+  font-family: var(--font-mono), monospace;
+  font-size: 11px;
+  color: var(--ink-soft);
+}
+.inc-badge-featured {
+  background: var(--accent-soft);
+  color: var(--accent-deep);
+}
+
+/* ── Platform page ───────────────────────────────────────── */
+.plat-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+.plat-form { margin-top: 16px; display: flex; flex-direction: column; gap: 12px; align-items: flex-start; }
+.plat-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 16px;
+  width: 100%;
+}
+@media (max-width: 640px) { .plat-grid { grid-template-columns: 1fr; } }
+.plat-field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.plat-checks { display: flex; flex-wrap: wrap; gap: 8px 20px; font-size: 13px; }
+.plat-checks label { display: flex; align-items: center; gap: 6px; }
+.plat-subtitle { font-weight: 600; font-size: 14px; margin: 20px 0 8px; }
+.plat-people { display: flex; flex-direction: column; }
+.plat-person {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+  border-top: 1px solid var(--line);
+}
+.plat-person-info { flex: 1; min-width: 0; }

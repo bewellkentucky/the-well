@@ -1,40 +1,59 @@
 "use server"
 
-import { auth } from "@/auth"
-import { db } from "@/lib/db"
 import { revalidatePath } from "next/cache"
+import { requireActor, ActionError, toActionError } from "@/lib/tenant"
+import { lockUsers, MONEY_TX } from "@/lib/money"
+import { formatStars } from "@/lib/brand"
 
 export async function redeemReward(rewardId: string): Promise<{ error?: string }> {
-  const session = await auth()
-  if (!session?.user?.id) return { error: "Not signed in." }
+  try {
+    const actor = await requireActor()
 
-  const [reward, user] = await Promise.all([
-    db.reward.findUnique({ where: { id: rewardId } }),
-    db.user.findUnique({ where: { id: session.user.id }, select: { balance: true } }),
-  ])
+    await actor.db.$transaction(async (tx) => {
+      await lockUsers(tx, actor.companyId, [actor.userId])
 
-  if (!reward || !reward.active) return { error: "Reward not available." }
-  if (!user) return { error: "User not found." }
-  if (reward.inventory !== null && reward.inventory <= 0) return { error: "This reward is out of stock." }
-  if (user.balance < reward.cost) return { error: "Not enough stars." }
+      const reward = await tx.reward.findUnique({ where: { id: rewardId } })
+      if (!reward || !reward.active) throw new ActionError("Reward not available.")
 
-  await db.$transaction([
-    db.redemption.create({
-      data: {
-        userId: session.user.id,
-        rewardId: reward.id,
-        cost: reward.cost,
-      },
-    }),
-    db.user.update({
-      where: { id: session.user.id },
-      data: { balance: { decrement: reward.cost } },
-    }),
-    ...(reward.inventory !== null
-      ? [db.reward.update({ where: { id: reward.id }, data: { inventory: { decrement: 1 } } })]
-      : []),
-  ])
+      const me = await tx.user.findUnique({
+        where: { id: actor.userId },
+        select: { balance: true, fullName: true },
+      })
+      if (!me) throw new ActionError("Person not found.")
+      if (me.balance < reward.cost) throw new ActionError(`Not enough stars. You have ${formatStars(me.balance)}.`)
 
-  revalidatePath("/rewards")
-  return {}
+      if (reward.inventory !== null) {
+        // Conditional decrement: the row lock on the reward makes this atomic.
+        const { count } = await tx.reward.updateMany({
+          where: { id: reward.id, inventory: { gt: 0 } },
+          data: { inventory: { decrement: 1 } },
+        })
+        if (count !== 1) throw new ActionError("This reward is out of stock.")
+      }
+
+      const redemption = await tx.redemption.create({
+        data: { companyId: actor.companyId, userId: actor.userId, rewardId: reward.id, cost: reward.cost },
+        select: { id: true },
+      })
+      await tx.user.update({ where: { id: actor.userId }, data: { balance: { decrement: reward.cost } } })
+      await tx.auditLog.create({
+        data: {
+          companyId: actor.companyId,
+          actorId: actor.userId,
+          actorName: me.fullName,
+          targetId: actor.userId,
+          targetName: me.fullName,
+          action: "redeem_reward",
+          amount: -reward.cost,
+          details: `Redeemed: ${reward.title} (redemption ${redemption.id})`,
+        },
+      })
+    }, MONEY_TX)
+
+    revalidatePath("/rewards")
+    revalidatePath("/")
+    return {}
+  } catch (e) {
+    return toActionError(e)
+  }
 }

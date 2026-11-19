@@ -1,69 +1,31 @@
-import { auth } from "@/auth"
 import { redirect } from "next/navigation"
-import { db } from "@/lib/db"
+import { getActor } from "@/lib/tenant"
+import { activeIncentiveWhere, buildClaimStatuses, INCENTIVE_ORDER, INCENTIVE_PUBLIC_SELECT } from "@/lib/incentives"
+import { formatStars } from "@/lib/brand"
 import PageShell from "@/app/components/layout/PageShell"
 import IncentivesGrid from "@/app/components/earn/IncentivesGrid"
 
 export default async function EarnPage() {
-  const session = await auth()
-  if (!session?.user?.id) redirect("/")
+  const actor = await getActor()
+  if (!actor) redirect("/")
 
   const now = new Date()
-
   const [incentives, claims, user] = await Promise.all([
-    db.incentive.findMany({
-      where: {
-        active: true,
-        OR: [
-          { startsAt: null },
-          { startsAt: { lte: now } },
-        ],
-        AND: [
-          {
-            OR: [
-              { endsAt: null },
-              { endsAt: { gte: now } },
-            ],
-          },
-        ],
-      },
-      orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
+    actor.db.incentive.findMany({
+      where: activeIncentiveWhere(now),
+      orderBy: INCENTIVE_ORDER,
+      select: INCENTIVE_PUBLIC_SELECT,
     }),
-    db.incentiveClaim.findMany({
-      where: {
-        userId: session.user.id,
-        status: { not: "declined" },
-      },
+    actor.db.incentiveClaim.findMany({
+      where: { userId: actor.userId, status: { not: "declined" } },
       select: { incentiveId: true, status: true, createdAt: true },
       orderBy: { createdAt: "desc" },
     }),
-    db.user.findUnique({
-      where: { id: session.user.id },
-      select: { balance: true, givingBalance: true },
+    actor.db.user.findUnique({
+      where: { id: actor.userId },
+      select: { balance: true },
     }),
   ])
-
-  // For cap enforcement in the UI, reduce to the most relevant claim per incentive
-  const relevantClaims = incentives.flatMap((inc) => {
-    const incClaims = claims.filter((c) => c.incentiveId === inc.id)
-    if (incClaims.length === 0) return []
-
-    if (inc.cap === "monthly") {
-      const since = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1))
-      const recent = incClaims.find((c) => new Date(c.createdAt) >= since)
-      return recent ? [{ incentiveId: inc.id, status: recent.status }] : []
-    }
-    if (inc.cap === "quarterly") {
-      const q = Math.floor(now.getUTCMonth() / 3)
-      const since = new Date(Date.UTC(now.getUTCFullYear(), q * 3, 1))
-      const recent = incClaims.find((c) => new Date(c.createdAt) >= since)
-      return recent ? [{ incentiveId: inc.id, status: recent.status }] : []
-    }
-    // "unlimited" — never lock the button; the modal success screen handles acknowledgment
-    if (inc.cap === "unlimited") return []
-    // "once" — block if any non-declined claim exists
-    return [{ incentiveId: inc.id, status: incClaims[0].status }]
-  })
 
   return (
     <PageShell>
@@ -71,20 +33,18 @@ export default async function EarnPage() {
         <div className="dir-topbar" style={{ marginBottom: 28 }}>
           <div>
             <h1 className="page-title">Earn stars</h1>
-            <p className="page-subtitle">
-              Complete activities to earn extra stars for your balance.
-            </p>
+            <p className="page-subtitle">Complete activities to earn extra stars.</p>
           </div>
           {user && (
             <div className="balance-chip">
               <span className="balance-chip-label">Your stars</span>
-              <span className="balance-chip-amount">{user.balance} ⭐</span>
+              <span className="balance-chip-amount">{formatStars(user.balance)}</span>
               <span className="balance-chip-sublabel">Earned&nbsp;&middot;&nbsp;yours to spend</span>
             </div>
           )}
         </div>
 
-        <IncentivesGrid incentives={incentives} claims={relevantClaims} />
+        <IncentivesGrid incentives={incentives} claims={buildClaimStatuses(incentives, claims, now)} />
       </main>
     </PageShell>
   )

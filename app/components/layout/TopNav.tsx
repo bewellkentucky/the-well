@@ -1,26 +1,32 @@
 import Link from "next/link"
-import { auth } from "@/auth"
-import { db } from "@/lib/db"
+import { getActor } from "@/lib/tenant"
+import { formatStars } from "@/lib/brand"
 import NavLinks from "./NavLinks"
 import NavWordmark from "./NavWordmark"
 import UserDropdown from "./UserDropdown"
 import SpotlightMark from "@/app/components/brand/SpotlightMark"
 
 export default async function TopNav() {
-  const session = await auth()
+  const actor = await getActor()
 
-  const dbUser = session?.user?.id
-    ? await db.user.findUnique({
-        where:  { id: session.user.id },
-        select: { role: true, fullName: true, givingBalance: true, balance: true },
-      })
-    : null
+  const [me, company] = actor
+    ? await Promise.all([
+        actor.db.user.findUnique({
+          where: { id: actor.userId },
+          select: { fullName: true, givingBalance: true, balance: true, thumbnailUrl: true },
+        }),
+        actor.db.company.findUnique({
+          where: { id: actor.companyId },
+          select: { name: true, logoUrl: true },
+        }),
+      ])
+    : [null, null]
 
-  const showAdmin     = dbUser?.role === "owner" || dbUser?.role === "admin"
-  const displayName   = dbUser?.fullName ?? session?.user?.name ?? ""
-  const thumbnailUrl  = session?.user?.image ?? null
-  const givingBalance = dbUser?.givingBalance ?? 0
-  const balance       = dbUser?.balance ?? 0
+  const showAdmin = actor?.isAdmin ?? false
+  const showPlatform = actor?.isPlatformOwner ?? false
+  const givingBalance = me?.givingBalance ?? 0
+  const balance = me?.balance ?? 0
+  const companyName = company?.name ?? ""
 
   return (
     <header className="tnav">
@@ -28,15 +34,21 @@ export default async function TopNav() {
 
         {/* ── Brand ──────────────────────────────────────────── */}
         <div className="tnav-brand">
-          <Link href="/" prefetch={false} className="tnav-mark-link">
-            <SpotlightMark />
+          <Link href="/" prefetch={false} className="tnav-mark-link" aria-label="Home">
+            {company?.logoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={company.logoUrl} alt={companyName} className="tnav-mark" />
+            ) : (
+              <SpotlightMark />
+            )}
           </Link>
           {/* Desktop: static wordmark */}
           <div className="tnav-wordmark">
             <div className="tnav-name">Spotlight</div>
+            {companyName && <div className="tnav-parent">{companyName}</div>}
           </div>
           {/* Mobile: scroll-aware crossfade island */}
-          <NavWordmark givingBalance={givingBalance} balance={balance} />
+          <NavWordmark givingBalance={givingBalance} balance={balance} companyName={companyName} />
         </div>
 
         {/* ── Desktop nav tabs ───────────────────────────────── */}
@@ -44,14 +56,19 @@ export default async function TopNav() {
 
         {/* ── Right: desktop balances + avatar ──────────────── */}
         <div className="tnav-right">
-          <div className="tnav-desktop-bal">
-            <span className="tnav-bal-num">{givingBalance}</span>
-            <span className="tnav-bal-unit"> ⭐ give</span>
+          <div className="tnav-desktop-bal" aria-label="Your stars">
+            <span className="tnav-bal-num">{formatStars(givingBalance)}</span>
+            <span className="tnav-bal-unit">to give</span>
             <span className="tnav-bal-dot">·</span>
-            <span className="tnav-bal-num">{balance}</span>
-            <span className="tnav-bal-unit"> ⭐ earned</span>
+            <span className="tnav-bal-num">{formatStars(balance)}</span>
+            <span className="tnav-bal-unit">earned</span>
           </div>
-          <UserDropdown name={displayName} thumbnailUrl={thumbnailUrl} showAdmin={showAdmin} />
+          <UserDropdown
+            name={me?.fullName ?? ""}
+            thumbnailUrl={me?.thumbnailUrl ?? null}
+            showAdmin={showAdmin}
+            showPlatform={showPlatform}
+          />
         </div>
 
       </div>

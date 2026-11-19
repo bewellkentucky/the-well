@@ -1,21 +1,27 @@
 import { NextRequest, NextResponse } from "next/server"
+import { db } from "@/lib/db"
+import { isAuthorizedCron } from "@/lib/cronAuth"
 import { syncBambooHR } from "@/lib/syncBambooHR"
 
-export const maxDuration = 60
+export const maxDuration = 300
 
 export async function GET(req: NextRequest) {
-  const secret = req.headers.get("authorization")?.replace("Bearer ", "")
-  if (secret !== process.env.CRON_SECRET) {
+  if (!isAuthorizedCron(req.headers.get("authorization"))) {
     return new NextResponse("Unauthorized", { status: 401 })
   }
-
   const force = req.nextUrl.searchParams.get("full") === "1"
-
-  try {
-    const result = await syncBambooHR({ force })
-    return NextResponse.json(result)
-  } catch (err) {
-    console.error("BambooHR cron sync failed:", err)
-    return NextResponse.json({ error: String(err) }, { status: 500 })
+  const companies = await db.company.findMany({
+    where: { active: true, bambooEnabled: true, bambooSubdomain: { not: null } },
+    select: { id: true, slug: true },
+  })
+  const results: Record<string, unknown> = {}
+  for (const c of companies) {
+    try {
+      results[c.slug] = await syncBambooHR(c.id, { force })
+    } catch (err) {
+      console.error(`BambooHR cron sync failed for ${c.slug}`)
+      results[c.slug] = { error: err instanceof Error ? err.message : "failed" }
+    }
   }
+  return NextResponse.json({ ok: true, results })
 }

@@ -1,4 +1,4 @@
-import { db } from "@/lib/db"
+import { requireActor } from "@/lib/tenant"
 
 type Event = {
   key: string
@@ -15,12 +15,13 @@ function nextOccurrence(month: number, day: number, today: Date): Date {
 }
 
 export default async function ComingUp() {
+  const actor = await requireActor()
   const today = new Date()
   today.setHours(0, 0, 0, 0)
   const windowEnd = new Date(today)
   windowEnd.setDate(windowEnd.getDate() + 60)
 
-  const users = await db.user.findMany({
+  const users = await actor.db.user.findMany({
     where: {
       active: true,
       OR: [{ birthday: { not: null } }, { hireDate: { not: null } }],

@@ -1,5 +1,9 @@
-import { auth, signIn, signOut } from "@/auth"
-import { db } from "@/lib/db"
+import { signIn } from "@/auth"
+import { getActor } from "@/lib/tenant"
+import { getRequestBrand } from "@/lib/brandContext"
+import { SIGN_IN_MESSAGES, type SignInDenied } from "@/lib/signIn"
+import { activeIncentiveWhere, buildClaimStatuses, INCENTIVE_ORDER, INCENTIVE_PUBLIC_SELECT } from "@/lib/incentives"
+import { formatStars } from "@/lib/brand"
 import PageShell from "@/app/components/layout/PageShell"
 import ComposerWrapper from "@/app/components/composer/ComposerWrapper"
 import Feed from "@/app/components/feed/Feed"
@@ -7,56 +11,56 @@ import FeaturedIncentives from "@/app/components/feed/FeaturedIncentives"
 import Leaderboard from "@/app/components/rail/Leaderboard"
 import ComingUp from "@/app/components/rail/ComingUp"
 import OutToday from "@/app/components/rail/OutToday"
-import { buildRelevantClaims } from "@/lib/relevantClaims"
 import SpotlightMark from "@/app/components/brand/SpotlightMark"
 import DevLoginForm from "@/app/components/auth/DevLoginForm"
 
-export default async function Home() {
-  const session = await auth()
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: Promise<{ signin?: string; error?: string }>
+}) {
+  const actor = await getActor()
 
-  if (!session?.user?.id) {
-    return <SignInPage />
+  if (!actor) {
+    const params = await searchParams
+    const brand = await getRequestBrand()
+    const code = params.signin as SignInDenied | undefined
+    const error =
+      code && code in SIGN_IN_MESSAGES
+        ? SIGN_IN_MESSAGES[code]
+        : params.error
+          ? "Sign-in didn't work. Please try again."
+          : null
+    return <SignInPage companyName={brand?.name} logoUrl={brand?.logoUrl} error={error} />
   }
 
   const now = new Date()
+  const sdb = actor.db
 
-  const [user, featuredSetting, candidateIncentives, rawClaims] = await Promise.all([
-    db.user.findUnique({
-      where:  { id: session.user.id },
+  const [user, company, candidateIncentives, rawClaims] = await Promise.all([
+    sdb.user.findUnique({
+      where: { id: actor.userId },
       select: { givingBalance: true, balance: true },
     }),
-    db.appSetting.findUnique({
-      where:  { key: "featuredCount" },
-      select: { value: true },
+    sdb.company.findUnique({
+      where: { id: actor.companyId },
+      select: { featuredIncentiveCount: true, name: true },
     }),
-    db.incentive.findMany({
-      where: {
-        active: true,
-        AND: [
-          { OR: [{ startsAt: null }, { startsAt: { lte: now } }] },
-          { OR: [{ endsAt:   null }, { endsAt:   { gt:  now } }] },
-        ],
-      },
-      orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
-      take:    10,
-      select:  {
-        id: true, title: true, description: true, reward: true,
-        verification: true, cap: true, icon: true, color: true,
-        proofPrompt: true, startsAt: true, endsAt: true,
-      },
+    sdb.incentive.findMany({
+      where: activeIncentiveWhere(now),
+      orderBy: INCENTIVE_ORDER,
+      take: 10,
+      select: INCENTIVE_PUBLIC_SELECT,
     }),
-    db.incentiveClaim.findMany({
-      where: {
-        userId: session.user.id,
-        status: { not: "declined" },
-      },
+    sdb.incentiveClaim.findMany({
+      where: { userId: actor.userId, status: { not: "declined" } },
       select: { incentiveId: true, status: true, createdAt: true },
       orderBy: { createdAt: "desc" },
     }),
   ])
-  const featuredCount = Math.max(0, parseInt(featuredSetting?.value ?? "2", 10) || 2)
+  const featuredCount = Math.max(0, company?.featuredIncentiveCount ?? 2)
   const featuredIncentives = candidateIncentives.slice(0, featuredCount)
-  const featuredClaims = buildRelevantClaims(featuredIncentives, rawClaims, now)
+  const featuredClaims = buildClaimStatuses(featuredIncentives, rawClaims, now)
 
   return (
     <PageShell>
@@ -66,7 +70,7 @@ export default async function Home() {
         <div className="feed-title-col">
           <h1 className="feed-topbar-title">Recognize the work.</h1>
           <p className="feed-topbar-subtitle">
-            Send kudos, give stars, celebrate your team.
+            Send kudos, give stars, celebrate your team{company?.name ? ` at ${company.name}` : ""}.
           </p>
         </div>
 
@@ -74,20 +78,20 @@ export default async function Home() {
         <div>
           <ComposerWrapper />
           <FeaturedIncentives incentives={featuredIncentives} claims={featuredClaims} />
-          <Feed currentUserId={session.user.id} />
+          <Feed />
         </div>
 
         {/* Right column: balance widget → top givers → coming up */}
         <aside className="home-rail">
           <div className="drops-balance rail-section">
             <div className="drops-pool">
-              <div className="balance-amount">{user?.givingBalance ?? 0} ⭐</div>
+              <div className="balance-amount">{formatStars(user?.givingBalance ?? 0)}</div>
               <div className="balance-label">To give this month</div>
             </div>
             <div className="drops-balance-h-divider" />
             <div className="drops-pool">
-              <div className="balance-amount">{user?.balance ?? 0} ⭐</div>
-              <div className="balance-label" style={{ color: "rgba(244,241,236,0.5)" }}>
+              <div className="balance-amount">{formatStars(user?.balance ?? 0)}</div>
+              <div className="balance-label" style={{ color: "rgba(247,245,242,0.55)" }}>
                 Earned&nbsp;&middot;&nbsp;yours to spend
               </div>
             </div>

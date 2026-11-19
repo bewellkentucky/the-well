@@ -1,95 +1,91 @@
 import NextAuth from "next-auth"
 import Google from "next-auth/providers/google"
+import Credentials from "next-auth/providers/credentials"
 import { db } from "@/lib/db"
+import { resolveGoogleSignIn } from "@/lib/signIn"
+import { devLoginEnabled } from "@/lib/devLogin"
 
-const ALLOWED_DOMAIN = process.env.ALLOWED_EMAIL_DOMAIN ?? "bewellkentucky.com"
+// Multi-tenant sign-in: which company a person belongs to is decided by
+// lib/signIn.ts from their Google Workspace domain (CompanyDomain table).
+// The session carries identity only (user id). Company, role and active
+// status are re-read from the database on every request (lib/tenant.ts).
+
+const providers = [
+  Google({
+    clientId: process.env.GOOGLE_CLIENT_ID!,
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+    authorization: {
+      params: {
+        // "*" limits the Google account chooser to Workspace accounts. It is a
+        // UI hint only; the real check is the hd claim in lib/signIn.ts.
+        hd: "*",
+        prompt: "select_account",
+      },
+    },
+  }),
+  ...(devLoginEnabled()
+    ? [
+        Credentials({
+          id: "dev-login",
+          name: "Local dev login",
+          credentials: { userId: { label: "User id", type: "text" } },
+          async authorize(credentials) {
+            if (!devLoginEnabled()) return null
+            const userId = typeof credentials?.userId === "string" ? credentials.userId : ""
+            const user = await db.user.findUnique({
+              where: { id: userId },
+              select: { id: true, email: true, fullName: true, active: true },
+            })
+            if (!user || !user.active) return null
+            return { id: user.id, email: user.email, name: user.fullName }
+          },
+        }),
+      ]
+    : []),
+]
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  providers: [
-    Google({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-      authorization: {
-        params: {
-          hd: ALLOWED_DOMAIN,
-          prompt: "select_account",
-        },
-      },
-    }),
-  ],
+  providers,
+  pages: { signIn: "/", error: "/" },
   callbacks: {
-    async signIn({ profile, account }) {
-      const email = profile?.email
-      const domain = email?.split("@")[1]
-      if (domain !== ALLOWED_DOMAIN || !email) return false
+    async signIn({ account, profile }) {
+      if (account?.provider === "dev-login") return devLoginEnabled()
+      if (account?.provider !== "google") return false
 
-      // Fire the UserInfo fetch without awaiting it — saves ~200ms per sign-in.
-      // Google Workspace internal apps don't include `picture` in the ID token,
-      // so we fetch it separately. The photo update lands ~200ms after login
-      // completes; on a user's very first sign-in their avatar may be briefly
-      // absent until the background write finishes.
-      const thumbnailPromise: Promise<string | null> = account?.access_token
-        ? fetch("https://www.googleapis.com/oauth2/v1/userinfo?alt=json", {
-            headers: { Authorization: `Bearer ${account.access_token}` },
+      const result = await resolveGoogleSignIn(db, profile)
+      if (!result.ok) return `/?signin=${result.reason}`
+
+      // Google Workspace ID tokens often omit `picture`; fetch it in the
+      // background so sign-in isn't slowed down.
+      if (account.access_token) {
+        fetch("https://www.googleapis.com/oauth2/v1/userinfo?alt=json", {
+          headers: { Authorization: `Bearer ${account.access_token}` },
+        })
+          .then((r) => (r.ok ? r.json() : null))
+          .then((info) => {
+            const pic = typeof info?.picture === "string" ? info.picture : null
+            if (pic) db.user.update({ where: { id: result.userId }, data: { thumbnailUrl: pic } }).catch(() => {})
           })
-            .then((r) => (r.ok ? r.json() : null))
-            .then((info) => info?.picture ?? null)
-            .catch(() => null)
-        : Promise.resolve(null)
-
-      // Upsert immediately — name and googleId stay in sync without waiting for photo.
-      await db.user.upsert({
-        where: { email },
-        create: {
-          email,
-          googleId:     profile.sub,
-          fullName:     profile.name ?? email,
-          thumbnailUrl: null,
-          domain:       ALLOWED_DOMAIN,
-        },
-        update: {
-          fullName: profile.name ?? undefined,
-          googleId: profile.sub  ?? undefined,
-        },
-      })
-
-      // Write photo once the fetch resolves — non-blocking relative to login.
-      thumbnailPromise.then((thumbnailUrl) => {
-        if (thumbnailUrl) {
-          db.user.update({ where: { email }, data: { thumbnailUrl } }).catch(() => {})
-        }
-      })
-
+          .catch(() => {})
+      }
       return true
     },
-    async jwt({ token, trigger }) {
-      // Cache user data in the JWT on sign-in so session() needs no DB query.
-      // To revoke access immediately: rotate AUTH_SECRET in Vercel env vars —
-      // all existing tokens become invalid and everyone must re-authenticate.
-      if ((trigger === "signIn" || trigger === "signUp") && token.email) {
-        const user = await db.user.findUnique({
-          where: { email: token.email },
-          select: { id: true, role: true, entity: true, active: true, thumbnailUrl: true },
-        })
-        if (user) {
-          token.userId       = user.id
-          token.role         = user.role
-          token.entity       = user.entity
-          token.active       = user.active
-          token.thumbnailUrl = user.thumbnailUrl
+    async jwt({ token, user, account, profile, trigger }) {
+      if (trigger === "signIn" || trigger === "signUp") {
+        if (account?.provider === "google" && profile?.sub) {
+          const row = await db.user.findUnique({ where: { googleId: profile.sub }, select: { id: true, thumbnailUrl: true } })
+          token.userId = row?.id
+          token.thumbnailUrl = row?.thumbnailUrl ?? null
+        } else if (account?.provider === "dev-login" && user?.id) {
+          token.userId = user.id
         }
       }
       return token
     },
     async session({ session, token }) {
-      // Reads from JWT — zero DB round-trips per request.
-      // Inactive users: id stays unset, every page redirects to sign-in.
-      if (token.active === false) return session
       if (token.userId) {
-        session.user.id     = token.userId      as string
-        session.user.role   = token.role        as string
-        session.user.entity = token.entity      as string
-        session.user.image  = (token.thumbnailUrl as string | null) ?? session.user.image ?? null
+        session.user.id = token.userId as string
+        session.user.image = (token.thumbnailUrl as string | null) ?? session.user.image ?? null
       }
       return session
     },

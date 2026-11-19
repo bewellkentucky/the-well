@@ -1,7 +1,11 @@
 import { GoogleAuth } from "google-auth-library"
+import { STAR, PRODUCT_NAME } from "@/lib/brand"
 
 type Params = {
   isPrivate: boolean
+  /** The company's own Chat space. null = this company does not post. */
+  chatSpace: string | null
+  appUrl: string | null
   giverName: string
   recipientName: string
   amount: number
@@ -21,37 +25,38 @@ function getAuth(saKey: string): GoogleAuth {
   return _auth
 }
 
-export async function postKudoToChat(params: Params): Promise<void> {
-  // ── Privacy gate ───────────────────────────────────────────────────────────
-  // Post ONLY when isPrivate is explicitly false. If true, null, undefined,
-  // or any other value → do not post. Fail-safe to silent.
-  if (params.isPrivate !== false) return
+/** Pure: should this kudo be posted, and where? Exported for tests. */
+export function chatTarget(p: Pick<Params, "isPrivate" | "chatSpace">): string | null {
+  // Privacy gate (permanent): post ONLY when isPrivate is explicitly false.
+  if (p.isPrivate !== false) return null
+  // Tenant gate: only into this company's own space; no space = no post.
+  if (!p.chatSpace || !/^spaces\/[A-Za-z0-9_-]+$/.test(p.chatSpace)) return null
+  return p.chatSpace
+}
 
-  const saKey   = process.env.GCHAT_SA_KEY
-  const spaceId = process.env.GCHAT_KUDOS_SPACE
-  if (!saKey || !spaceId) return  // local dev without credentials — silent no-op
+export async function postKudoToChat(params: Params): Promise<void> {
+  const space = chatTarget(params)
+  if (!space) return
+
+  const saKey = process.env.GCHAT_SA_KEY
+  if (!saKey) return // local dev without credentials: silent no-op
 
   try {
     const client = await getAuth(saKey).getClient()
     const { token } = await client.getAccessToken()
     if (!token) throw new Error("empty access token")
 
+    const link = params.appUrl ? `\n<${params.appUrl}|View in ${PRODUCT_NAME}>` : ""
     const text =
-      `⭐ ${params.giverName} recognized ${params.recipientName} — ${params.amount} ⭐ · ${params.values.join(", ")}\n${params.message}\n<https://thewell.bewellkentucky.com|View in Spotlight>`
+      `${STAR} ${params.giverName} recognized ${params.recipientName}: ${params.amount} ${STAR} · ${params.values.join(", ")}\n${params.message}${link}`
 
-    const res = await fetch(`https://chat.googleapis.com/v1/${spaceId}/messages`, {
+    const res = await fetch(`https://chat.googleapis.com/v1/${space}/messages`, {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       body: JSON.stringify({ text }),
     })
-
-    if (!res.ok) {
-      console.error("postKudoToChat:", res.status, await res.text())
-    }
-  } catch (err) {
-    console.error("postKudoToChat:", err)
+    if (!res.ok) console.error("postKudoToChat: HTTP", res.status)
+  } catch {
+    console.error("postKudoToChat: failed")
   }
 }

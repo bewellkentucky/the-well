@@ -1,19 +1,17 @@
-import { auth } from "@/auth"
-import { db } from "@/lib/db"
+import { requireActor } from "@/lib/tenant"
 import Composer from "./Composer"
 
 export default async function ComposerWrapper() {
-  const session = await auth()
-  if (!session?.user?.id) return null
+  const actor = await requireActor()
 
   const [users, sender] = await Promise.all([
-    db.user.findMany({
+    actor.db.user.findMany({
       where: { active: true },
       select: { id: true, fullName: true, email: true, title: true, thumbnailUrl: true },
       orderBy: { fullName: "asc" },
     }),
-    db.user.findUnique({
-      where: { id: session.user.id },
+    actor.db.user.findUnique({
+      where: { id: actor.userId },
       select: { givingBalance: true },
     }),
   ])
@@ -22,7 +20,7 @@ export default async function ComposerWrapper() {
     <Composer
       users={users}
       initialGivingBalance={sender?.givingBalance ?? 0}
-      currentUserId={session.user.id}
+      currentUserId={actor.userId}
     />
   )
 }

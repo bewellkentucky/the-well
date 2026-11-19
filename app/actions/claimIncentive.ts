@@ -1,69 +1,84 @@
 "use server"
 
-import { auth } from "@/auth"
-import { db } from "@/lib/db"
 import { revalidatePath } from "next/cache"
+import { requireActor, ActionError, toActionError } from "@/lib/tenant"
+import { lockUsers, MONEY_TX } from "@/lib/money"
+import { blockingClaim, isInWindow } from "@/lib/incentives"
+
+const MAX_NOTE = 500
+const MAX_PROOF = 1000
 
 export async function claimIncentive(
   incentiveId: string,
   note?: string,
   proofLink?: string,
-): Promise<{ error?: string }> {
-  const session = await auth()
-  if (!session?.user?.id) return { error: "Not signed in." }
+): Promise<{ error?: string; status?: "credited" | "pending" }> {
+  try {
+    const actor = await requireActor()
+    const cleanNote = typeof note === "string" ? note.trim().slice(0, MAX_NOTE) || null : null
+    const cleanProof = typeof proofLink === "string" ? proofLink.trim().slice(0, MAX_PROOF) || null : null
+    const now = new Date()
 
-  const userId = session.user.id
-  const now = new Date()
+    const status = await actor.db.$transaction(async (tx) => {
+      // Lock first: serializes this person's claims so a cap can't be beaten
+      // by two quick submits.
+      await lockUsers(tx, actor.companyId, [actor.userId])
 
-  const incentive = await db.incentive.findUnique({ where: { id: incentiveId } })
-  if (!incentive || !incentive.active) return { error: "Incentive not available." }
+      const incentive = await tx.incentive.findUnique({ where: { id: incentiveId } })
+      if (!incentive || !incentive.active) throw new ActionError("Incentive not available.")
+      if (!isInWindow(incentive, now)) {
+        throw new ActionError(
+          incentive.startsAt && now < incentive.startsAt ? "This incentive hasn't started yet." : "This incentive has ended."
+        )
+      }
 
-  // Window check
-  if (incentive.startsAt && now < incentive.startsAt) return { error: "This incentive hasn't started yet." }
-  if (incentive.endsAt && now > incentive.endsAt) return { error: "This incentive has ended." }
+      if (incentive.cap !== "unlimited") {
+        const mine = await tx.incentiveClaim.findMany({
+          where: { userId: actor.userId, incentiveId, status: { not: "declined" } },
+          select: { incentiveId: true, status: true, createdAt: true },
+        })
+        if (blockingClaim(incentive.cap, mine, now)) {
+          throw new ActionError("You've already claimed this incentive for this period.")
+        }
+      }
 
-  // Cap check
-  if (incentive.cap !== "unlimited") {
-    let since: Date | undefined
+      const me = await tx.user.findUnique({ where: { id: actor.userId }, select: { fullName: true } })
+      const isSelf = incentive.verification === "self"
+      const claim = await tx.incentiveClaim.create({
+        data: {
+          companyId: actor.companyId,
+          userId: actor.userId,
+          incentiveId,
+          status: isSelf ? "credited" : "pending",
+          note: cleanNote,
+          proofLink: cleanProof,
+          rewardSnapshot: incentive.reward,
+          ...(isSelf ? { decidedAt: now } : {}),
+        },
+        select: { id: true },
+      })
+      if (isSelf) {
+        await tx.user.update({ where: { id: actor.userId }, data: { balance: { increment: incentive.reward } } })
+      }
+      await tx.auditLog.create({
+        data: {
+          companyId: actor.companyId,
+          actorId: actor.userId,
+          actorName: me?.fullName ?? actor.fullName,
+          targetId: actor.userId,
+          targetName: me?.fullName ?? actor.fullName,
+          action: isSelf ? "self_claim_credited" : "submit_claim",
+          amount: isSelf ? incentive.reward : null,
+          details: `${isSelf ? "Self-attested" : "Submitted for review"}: ${incentive.title} (claim ${claim.id})`,
+        },
+      })
+      return isSelf ? ("credited" as const) : ("pending" as const)
+    }, MONEY_TX)
 
-    if (incentive.cap === "monthly") {
-      since = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1))
-    } else if (incentive.cap === "quarterly") {
-      const q = Math.floor(now.getUTCMonth() / 3)
-      since = new Date(Date.UTC(now.getUTCFullYear(), q * 3, 1))
-    }
-    // "once" → since stays undefined (any non-declined claim ever blocks it)
-
-    const existing = await db.incentiveClaim.findFirst({
-      where: {
-        userId,
-        incentiveId,
-        status: { not: "declined" },
-        ...(since ? { createdAt: { gte: since } } : {}),
-      },
-    })
-    if (existing) return { error: "You've already claimed this incentive for this period." }
+    revalidatePath("/earn")
+    revalidatePath("/")
+    return { status }
+  } catch (e) {
+    return toActionError(e)
   }
-
-  if (incentive.verification === "self") {
-    // Instant credit
-    await db.$transaction([
-      db.incentiveClaim.create({
-        data: { userId, incentiveId, status: "credited", note, proofLink, rewardSnapshot: incentive.reward },
-      }),
-      db.user.update({
-        where: { id: userId },
-        data: { balance: { increment: incentive.reward } },
-      }),
-    ])
-  } else {
-    // Admin-verify: create pending claim, no balance change yet
-    await db.incentiveClaim.create({
-      data: { userId, incentiveId, status: "pending", note, proofLink, rewardSnapshot: incentive.reward },
-    })
-  }
-
-  revalidatePath("/earn")
-  revalidatePath("/")
-  return {}
 }

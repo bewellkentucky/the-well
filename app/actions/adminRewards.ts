@@ -1,195 +1,117 @@
 "use server"
 
-import { auth } from "@/auth"
-import { db } from "@/lib/db"
 import { revalidatePath } from "next/cache"
-
-async function requireAdmin() {
-  const session = await auth()
-  if (!session?.user?.id) throw new Error("Not signed in.")
-  const actor = await db.user.findUnique({
-    where:  { id: session.user.id },
-    select: { role: true, fullName: true },
-  })
-  if (!actor || (actor.role !== "owner" && actor.role !== "admin"))
-    throw new Error("Not authorized.")
-  return { actorId: session.user.id, actorName: actor.fullName, actorRole: actor.role }
-}
+import { requireAdmin, ActionError, toActionError } from "@/lib/tenant"
+import { formatStars } from "@/lib/brand"
 
 export type RewardFormData = {
-  title:       string
+  title: string
   description: string
-  cost:        number
-  category:    string
-  inventory:   number | null
-  icon:        string
-  color:       string
+  cost: number
+  category: string
+  inventory: number | null
+  icon: string
+  color: string
 }
+
 
 const VALID_CATEGORIES = ["Swag", "Gift Card", "Time", "Office", "Team", "Growth"]
 
-function validate(data: RewardFormData): string | null {
-  if (!data.title.trim())       return "Title is required."
-  if (!data.description.trim()) return "Description is required."
-  if (!Number.isInteger(data.cost) || data.cost <= 0)
-    return "Cost must be a positive whole number."
-  if (!VALID_CATEGORIES.includes(data.category))
-    return "Invalid category."
+function validate(data: RewardFormData): void {
+  if (!data.title?.trim()) throw new ActionError("Title is required.")
+  if (!data.description?.trim()) throw new ActionError("Description is required.")
+  if (!Number.isInteger(data.cost) || data.cost <= 0 || data.cost > 1_000_000)
+    throw new ActionError("Cost must be a positive whole number.")
+  if (!VALID_CATEGORIES.includes(data.category)) throw new ActionError("Invalid category.")
   if (data.inventory !== null && (!Number.isInteger(data.inventory) || data.inventory < 0))
-    return "Inventory must be a non-negative whole number."
-  return null
+    throw new ActionError("Inventory must be a non-negative whole number.")
+  if (data.color && !/^#[0-9a-fA-F]{6}$/.test(data.color)) throw new ActionError("Color must be #rrggbb.")
 }
 
-export async function createReward(
-  data: RewardFormData
-): Promise<{ error?: string }> {
-  let actorId: string, actorName: string
-  try {
-    ;({ actorId, actorName } = await requireAdmin())
-  } catch (e: any) {
-    return { error: e.message }
+function fields(data: RewardFormData) {
+  return {
+    title: data.title.trim(),
+    description: data.description.trim(),
+    cost: data.cost,
+    category: data.category,
+    inventory: data.inventory,
+    icon: (data.icon || "🎁").slice(0, 8),
+    color: data.color || "#c2410c",
   }
+}
 
-  const err = validate(data)
-  if (err) return { error: err }
+function revalidateRewards() {
+  revalidatePath("/admin")
+  revalidatePath("/rewards")
+}
 
+export async function createReward(data: RewardFormData): Promise<{ error?: string }> {
   try {
-    await db.$transaction(async (tx) => {
-      const actor = await tx.user.findUnique({
-        where:  { id: actorId },
-        select: { role: true },
-      })
-      if (!actor || (actor.role !== "owner" && actor.role !== "admin"))
-        throw new Error("Not authorized.")
-
-      const reward = await tx.reward.create({
-        data: {
-          id:          crypto.randomUUID(),
-          title:       data.title.trim(),
-          description: data.description.trim(),
-          cost:        data.cost,
-          category:    data.category,
-          inventory:   data.inventory,
-          icon:        data.icon || "🎁",
-          color:       data.color,
-          active:      true,
-        },
-      })
-
+    const actor = await requireAdmin()
+    validate(data)
+    await actor.db.$transaction(async (tx) => {
+      const reward = await tx.reward.create({ data: { companyId: actor.companyId, ...fields(data), active: true } })
       await tx.auditLog.create({
         data: {
-          actorId,
-          action:   "create_reward",
-          actorName,
-          details:  `Created: ${reward.title} (${reward.cost} ⭐, ${reward.category})`,
+          companyId: actor.companyId,
+          actorId: actor.userId,
+          actorName: actor.fullName,
+          action: "create_reward",
+          details: `Created: ${reward.title} (${formatStars(reward.cost)}, ${reward.category})`,
         },
       })
     })
-  } catch (e: any) {
-    return { error: e.message ?? "Failed to create reward." }
+    revalidateRewards()
+    return {}
+  } catch (e) {
+    return toActionError(e, "Failed to create reward.")
   }
-
-  revalidatePath("/admin")
-  revalidatePath("/rewards")
-  return {}
 }
 
-export async function updateReward(
-  id: string,
-  data: RewardFormData
-): Promise<{ error?: string }> {
-  let actorId: string, actorName: string
+export async function updateReward(id: string, data: RewardFormData): Promise<{ error?: string }> {
   try {
-    ;({ actorId, actorName } = await requireAdmin())
-  } catch (e: any) {
-    return { error: e.message }
-  }
-
-  const err = validate(data)
-  if (err) return { error: err }
-
-  try {
-    await db.$transaction(async (tx) => {
-      const actor = await tx.user.findUnique({
-        where:  { id: actorId },
-        select: { role: true },
-      })
-      if (!actor || (actor.role !== "owner" && actor.role !== "admin"))
-        throw new Error("Not authorized.")
-
-      // active is intentionally NOT updated here — managed by setRewardActive
-      // imageUrl is intentionally NOT updated here — set separately (staff shop)
-      await tx.reward.update({
-        where: { id },
-        data: {
-          title:       data.title.trim(),
-          description: data.description.trim(),
-          cost:        data.cost,
-          category:    data.category,
-          inventory:   data.inventory,
-          icon:        data.icon || "🎁",
-          color:       data.color,
-        },
-      })
-
+    const actor = await requireAdmin()
+    validate(data)
+    await actor.db.$transaction(async (tx) => {
+      const { count } = await tx.reward.updateMany({ where: { id }, data: fields(data) })
+      if (count !== 1) throw new ActionError("Reward not found.")
       await tx.auditLog.create({
         data: {
-          actorId,
-          action:   "edit_reward",
-          actorName,
-          details:  `Edited: ${data.title.trim()}`,
+          companyId: actor.companyId,
+          actorId: actor.userId,
+          actorName: actor.fullName,
+          action: "edit_reward",
+          details: `Edited: ${data.title.trim()}`,
         },
       })
     })
-  } catch (e: any) {
-    return { error: e.message ?? "Failed to update reward." }
+    revalidateRewards()
+    return {}
+  } catch (e) {
+    return toActionError(e, "Failed to update reward.")
   }
-
-  revalidatePath("/admin")
-  revalidatePath("/rewards")
-  return {}
 }
 
-export async function setRewardActive(
-  id: string,
-  active: boolean
-): Promise<{ error?: string }> {
-  let actorId: string, actorName: string
+export async function setRewardActive(id: string, active: boolean): Promise<{ error?: string }> {
   try {
-    ;({ actorId, actorName } = await requireAdmin())
-  } catch (e: any) {
-    return { error: e.message }
-  }
-
-  try {
-    await db.$transaction(async (tx) => {
-      const actor = await tx.user.findUnique({
-        where:  { id: actorId },
-        select: { role: true },
-      })
-      if (!actor || (actor.role !== "owner" && actor.role !== "admin"))
-        throw new Error("Not authorized.")
-
-      const reward = await tx.reward.update({
-        where: { id },
-        data:  { active },
-        select: { title: true },
-      })
-
+    const actor = await requireAdmin()
+    await actor.db.$transaction(async (tx) => {
+      const reward = await tx.reward.findUnique({ where: { id }, select: { title: true } })
+      if (!reward) throw new ActionError("Reward not found.")
+      await tx.reward.updateMany({ where: { id }, data: { active: active === true } })
       await tx.auditLog.create({
         data: {
-          actorId,
-          action:   active ? "enable_reward" : "disable_reward",
-          actorName,
-          details:  `${active ? "Enabled" : "Disabled"}: ${reward.title}`,
+          companyId: actor.companyId,
+          actorId: actor.userId,
+          actorName: actor.fullName,
+          action: active ? "enable_reward" : "disable_reward",
+          details: `${active ? "Enabled" : "Disabled"}: ${reward.title}`,
         },
       })
     })
-  } catch (e: any) {
-    return { error: e.message ?? "Failed to update reward." }
+    revalidateRewards()
+    return {}
+  } catch (e) {
+    return toActionError(e, "Failed to update reward.")
   }
-
-  revalidatePath("/admin")
-  revalidatePath("/rewards")
-  return {}
 }

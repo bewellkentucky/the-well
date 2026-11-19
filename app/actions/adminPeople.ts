@@ -1,130 +1,97 @@
 "use server"
 
-import { auth } from "@/auth"
-import { db } from "@/lib/db"
 import { revalidatePath } from "next/cache"
+import { db } from "@/lib/db"
+import { requireAdmin, requirePlatformOwner, ActionError, toActionError } from "@/lib/tenant"
+import { lockUsers, MONEY_TX } from "@/lib/money"
+import { formatStars } from "@/lib/brand"
 
-const VALID_ROLES = ["owner", "admin", "member"] as const
+const VALID_ROLES = ["member", "admin"] as const
+const MAX_ADJUST = 10_000
 
-async function getActorRole(id: string): Promise<string | null> {
-  const user = await db.user.findUnique({ where: { id }, select: { role: true } })
-  return user?.role ?? null
-}
-
-export async function changeRole(
-  targetId: string,
-  newRole: string
-): Promise<{ error?: string }> {
-  const session = await auth()
-  if (!session?.user?.id) return { error: "Not authenticated." }
-
-  if (!(VALID_ROLES as readonly string[]).includes(newRole))
-    return { error: "Invalid role." }
-
-  const actorRole = await getActorRole(session.user.id)
-  if (actorRole !== "owner") return { error: "Only owners can change roles." }
-
+/**
+ * Change a person's Spotlight role. Platform owner only (safest default; see
+ * the overnight report's open questions). Works for any company; the audit
+ * row lands in the target's company.
+ */
+export async function changeRole(targetId: string, newRole: string): Promise<{ error?: string }> {
   try {
-    await db.$transaction(async (tx) => {
-      const actor = await tx.user.findUnique({
-        where: { id: session.user!.id! },
-        select: { role: true, fullName: true },
-      })
-      if (!actor || actor.role !== "owner")
-        throw new Error("Only owners can change roles.")
+    const actor = await requirePlatformOwner()
+    if (!(VALID_ROLES as readonly string[]).includes(newRole)) throw new ActionError("Invalid role.")
 
+    // Unscoped by design: the platform owner works across companies.
+    await db.$transaction(async (tx) => {
       const target = await tx.user.findUnique({
         where: { id: targetId },
-        select: { role: true, fullName: true },
+        select: { id: true, role: true, fullName: true, companyId: true },
       })
-      if (!target) throw new Error("User not found.")
+      if (!target) throw new ActionError("Person not found.")
+      if (target.role === newRole) return
 
-      if (target.role === "owner" && newRole !== "owner") {
-        const ownerCount = await tx.user.count({ where: { role: "owner" } })
-        if (ownerCount <= 1) throw new Error("Cannot remove the last owner.")
+      if (target.role === "admin" && newRole !== "admin") {
+        const admins = await tx.user.count({ where: { companyId: target.companyId, role: "admin", active: true } })
+        if (admins <= 1) throw new ActionError("Can't remove the last admin of a company.")
       }
-
-      await tx.user.update({ where: { id: targetId }, data: { role: newRole } })
+      await tx.user.update({ where: { id: target.id }, data: { role: newRole } })
       await tx.auditLog.create({
         data: {
-          actorId:    session.user!.id!,
-          targetId,
-          action:     "change_role",
-          actorName:  actor.fullName,
+          companyId: target.companyId,
+          actorId: actor.userId,
+          actorName: actor.fullName,
+          targetId: target.id,
           targetName: target.fullName,
-          details:    `Role: ${target.role} → ${newRole}`,
+          action: "change_role",
+          details: `Role: ${target.role} -> ${newRole}`,
         },
       })
     })
-
     revalidatePath("/admin")
+    revalidatePath("/platform")
     return {}
-  } catch (err) {
-    return { error: err instanceof Error ? err.message : "Something went wrong." }
+  } catch (e) {
+    return toActionError(e)
   }
 }
 
-export async function adjustBalance(
-  targetId: string,
-  amount: number,
-  reason: string
-): Promise<{ error?: string }> {
-  const session = await auth()
-  if (!session?.user?.id) return { error: "Not authenticated." }
-
-  if (!Number.isInteger(amount) || amount === 0)
-    return { error: "Amount must be a non-zero integer." }
-  if (Math.abs(amount) > 10_000)
-    return { error: "Amount cannot exceed ±10,000 ⭐." }
-
-  const trimmedReason = reason.trim()
-  if (trimmedReason.length < 3)
-    return { error: "A reason is required (at least 3 characters)." }
-
-  const actorRole = await getActorRole(session.user.id)
-  if (actorRole !== "owner" && actorRole !== "admin")
-    return { error: "Insufficient permissions." }
-
+/** Adjust a person's earned wallet. Spotlight admin, own company only. */
+export async function adjustBalance(targetId: string, amount: number, reason: string): Promise<{ error?: string }> {
   try {
-    await db.$transaction(async (tx) => {
-      const actor = await tx.user.findUnique({
-        where: { id: session.user!.id! },
-        select: { role: true, fullName: true },
-      })
-      if (!actor || (actor.role !== "owner" && actor.role !== "admin"))
-        throw new Error("Insufficient permissions.")
+    const actor = await requireAdmin()
+    if (!Number.isInteger(amount) || amount === 0) throw new ActionError("Amount must be a non-zero whole number.")
+    if (Math.abs(amount) > MAX_ADJUST) throw new ActionError(`Amount can't exceed ±${formatStars(MAX_ADJUST)}.`)
+    const trimmed = typeof reason === "string" ? reason.trim() : ""
+    if (trimmed.length < 3) throw new ActionError("A reason is required (at least 3 characters).")
+    if (trimmed.length > 500) throw new ActionError("Reason is too long.")
 
-      const target = await tx.user.findUnique({
-        where: { id: targetId },
-        select: { id: true, balance: true, fullName: true },
+    await actor.db.$transaction(async (tx) => {
+      const target = await tx.user.findUnique({ where: { id: targetId }, select: { id: true } })
+      if (!target) throw new ActionError("Person not found.")
+      await lockUsers(tx, actor.companyId, [target.id])
+      const current = await tx.user.findUnique({
+        where: { id: target.id },
+        select: { balance: true, fullName: true },
       })
-      if (!target) throw new Error("User not found.")
-
-      if (amount < 0 && target.balance + amount < 0)
-        throw new Error(
-          `Cannot deduct more than the current balance (${target.balance} ⭐).`
-        )
-
-      await tx.user.update({
-        where: { id: targetId },
-        data: { balance: { increment: amount } },
-      })
+      if (!current) throw new ActionError("Person not found.")
+      if (amount < 0 && current.balance + amount < 0) {
+        throw new ActionError(`Can't deduct more than their earned stars (${formatStars(current.balance)}).`)
+      }
+      await tx.user.update({ where: { id: target.id }, data: { balance: { increment: amount } } })
       await tx.auditLog.create({
         data: {
-          actorId:    session.user!.id!,
-          targetId,
-          action:     "adjust_balance",
-          actorName:  actor.fullName,
-          targetName: target.fullName,
+          companyId: actor.companyId,
+          actorId: actor.userId,
+          actorName: actor.fullName,
+          targetId: target.id,
+          targetName: current.fullName,
+          action: "adjust_balance",
           amount,
-          reason:     trimmedReason,
+          reason: trimmed,
         },
       })
-    })
-
+    }, MONEY_TX)
     revalidatePath("/admin")
     return {}
-  } catch (err) {
-    return { error: err instanceof Error ? err.message : "Something went wrong." }
+  } catch (e) {
+    return toActionError(e)
   }
 }

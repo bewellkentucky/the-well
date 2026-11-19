@@ -1,6 +1,5 @@
-import { auth } from "@/auth"
 import { redirect } from "next/navigation"
-import { db } from "@/lib/db"
+import { getActor, type ScopedDb } from "@/lib/tenant"
 import PageShell from "@/app/components/layout/PageShell"
 import Avatar from "@/app/components/ui/Avatar"
 
@@ -42,13 +41,13 @@ type TenureRow = {
 
 // ── Data fetching ─────────────────────────────────────────────────────────────
 
-async function getMilestones() {
+async function getMilestones(sdb: ScopedDb) {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
   const windowEnd = new Date(today)
   windowEnd.setFullYear(windowEnd.getFullYear() + 1)
 
-  const users = await db.user.findMany({
+  const users = await sdb.user.findMany({
     where: {
       active: true,
       OR: [{ birthday: { not: null } }, { hireDate: { not: null } }],
@@ -129,10 +128,10 @@ async function getMilestones() {
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default async function DatesPage() {
-  const session = await auth()
-  if (!session?.user?.id) redirect("/")
+  const actor = await getActor()
+  if (!actor) redirect("/")
 
-  const { grouped, tenureRows } = await getMilestones()
+  const { grouped, tenureRows } = await getMilestones(actor.db)
 
   return (
     <PageShell>
@@ -140,7 +139,7 @@ export default async function DatesPage() {
         <div className="dir-topbar" style={{ marginBottom: 28 }}>
           <div>
             <h1 className="page-title">Milestones</h1>
-            <p className="page-subtitle">Birthdays and work anniversaries synced from BambooHR.</p>
+            <p className="page-subtitle">Birthdays and work anniversaries.</p>
           </div>
         </div>
 

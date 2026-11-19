@@ -38,8 +38,13 @@ export default function Composer({
   const [selectedValues, setSelectedValues] = useState<Set<string>>(new Set())
   const [isPrivate, setIsPrivate] = useState(false)
 
-  // Sync balance after server revalidation pushes new props
-  useEffect(() => { setGivingBalance(initialGivingBalance) }, [initialGivingBalance])
+  // Sync balance when server revalidation pushes a new prop (render-time
+  // adjustment; avoids setState inside an effect).
+  const [prevInitial, setPrevInitial] = useState(initialGivingBalance)
+  if (prevInitial !== initialGivingBalance) {
+    setPrevInitial(initialGivingBalance)
+    setGivingBalance(initialGivingBalance)
+  }
 
   // Close suggestions on outside click
   useEffect(() => {
@@ -69,7 +74,8 @@ export default function Composer({
   function toggleValue(v: string) {
     setSelectedValues((prev) => {
       const next = new Set(prev)
-      next.has(v) ? next.delete(v) : next.add(v)
+      if (next.has(v)) next.delete(v)
+      else next.add(v)
       return next
     })
   }

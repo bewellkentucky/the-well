@@ -1,30 +1,14 @@
-import { db } from "@/lib/db"
+import { requireActor } from "@/lib/tenant"
+import { topGivers } from "@/lib/leaderboard"
+import { formatStars } from "@/lib/brand"
 import Avatar from "@/app/components/ui/Avatar"
 
 export default async function Leaderboard() {
-  const startOfMonth = new Date()
-  startOfMonth.setDate(1)
-  startOfMonth.setHours(0, 0, 0, 0)
-
-  const totals = await db.kudo.groupBy({
-    by: ["fromId"],
-    where: { createdAt: { gte: startOfMonth } },
-    _sum: { amount: true },
-    orderBy: { _sum: { amount: "desc" } },
-    take: 5,
-  })
-
-  if (totals.length === 0) return null
-
-  const users = await db.user.findMany({
-    where: { id: { in: totals.map((t) => t.fromId) } },
-    select: { id: true, fullName: true, email: true, thumbnailUrl: true },
-  })
-  const byId = Object.fromEntries(users.map((u) => [u.id, u]))
-
-  const rows = totals
-    .map((t) => ({ user: byId[t.fromId], amount: t._sum.amount ?? 0 }))
-    .filter((r) => r.user)
+  const actor = await requireActor()
+  const now = new Date()
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+  const rows = await topGivers(actor.db, startOfMonth)
+  if (rows.length === 0) return null
 
   return (
     <div className="card rail-section">
@@ -34,16 +18,11 @@ export default async function Leaderboard() {
       {rows.map((row, i) => (
         <div key={row.user.id} className="leaderboard-item">
           <div className={`rank${i < 3 ? " top" : ""}`}>{i + 1}</div>
-          <Avatar
-            name={row.user.fullName}
-            email={row.user.email}
-            thumbnailUrl={row.user.thumbnailUrl}
-            size="sm"
-          />
+          <Avatar name={row.user.fullName} email={row.user.email} thumbnailUrl={row.user.thumbnailUrl} size="sm" />
           <div className="leader-info">
             <div className="leader-name">{row.user.fullName}</div>
           </div>
-          <div className="leader-points">{row.amount} ⭐</div>
+          <div className="leader-points">{formatStars(row.amount)}</div>
         </div>
       ))}
     </div>

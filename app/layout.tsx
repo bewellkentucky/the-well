@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next"
 import { Inter, Lora, JetBrains_Mono } from "next/font/google"
 import "./globals.css"
+import { getRequestBrand } from "@/lib/brandContext"
+import { brandCss } from "@/lib/branding"
 
 const inter = Inter({
   variable: "--font-inter",
@@ -44,16 +46,21 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  const brand = await getRequestBrand()
   return (
     <html
       lang="en"
       className={`${inter.variable} ${lora.variable} ${jetbrainsMono.variable} h-full`}
     >
+      <head>
+        {/* Company brand color (validated #rrggbb only; see lib/branding.ts). */}
+        <style id="company-brand">{brandCss(brand?.brandColor)}</style>
+      </head>
       <body className="h-full font-[family-name:var(--font-inter)] antialiased">
         {children}
       </body>

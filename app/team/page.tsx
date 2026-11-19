@@ -1,38 +1,31 @@
-import { auth } from "@/auth"
 import { redirect } from "next/navigation"
-import { db } from "@/lib/db"
+import { getActor } from "@/lib/tenant"
 import PageShell from "@/app/components/layout/PageShell"
 import DirectoryGrid from "@/app/components/team/DirectoryGrid"
 
-const ROLE_ORDER: Record<string, number> = { owner: 0, admin: 1, member: 2 }
+const ROLE_ORDER: Record<string, number> = { admin: 0, member: 1 }
 
 export default async function TeamPage() {
-  const session = await auth()
-  if (!session?.user?.id) redirect("/")
+  const actor = await getActor()
+  if (!actor) redirect("/")
 
-  const users = await db.user.findMany({
-    where: { active: true },
-    select: {
-      id: true,
-      fullName: true,
-      email: true,
-      title: true,
-      department: true,
-      role: true,
-      thumbnailUrl: true,
-    },
-  })
+  const [users, company] = await Promise.all([
+    actor.db.user.findMany({
+      where: { active: true },
+      select: { id: true, fullName: true, email: true, title: true, department: true, role: true, thumbnailUrl: true },
+    }),
+    actor.db.company.findUnique({ where: { id: actor.companyId }, select: { name: true } }),
+  ])
 
   const sorted = [...users].sort((a, b) => {
-    const ro = (ROLE_ORDER[a.role] ?? 2) - (ROLE_ORDER[b.role] ?? 2)
-    if (ro !== 0) return ro
-    return a.fullName.localeCompare(b.fullName)
+    const ro = (ROLE_ORDER[a.role] ?? 1) - (ROLE_ORDER[b.role] ?? 1)
+    return ro !== 0 ? ro : a.fullName.localeCompare(b.fullName)
   })
 
   return (
     <PageShell>
       <main style={{ maxWidth: 1100, margin: "0 auto", padding: "32px 24px 100px" }}>
-        <DirectoryGrid users={sorted} totalCount={users.length} />
+        <DirectoryGrid users={sorted} totalCount={users.length} companyName={company?.name ?? ""} />
       </main>
     </PageShell>
   )

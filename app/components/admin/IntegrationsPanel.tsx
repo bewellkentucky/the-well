@@ -25,9 +25,13 @@ type SyncResult = { enriched: number; skipped: number; errors: number; total: nu
 export default function IntegrationsPanel({
   bambooLastSync,
   userCount,
+  bambooConnected,
+  domains,
 }: {
-  bambooLastSync: BambooSyncStatus | null
-  userCount:      number
+  bambooLastSync:  BambooSyncStatus | null
+  userCount:       number
+  bambooConnected: boolean
+  domains:         string[]
 }) {
   const [isPending, startTransition] = useTransition()
   const [isFullSync, setIsFullSync]  = useState(false)
@@ -64,9 +68,13 @@ export default function IntegrationsPanel({
           </div>
           <div className="integ-card-meta">
             <div className="integ-card-name">BambooHR</div>
-            <div className="integ-card-desc">HR data — names, titles, departments, hire dates, birthdays</div>
+            <div className="integ-card-desc">Optional, read-only: names, titles, departments, hire dates, birthdays</div>
           </div>
-          <span className="integ-pill integ-pill-connected">Connected</span>
+          {bambooConnected ? (
+            <span className="integ-pill integ-pill-connected">Connected</span>
+          ) : (
+            <span className="integ-pill">Not connected</span>
+          )}
         </div>
 
         <div className="integ-card-body">
@@ -113,19 +121,21 @@ export default function IntegrationsPanel({
             className="btn btn-primary"
             style={{ padding: "7px 14px", fontSize: 13 }}
             onClick={() => doSync(false)}
-            disabled={isPending}
+            disabled={isPending || !bambooConnected}
           >
             {isPending && !isFullSync ? "Syncing…" : "Sync now"}
           </button>
           <button
             className="role-change-btn"
             onClick={() => doSync(true)}
-            disabled={isPending}
+            disabled={isPending || !bambooConnected}
           >
             {isPending && isFullSync ? "Syncing…" : "Full sync"}
           </button>
           <span className="integ-footer-note">
-            Sync now = changes since last run. Full sync = all employees.
+            {bambooConnected
+              ? "Sync now = changes since last run. Full sync = all employees."
+              : "The Spotlight platform owner connects BambooHR for your company."}
           </span>
         </div>
       </div>
@@ -148,8 +158,8 @@ export default function IntegrationsPanel({
 
         <div className="integ-card-body">
           <div className="integ-stat-row">
-            <span>Domain</span>
-            <span>bewellkentucky.com</span>
+            <span>{domains.length === 1 ? "Domain" : "Domains"}</span>
+            <span>{domains.join(", ") || "None"}</span>
           </div>
           <div className="integ-stat-row">
             <span>Auth method</span>

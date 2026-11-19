@@ -9,10 +9,12 @@ export default function UserDropdown({
   name,
   thumbnailUrl,
   showAdmin = false,
+  showPlatform = false,
 }: {
-  name:         string
-  thumbnailUrl: string | null
-  showAdmin?:   boolean
+  name:          string
+  thumbnailUrl:  string | null
+  showAdmin?:    boolean
+  showPlatform?: boolean
 }) {
   const firstName = name.split(" ")[0] || name
   const [open, setOpen] = useState(false)
@@ -58,8 +60,13 @@ export default function UserDropdown({
           {/* Menu items */}
           <div className="user-dd-items">
             {showAdmin && (
-              <Link href="/admin" className="user-dd-item" role="menuitem" onClick={() => setOpen(false)}>
-                Admin portal
+              <Link href="/admin" prefetch={false} className="user-dd-item" role="menuitem" onClick={() => setOpen(false)}>
+                Admin
+              </Link>
+            )}
+            {showPlatform && (
+              <Link href="/platform" prefetch={false} className="user-dd-item" role="menuitem" onClick={() => setOpen(false)}>
+                Platform
               </Link>
             )}
             <form action={doSignOut}>

@@ -31,9 +31,11 @@ function PersonCard({ user }: { user: DirectoryUser }) {
 export default function DirectoryGrid({
   users,
   totalCount,
+  companyName,
 }: {
   users: DirectoryUser[]
   totalCount: number
+  companyName: string
 }) {
   const [query, setQuery] = useState("")
 
@@ -54,8 +56,8 @@ export default function DirectoryGrid({
         <div>
           <h1 className="page-title">Team directory</h1>
           <p className="page-subtitle">
-            {totalCount} active teammate{totalCount !== 1 ? "s" : ""} across{" "}
-            <strong>@bewellkentucky.com</strong>
+            {totalCount} active teammate{totalCount !== 1 ? "s" : ""}
+            {companyName ? <> at <strong>{companyName}</strong></> : null}
           </p>
         </div>
       </div>

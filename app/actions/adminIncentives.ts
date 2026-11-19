@@ -1,210 +1,170 @@
 "use server"
 
-import { auth } from "@/auth"
-import { db } from "@/lib/db"
 import { revalidatePath } from "next/cache"
-
-async function requireAdmin() {
-  const session = await auth()
-  if (!session?.user?.id) throw new Error("Not signed in.")
-  const actor = await db.user.findUnique({
-    where:  { id: session.user.id },
-    select: { role: true, fullName: true },
-  })
-  if (!actor || (actor.role !== "owner" && actor.role !== "admin"))
-    throw new Error("Not authorized.")
-  return { actorId: session.user.id, actorName: actor.fullName, actorRole: actor.role }
-}
+import { requireAdmin, ActionError, toActionError, type ScopedTx } from "@/lib/tenant"
+import { INCENTIVE_CAPS, INCENTIVE_ORDER } from "@/lib/incentives"
+import { formatStars } from "@/lib/brand"
 
 export type IncentiveFormData = {
-  title:        string
-  description:  string
-  reward:       number
+  title: string
+  description: string
+  reward: number
   verification: string
-  cap:          string
-  icon:         string
-  color:        string
-  proofPrompt:  string | null
-  sortOrder:    number
-  startsAt:     string | null  // YYYY-MM-DD or null
-  endsAt:       string | null  // YYYY-MM-DD or null
+  cap: string
+  icon: string
+  color: string
+  proofPrompt: string | null
+  startsAt: string | null // YYYY-MM-DD or null
+  endsAt: string | null
 }
 
-function validate(data: IncentiveFormData): string | null {
-  if (!data.title.trim())       return "Title is required."
-  if (!data.description.trim()) return "Description is required."
-  if (!Number.isInteger(data.reward) || data.reward <= 0)
-    return "Reward must be a positive whole number."
-  if (!Number.isInteger(data.sortOrder) || data.sortOrder < 0)
-    return "Sort order must be a non-negative whole number."
-  if (!["self", "admin"].includes(data.verification))
-    return "Invalid verification mode."
-  if (!["once", "monthly", "quarterly", "unlimited"].includes(data.cap))
-    return "Invalid cap."
+function validate(data: IncentiveFormData): void {
+  if (!data.title?.trim()) throw new ActionError("Title is required.")
+  if (data.title.trim().length > 120) throw new ActionError("Title is too long.")
+  if (!data.description?.trim()) throw new ActionError("Description is required.")
+  if (!Number.isInteger(data.reward) || data.reward <= 0 || data.reward > 100_000)
+    throw new ActionError("Reward must be a positive whole number.")
+  if (!["self", "admin"].includes(data.verification)) throw new ActionError("Invalid verification mode.")
+  if (!(INCENTIVE_CAPS as readonly string[]).includes(data.cap)) throw new ActionError("Invalid cap.")
+  if (data.color && !/^#[0-9a-fA-F]{6}$/.test(data.color)) throw new ActionError("Color must be #rrggbb.")
   if (data.startsAt && data.endsAt && new Date(data.startsAt) >= new Date(data.endsAt))
-    return "End date must be after start date."
-  return null
+    throw new ActionError("End date must be after start date.")
 }
 
-export async function createIncentive(
-  data: IncentiveFormData
-): Promise<{ error?: string }> {
-  let actorId: string, actorName: string
-  try {
-    ;({ actorId, actorName } = await requireAdmin())
-  } catch (e: any) {
-    return { error: e.message }
+function fields(data: IncentiveFormData) {
+  return {
+    title: data.title.trim(),
+    description: data.description.trim(),
+    reward: data.reward,
+    verification: data.verification,
+    cap: data.cap,
+    icon: (data.icon || "⭐").slice(0, 8),
+    color: data.color || "#c2410c",
+    proofPrompt: data.proofPrompt?.trim() || null,
+    startsAt: data.startsAt ? new Date(data.startsAt) : null,
+    // End date is inclusive of the whole day.
+    endsAt: data.endsAt ? new Date(`${data.endsAt}T23:59:59.999Z`) : null,
   }
+}
 
-  const err = validate(data)
-  if (err) return { error: err }
+/** Serializes order edits within one company. */
+async function lockOrder(tx: ScopedTx, companyId: string) {
+  await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${"incentive-order:" + companyId}))`
+}
 
-  try {
-    await db.$transaction(async (tx) => {
-      const actor = await tx.user.findUnique({
-        where:  { id: actorId },
-        select: { role: true },
-      })
-      if (!actor || (actor.role !== "owner" && actor.role !== "admin"))
-        throw new Error("Not authorized.")
-
-      const incentive = await tx.incentive.create({
-        data: {
-          id:           crypto.randomUUID(),
-          title:        data.title.trim(),
-          description:  data.description.trim(),
-          reward:       data.reward,
-          verification: data.verification,
-          cap:          data.cap,
-          icon:         data.icon || "⭐",
-          color:        data.color,
-          proofPrompt:  data.proofPrompt?.trim() || null,
-          active:       true,
-          sortOrder:    data.sortOrder,
-          startsAt:     data.startsAt ? new Date(data.startsAt) : null,
-          endsAt:       data.endsAt   ? new Date(data.endsAt)   : null,
-        },
-      })
-
-      await tx.auditLog.create({
-        data: {
-          actorId,
-          action:   "create_incentive",
-          actorName,
-          details:  `Created: ${incentive.title} (${incentive.reward} ⭐, ${incentive.cap}, ${incentive.verification})`,
-        },
-      })
-    })
-  } catch (e: any) {
-    return { error: e.message ?? "Failed to create incentive." }
-  }
-
+function revalidateIncentives() {
   revalidatePath("/admin")
   revalidatePath("/earn")
   revalidatePath("/")
-  return {}
 }
 
-export async function updateIncentive(
-  id: string,
-  data: IncentiveFormData
-): Promise<{ error?: string }> {
-  let actorId: string, actorName: string
+export async function createIncentive(data: IncentiveFormData): Promise<{ error?: string }> {
   try {
-    ;({ actorId, actorName } = await requireAdmin())
-  } catch (e: any) {
-    return { error: e.message }
-  }
-
-  const err = validate(data)
-  if (err) return { error: err }
-
-  try {
-    await db.$transaction(async (tx) => {
-      const actor = await tx.user.findUnique({
-        where:  { id: actorId },
-        select: { role: true },
+    const actor = await requireAdmin()
+    validate(data)
+    await actor.db.$transaction(async (tx) => {
+      await lockOrder(tx, actor.companyId)
+      const last = await tx.incentive.aggregate({ _max: { sortOrder: true } })
+      const inc = await tx.incentive.create({
+        data: { companyId: actor.companyId, ...fields(data), active: true, sortOrder: (last._max.sortOrder ?? -1) + 1 },
       })
-      if (!actor || (actor.role !== "owner" && actor.role !== "admin"))
-        throw new Error("Not authorized.")
-
-      // active is managed separately by setIncentiveActive
-      await tx.incentive.update({
-        where: { id },
-        data: {
-          title:        data.title.trim(),
-          description:  data.description.trim(),
-          reward:       data.reward,
-          verification: data.verification,
-          cap:          data.cap,
-          icon:         data.icon || "⭐",
-          color:        data.color,
-          proofPrompt:  data.proofPrompt?.trim() || null,
-          sortOrder:    data.sortOrder,
-          startsAt:     data.startsAt ? new Date(data.startsAt) : null,
-          endsAt:       data.endsAt   ? new Date(data.endsAt)   : null,
-        },
-      })
-
       await tx.auditLog.create({
         data: {
-          actorId,
-          action:   "edit_incentive",
-          actorName,
-          details:  `Edited: ${data.title.trim()}`,
+          companyId: actor.companyId,
+          actorId: actor.userId,
+          actorName: actor.fullName,
+          action: "create_incentive",
+          details: `Created: ${inc.title} (${formatStars(inc.reward)}, ${inc.cap}, ${inc.verification})`,
         },
       })
     })
-  } catch (e: any) {
-    return { error: e.message ?? "Failed to update incentive." }
+    revalidateIncentives()
+    return {}
+  } catch (e) {
+    return toActionError(e, "Failed to create incentive.")
   }
-
-  revalidatePath("/admin")
-  revalidatePath("/earn")
-  revalidatePath("/")
-  return {}
 }
 
-export async function setIncentiveActive(
-  id: string,
-  active: boolean
-): Promise<{ error?: string }> {
-  let actorId: string, actorName: string
+export async function updateIncentive(id: string, data: IncentiveFormData): Promise<{ error?: string }> {
   try {
-    ;({ actorId, actorName } = await requireAdmin())
-  } catch (e: any) {
-    return { error: e.message }
-  }
-
-  try {
-    await db.$transaction(async (tx) => {
-      const actor = await tx.user.findUnique({
-        where:  { id: actorId },
-        select: { role: true },
-      })
-      if (!actor || (actor.role !== "owner" && actor.role !== "admin"))
-        throw new Error("Not authorized.")
-
-      const incentive = await tx.incentive.update({
-        where: { id },
-        data:  { active },
-        select: { title: true },
-      })
-
+    const actor = await requireAdmin()
+    validate(data)
+    await actor.db.$transaction(async (tx) => {
+      const { count } = await tx.incentive.updateMany({ where: { id }, data: fields(data) })
+      if (count !== 1) throw new ActionError("Incentive not found.")
       await tx.auditLog.create({
         data: {
-          actorId,
-          action:   active ? "enable_incentive" : "disable_incentive",
-          actorName,
-          details:  `${active ? "Enabled" : "Disabled"}: ${incentive.title}`,
+          companyId: actor.companyId,
+          actorId: actor.userId,
+          actorName: actor.fullName,
+          action: "edit_incentive",
+          details: `Edited: ${data.title.trim()}`,
         },
       })
     })
-  } catch (e: any) {
-    return { error: e.message ?? "Failed to update incentive." }
+    revalidateIncentives()
+    return {}
+  } catch (e) {
+    return toActionError(e, "Failed to update incentive.")
   }
+}
 
-  revalidatePath("/admin")
-  revalidatePath("/earn")
-  return {}
+export async function setIncentiveActive(id: string, active: boolean): Promise<{ error?: string }> {
+  try {
+    const actor = await requireAdmin()
+    await actor.db.$transaction(async (tx) => {
+      const inc = await tx.incentive.findUnique({ where: { id }, select: { title: true } })
+      if (!inc) throw new ActionError("Incentive not found.")
+      await tx.incentive.updateMany({ where: { id }, data: { active: active === true } })
+      await tx.auditLog.create({
+        data: {
+          companyId: actor.companyId,
+          actorId: actor.userId,
+          actorName: actor.fullName,
+          action: active ? "enable_incentive" : "disable_incentive",
+          details: `${active ? "Enabled" : "Disabled"}: ${inc.title}`,
+        },
+      })
+    })
+    revalidateIncentives()
+    return {}
+  } catch (e) {
+    return toActionError(e, "Failed to update incentive.")
+  }
+}
+
+/**
+ * Move an incentive up or down in the company's single incentive order.
+ * Renumbers the whole list 0..n-1 so order is always contiguous and unique.
+ */
+export async function moveIncentive(id: string, direction: "up" | "down"): Promise<{ error?: string }> {
+  try {
+    const actor = await requireAdmin()
+    if (direction !== "up" && direction !== "down") throw new ActionError("Invalid direction.")
+    await actor.db.$transaction(async (tx) => {
+      await lockOrder(tx, actor.companyId)
+      const all = await tx.incentive.findMany({ orderBy: INCENTIVE_ORDER, select: { id: true, title: true } })
+      const i = all.findIndex((x) => x.id === id)
+      if (i === -1) throw new ActionError("Incentive not found.")
+      const j = direction === "up" ? i - 1 : i + 1
+      if (j < 0 || j >= all.length) return
+      ;[all[i], all[j]] = [all[j], all[i]]
+      for (let k = 0; k < all.length; k++) {
+        await tx.incentive.updateMany({ where: { id: all[k].id }, data: { sortOrder: k } })
+      }
+      await tx.auditLog.create({
+        data: {
+          companyId: actor.companyId,
+          actorId: actor.userId,
+          actorName: actor.fullName,
+          action: "reorder_incentive",
+          details: `Moved ${direction}: ${all[j].title} (now #${j + 1})`,
+        },
+      })
+    })
+    revalidateIncentives()
+    return {}
+  } catch (e) {
+    return toActionError(e, "Failed to reorder.")
+  }
 }

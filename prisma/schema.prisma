@@ -7,220 +7,295 @@ datasource db {
   provider = "postgresql"
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Multi-tenancy
+//
+// Every tenant table carries companyId. Application code reaches tenant data
+// only through scopedDb(companyId) (lib/tenant.ts), which injects companyId
+// into every query. Composite foreign keys (child.parentId, child.companyId) ->
+// parent(id, companyId) make it impossible at the database level to link rows
+// from two different companies (a kudo to another company's user, a reaction
+// on another company's kudo, etc.).
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Company {
+  id                     String   @id @default(cuid())
+  slug                   String   @unique // lowercase, used for env-keyed secrets e.g. BAMBOOHR_API_KEY_LCED
+  name                   String
+  appUrl                 String?  // e.g. https://spotlight.louisvillecenterforeatingdisorders.com (platform owner sets)
+  logoUrl                String?  // https URL; null = Spotlight mark
+  brandColor             String?  // #rrggbb; null = Spotlight default
+  allowanceAmount        Int      @default(100) // giving allowance per person per reset
+  featuredIncentiveCount Int      @default(2)   // incentives featured on Home
+  bambooEnabled          Boolean  @default(false)
+  bambooSubdomain        String?
+  chatSpace              String?  // Google Chat space for public kudos; null = never post
+  active                 Boolean  @default(true)
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  domains          CompanyDomain[]
+  users            User[]
+  kudos            Kudo[]
+  pileOns          PileOn[]
+  reactions        Reaction[]
+  rewards          Reward[]
+  redemptions      Redemption[]
+  allowanceResets  AllowanceReset[]
+  timeOff          TimeOff[]
+  integrationSyncs IntegrationSync[]
+  incentives       Incentive[]
+  incentiveClaims  IncentiveClaim[]
+  auditLogs        AuditLog[]
+}
+
+// A Google Workspace email domain that signs in to exactly one company.
+model CompanyDomain {
+  domain    String   @id // lowercase, e.g. "lcedky.com"
+  companyId String
+  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@index([companyId])
+}
+
 model User {
-  id           String    @id @default(cuid())
-  email        String    @unique
-  googleId     String?   @unique
-  fullName     String
-  title        String?
-  department   String?
-  location     String?
-  domain       String    // bewellkentucky.com
-  entity       String    @default("BWK") // BWK | LCED | Both — not synced from Bamboo yet; set manually until Admin Reports is built
-  thumbnailUrl String?
-  hireDate     DateTime?
-  birthday     DateTime?
-  active       Boolean   @default(true)
-  role         String    @default("member") // member | admin | owner
+  id              String    @id @default(cuid())
+  companyId       String
+  company         Company   @relation(fields: [companyId], references: [id])
+  email           String    @unique
+  googleId        String?   @unique
+  fullName        String
+  title           String?
+  department      String?
+  location        String?
+  thumbnailUrl    String?
+  hireDate        DateTime?
+  birthday        DateTime?
+  active          Boolean   @default(true)
+  role            String    @default("member") // member | admin (per company)
+  isPlatformOwner Boolean   @default(false)    // Spotlight operator; set by SQL only
 
-  // BambooHR enrichment
-  bambooId         String?  @unique
-  reportsTo        String?  // manager display name from Bamboo reportsTo field
-  employmentStatus String?  // Full-Time | Part-Time | Terminated etc.
+  // BambooHR enrichment (optional, read-only connection per company)
+  bambooId         String?
+  reportsTo        String?
+  employmentStatus String?
 
-  // Drop balances
-  balance      Int @default(0)   // earned drops, redeemable
-  givingBalance Int @default(100) // drops available to give; resets monthly
+  // Two pools. balance = earned wallet (yours to spend).
+  // givingBalance = giving allowance (to give this period).
+  balance       Int @default(0)
+  givingBalance Int @default(100)
 
-  kudosGiven    Kudo[]           @relation("KudoFrom")
-  kudosReceived Kudo[]           @relation("KudoTo")
-  redemptions   Redemption[]
-  reactions     Reaction[]
-  rains         Rain[]
-  incentiveClaims IncentiveClaim[]
-  balanceAdjustmentsReceived BalanceAdjustment[] @relation("AdjustedUser")
-  balanceAdjustmentsGiven    BalanceAdjustment[] @relation("AdjustedBy")
-  auditLogsAsActor  AuditLog[] @relation("AuditActor")
-  auditLogsAsTarget AuditLog[] @relation("AuditTarget")
+  kudosGiven        Kudo[]           @relation("KudoFrom")
+  kudosReceived     Kudo[]           @relation("KudoTo")
+  redemptions       Redemption[]
+  reactions         Reaction[]
+  pileOns           PileOn[]
+  incentiveClaims   IncentiveClaim[]
+  allowanceResets   AllowanceReset[]
+  auditLogsAsActor  AuditLog[]       @relation("AuditActor")
+  auditLogsAsTarget AuditLog[]       @relation("AuditTarget")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@unique([id, companyId])
+  @@unique([companyId, bambooId])
+  @@index([companyId, active])
 }
 
 model Kudo {
   id        String   @id @default(cuid())
+  companyId String
+  company   Company  @relation(fields: [companyId], references: [id])
   fromId    String
-  from      User     @relation("KudoFrom", fields: [fromId], references: [id])
+  from      User     @relation("KudoFrom", fields: [fromId, companyId], references: [id, companyId])
   toId      String
-  to        User     @relation("KudoTo", fields: [toId], references: [id])
+  to        User     @relation("KudoTo", fields: [toId, companyId], references: [id, companyId])
   amount    Int
   message   String
-  values    String[] // e.g. ["Compassion", "Ownership"]
+  values    String[]
   isPrivate Boolean  @default(false)
   createdAt DateTime @default(now())
 
   reactions Reaction[]
-  rains     Rain[]
+  pileOns   PileOn[]
 
-  @@index([toId, createdAt])
-  @@index([fromId, createdAt])
-  @@index([createdAt])
+  @@unique([id, companyId])
+  @@index([companyId, createdAt])
+  @@index([companyId, toId, createdAt])
+  @@index([companyId, fromId, createdAt])
 }
 
-model Rain {
+// "Pile on": extra stars from a third person onto someone else's kudo.
+// One row per committed pile-on (so monthly Top givers can count them by
+// date). The per-person-per-kudo cap is the SUM of a person's rows, checked
+// inside a transaction that holds that person's row lock (lib/money.ts).
+model PileOn {
   id        String   @id @default(cuid())
+  companyId String
+  company   Company  @relation(fields: [companyId], references: [id])
   kudoId    String
-  kudo      Kudo     @relation(fields: [kudoId], references: [id], onDelete: Cascade)
+  kudo      Kudo     @relation(fields: [kudoId, companyId], references: [id, companyId], onDelete: Cascade)
   userId    String
-  user      User     @relation(fields: [userId], references: [id])
-  amount    Int      @default(0)
+  user      User     @relation(fields: [userId, companyId], references: [id, companyId])
+  amount    Int
   createdAt DateTime @default(now())
 
-  @@unique([kudoId, userId])
-  @@index([kudoId])
+  @@index([companyId, kudoId, userId])
+  @@index([companyId, userId, createdAt])
+  @@index([companyId, createdAt])
 }
 
 model Reaction {
-  id     String @id @default(cuid())
-  kudoId String
-  kudo   Kudo   @relation(fields: [kudoId], references: [id], onDelete: Cascade)
-  userId String
-  user   User   @relation(fields: [userId], references: [id])
-  emoji  String
+  id        String  @id @default(cuid())
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id])
+  kudoId    String
+  kudo      Kudo    @relation(fields: [kudoId, companyId], references: [id, companyId], onDelete: Cascade)
+  userId    String
+  user      User    @relation(fields: [userId, companyId], references: [id, companyId])
+  emoji     String
 
   @@unique([kudoId, userId, emoji])
+  @@index([companyId])
 }
 
 model Reward {
   id          String  @id @default(cuid())
+  companyId   String
+  company     Company @relation(fields: [companyId], references: [id])
   title       String
   description String
   cost        Int
-  category    String  // Swag | Gift Card | Time | Office | Team | Growth
+  category    String // Swag | Gift Card | Time | Office | Team | Growth
   imageUrl    String?
-  icon        String  @default("🎁")   // admin-facing emoji icon; see CLAUDE.md for imageUrl vs icon decision
-  color       String  @default("#7a9b7e")
-  inventory   Int?    // null = unlimited
+  icon        String  @default("🎁")
+  color       String  @default("#c2410c")
+  inventory   Int? // null = unlimited
   active      Boolean @default(true)
 
   redemptions Redemption[]
+
+  @@unique([id, companyId])
+  @@index([companyId, active])
 }
 
 model Redemption {
   id        String   @id @default(cuid())
+  companyId String
+  company   Company  @relation(fields: [companyId], references: [id])
   userId    String
-  user      User     @relation(fields: [userId], references: [id])
+  user      User     @relation(fields: [userId, companyId], references: [id, companyId])
   rewardId  String
-  reward    Reward   @relation(fields: [rewardId], references: [id])
-  cost      Int      // snapshot at time of redemption
-  status    String   @default("pending") // pending | processing | shipped | delivered | used
+  reward    Reward   @relation(fields: [rewardId, companyId], references: [id, companyId])
+  cost      Int // snapshot at time of redemption
+  status    String   @default("pending") // pending | processing | shipped | delivered | used | declined
   notes     String?
   createdAt DateTime @default(now())
+
+  @@index([companyId, status])
 }
 
 model AllowanceReset {
-  id      String   @id @default(cuid())
-  userId  String
-  amount  Int
-  resetAt DateTime @default(now())
+  id        String   @id @default(cuid())
+  companyId String
+  company   Company  @relation(fields: [companyId], references: [id])
+  userId    String
+  user      User     @relation(fields: [userId, companyId], references: [id, companyId])
+  amount    Int
+  resetAt   DateTime @default(now())
+
+  @@index([companyId, resetAt])
 }
 
 model TimeOff {
   id               String   @id @default(cuid())
+  companyId        String
+  company          Company  @relation(fields: [companyId], references: [id])
   bambooEmployeeId String
   name             String
   start            DateTime
   end              DateTime
-  type             String   // "timeOff" | "holiday"
+  type             String // "timeOff" | "holiday"
 
-  @@index([start, end])
+  @@index([companyId, start, end])
 }
 
 model IntegrationSync {
   id               String   @id @default(cuid())
-  source           String   // "workspace" | "bamboohr"
+  companyId        String
+  company          Company  @relation(fields: [companyId], references: [id])
+  source           String // "bamboohr" | "allowance-reset"
   lastRunAt        DateTime @default(now())
   recordsProcessed Int
   errors           Int      @default(0)
   notes            String?
+
+  @@index([companyId, source, lastRunAt])
 }
 
 model Incentive {
-  id          String   @id @default(cuid())
-  title       String
-  description String
-  reward      Int
-  verification String  // "self" | "admin"
-  cap         String   // "once" | "monthly" | "quarterly" | "unlimited"
-  icon        String
-  color       String
-  proofPrompt String?
-  active      Boolean  @default(true)
-  sortOrder   Int      @default(0)
-  startsAt    DateTime?
-  endsAt      DateTime?
+  id           String    @id @default(cuid())
+  companyId    String
+  company      Company   @relation(fields: [companyId], references: [id])
+  title        String
+  description  String
+  reward       Int
+  verification String // "self" | "admin"
+  cap          String // "once" | "monthly" | "quarterly" | "unlimited"
+  icon         String
+  color        String
+  proofPrompt  String?
+  active       Boolean   @default(true)
+  sortOrder    Int       @default(0) // admin-set order; one order everywhere
+  startsAt     DateTime?
+  endsAt       DateTime?
 
   claims IncentiveClaim[]
-}
 
-// Deprecated — superseded by AuditLog (action: "adjust_balance").
-// Kept in schema to avoid a destructive migration; no new writes.
-// Candidate to drop at next planned migration once pre-launch test data is no longer needed.
-model BalanceAdjustment {
-  id        String   @id @default(cuid())
-  userId    String
-  actorId   String
-  amount    Int
-  reason    String
-  createdAt DateTime @default(now())
-
-  user  User @relation("AdjustedUser", fields: [userId],  references: [id])
-  actor User @relation("AdjustedBy",   fields: [actorId], references: [id])
-
-  @@index([userId])
-  @@index([createdAt])
-}
-
-model AuditLog {
-  id         String   @id @default(cuid())
-  createdAt  DateTime @default(now())
-  actorId    String
-  actor      User     @relation("AuditActor",  fields: [actorId],  references: [id])
-  targetId   String?
-  target     User?    @relation("AuditTarget", fields: [targetId], references: [id])
-  action     String   // approve_claim | decline_claim | approve_redemption | decline_redemption | adjust_balance | change_role
-  actorName  String   // denormalized — display survives user rename
-  targetName String?  // denormalized
-  details    String?  // freetext written at action time: incentive title, role change string, etc.
-  amount     Int?     // drops relevant to the action (signed)
-  reason     String?  // required for adjust_balance; optional note elsewhere
-
-  @@index([createdAt(sort: Desc)])
-  @@index([action])
-  @@index([actorId])
-}
-
-model AppSetting {
-  key       String   @id
-  value     String
-  updatedAt DateTime @updatedAt
-  updatedBy String?  // userId of last editor
+  @@unique([id, companyId])
+  @@index([companyId, active, sortOrder])
 }
 
 model IncentiveClaim {
   id             String    @id @default(cuid())
+  companyId      String
+  company        Company   @relation(fields: [companyId], references: [id])
   userId         String
-  user           User      @relation(fields: [userId], references: [id])
+  user           User      @relation(fields: [userId, companyId], references: [id, companyId])
   incentiveId    String
-  incentive      Incentive @relation(fields: [incentiveId], references: [id])
-  status         String    @default("pending") // "pending"|"approved"|"credited"|"declined"
+  incentive      Incentive @relation(fields: [incentiveId, companyId], references: [id, companyId])
+  status         String    @default("pending") // pending | credited | declined
   note           String?
   proofLink      String?
-  rewardSnapshot Int?      // snapshot of incentive.reward at claim-submission time
+  rewardSnapshot Int? // incentive.reward at claim-submission time
   createdAt      DateTime  @default(now())
   decidedAt      DateTime?
   decidedById    String?
 
-  @@index([userId, incentiveId])
-  @@index([status])
+  @@index([companyId, userId, incentiveId])
+  @@index([companyId, status])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  companyId  String
+  company    Company  @relation(fields: [companyId], references: [id])
+  createdAt  DateTime @default(now())
+  // Actor may be a platform owner from another company, so this FK is plain.
+  actorId    String
+  actor      User     @relation("AuditActor", fields: [actorId], references: [id])
+  // Target is always in the same company.
+  targetId   String?
+  target     User?    @relation("AuditTarget", fields: [targetId, companyId], references: [id, companyId])
+  action     String
+  actorName  String // denormalized
+  targetName String? // denormalized
+  details    String?
+  amount     Int? // stars relevant to the action (signed)
+  reason     String?
+
+  @@index([companyId, createdAt(sort: Desc)])
+  @@index([companyId, action])
 }
