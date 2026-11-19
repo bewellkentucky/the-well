@@ -569,3 +569,84 @@ passes with local settings only.
   cron, Bamboo), and each time at least one test failed.
 - Lint: 0 errors.
 - `next build` passes with local settings only.
+
+## Production migration fix (2026-11-19)
+
+The first real run failed and rolled back:
+`2BP01: cannot drop index "User_bambooId_key" because constraint User_bambooId_key requires it`.
+Production was partly built by hand, so its schema differs from the
+rehearsal's.
+
+**How I checked.** I restored the production backup into a throwaway local
+database, `spotlight_prodcopy`, with `pg_restore --no-owner --no-privileges`.
+I compared its catalog with the old schema the scripts assumed: columns,
+types, defaults, NOT NULLs, constraints, FKs, indexes, triggers, RLS,
+policies, views and publications. The database has since been dropped.
+Nothing from it was committed or copied into the repo, and only counts
+appear here.
+
+**Restore errors (all ignored, all Supabase or version specific):**
+- `transaction_timeout` isn't a setting in PG16 (the local server is 16; the
+  dump is from 17);
+- the `supabase_vault` extension isn't available locally (twice: create, then
+  comment);
+- `vault.secrets` doesn't exist, so no secrets were copied.
+
+**Schema differences, and what I did about each:**
+
+| # | Production | Scripts assumed | Fix |
+|---|---|---|---|
+| 1 | `User_bambooId_key` is a UNIQUE **constraint** | a plain unique index | `ALTER TABLE "User" DROP CONSTRAINT IF EXISTS` before `DROP INDEX IF EXISTS` (the failure) |
+| 2 | extra index `Rain_userId_idx` | not present | dropped before the rename (it would have stayed on PileOn under an old name) |
+| 3 | `IntegrationSync.lastRunAt` is `timestamptz` with default `now()` | `timestamp(3)` with default `CURRENT_TIMESTAMP` | converted to `timestamp(3)` `AT TIME ZONE 'UTC'`, default reset. All 196 rows keep the same instant (checked by fingerprint) |
+| 4 | `TimeOff.start` / `TimeOff.end` are `timestamptz` | `timestamp(3)` | same conversion (0 rows in production) |
+| 5 | `Rain_kudoId_fkey`: no ON UPDATE CASCADE. `Rain_userId_fkey`: plain | CASCADE rules | none needed: both are dropped and recreated |
+| 6 | `Rain.amount` has no default | default 0 | none needed: `DROP DEFAULT` is a no-op |
+| 7 | `AppSetting.updatedAt` defaults to `CURRENT_TIMESTAMP` | no default | none needed: the table is left for later cleanup |
+| 8 | `AuditLog_actorId_fkey` is `ON DELETE RESTRICT` | Prisma would make it `SET NULL` once `actorId` became optional | `onDelete: Restrict` added to `schema.prisma` (people are deactivated, never deleted) |
+
+I also put `DROP CONSTRAINT IF EXISTS` before every other `DROP INDEX`, so
+any uniqueness rule production has as a constraint is handled. I checked
+every other DROP, RENAME and ALTER in the migration against the real names;
+all match. There's no RLS, no policies, no views, and no tables in the
+Realtime publication. Supabase's own event triggers ran without trouble
+during the rehearsal. The migration is still one transaction.
+
+**Rehearsal on the production copy.** The migration committed, then the
+fresh start committed. Query A, LCED, before → after the fresh start:
+
+| | Before | After |
+|---|---|---|
+| people | 34 | 34 (all active, 3 admins, 3 linked to Google) |
+| earned | 1175 | 0 |
+| giving | 3400 | 3400 (34 × 100) |
+| kudos | 2 | 0 |
+| pile-ons (was rain) | 0 | 0 |
+| reactions | 0 | 0 |
+| redemptions | 6 | 0 |
+| claims | 2 | 0 |
+| incentives | 6 | 6 |
+| rewards | 9 | 9 |
+| audit rows | 22 | 57 (35 fresh-start rows: 34 per person + 1 summary) |
+
+Other results:
+- Query B returned 34 rows.
+- Query C returned no rows: production has no limited-stock rewards, so the
+  restock step does nothing.
+- 34 AllowanceReset rows were written.
+- After the migration:
+  - LCED is **closed** and has 0 testers. Only the 1 platform owner and the
+    other 2 admins can sign in until you mark testers or open it.
+  - The short name is LCED and the palette is set.
+  - Both domains are mapped, and incentive order is contiguous.
+
+**Second run from scratch.** I restored a fresh copy and ran the migration
+and then the fresh start again. Both committed with no errors and gave the
+same counts. The migrated schema is **identical** to what Prisma creates
+from `schema.prisma`, apart from the three legacy objects left on purpose
+(`AppSetting`, `BalanceAdjustment`, `User.entity`). The fixed migration
+also still runs cleanly on the old fictional rehearsal schema.
+
+**Checks:** the app never pointed at the copy (its database guard only
+allows `spotlight_dev` and `spotlight_test`). Tests: 116 of 116 pass.
+Lint: 0 errors. The production build passes with local settings only.

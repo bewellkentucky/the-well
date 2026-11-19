@@ -292,7 +292,7 @@ model AuditLog {
   // Actor may be a platform owner from another company, so this FK is plain.
   // null = no Spotlight person (a refused sign-in while the company is closed).
   actorId    String?
-  actor      User?    @relation("AuditActor", fields: [actorId], references: [id])
+  actor      User?    @relation("AuditActor", fields: [actorId], references: [id], onDelete: Restrict) // audit rows never lose their actor
   // Target is always in the same company.
   targetId   String?
   target     User?    @relation("AuditTarget", fields: [targetId, companyId], references: [id, companyId])

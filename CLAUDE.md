@@ -236,6 +236,12 @@ and group conversations" enabled, don't add `chat.bot` on the SDK scopes page.
   redemption; the old app never restocked, not even on decline). It has a
   people list (query B) for choosing who to deactivate by hand; run that
   before the reset. It deactivates nobody. Query C shows stock per reward.
+- Production's schema was partly hand-built and differs from Prisma's
+  (see the "Production migration fix" report section): some uniqueness rules
+  are constraints, not bare indexes, and some timestamps were `timestamptz`.
+  In hand-written SQL, always `DROP CONSTRAINT IF EXISTS` before `DROP INDEX
+  IF EXISTS`, and rehearse against a local restore of a production backup
+  (never commit it; drop it afterwards).
 - Prisma 7: connection URLs live in `prisma.config.ts`, not `schema.prisma`.
 - "use server" files may export async functions only (types are fine).
 - Kudo seeding on render is gone for good; empty feed shows "No kudos yet. Be

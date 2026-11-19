@@ -142,6 +142,10 @@ UPDATE "User" SET "isPlatformOwner" = true, "role" = 'admin' WHERE "role" = 'own
 UPDATE "User" SET "role" = 'member' WHERE "role" NOT IN ('admin', 'member');
 ALTER TABLE "User" DROP COLUMN IF EXISTS "domain";  -- now derived from CompanyDomain
 
+-- Production has this as a UNIQUE constraint (not a bare index), so drop the
+-- constraint first; DROP INDEX alone fails with 2BP01. Both are IF EXISTS so
+-- this works whichever form the database has.
+ALTER TABLE "User" DROP CONSTRAINT IF EXISTS "User_bambooId_key";
 DROP INDEX IF EXISTS "User_bambooId_key";
 CREATE UNIQUE INDEX "User_companyId_bambooId_key" ON "User"("companyId", "bambooId");
 CREATE UNIQUE INDEX "User_id_companyId_key" ON "User"("id", "companyId");
@@ -150,13 +154,29 @@ CREATE INDEX "User_companyId_active_idx" ON "User"("companyId", "active");
 -- ── 4. Rain -> PileOn ───────────────────────────────────────────────────────
 ALTER TABLE "Rain" DROP CONSTRAINT IF EXISTS "Rain_kudoId_fkey";
 ALTER TABLE "Rain" DROP CONSTRAINT IF EXISTS "Rain_userId_fkey";
+ALTER TABLE "Rain" DROP CONSTRAINT IF EXISTS "Rain_kudoId_userId_key";
 DROP INDEX IF EXISTS "Rain_kudoId_userId_key";
 DROP INDEX IF EXISTS "Rain_kudoId_idx";
+DROP INDEX IF EXISTS "Rain_userId_idx";  -- only in production (hand-added)
 ALTER TABLE "Rain" RENAME TO "PileOn";
 ALTER TABLE "PileOn" RENAME CONSTRAINT "Rain_pkey" TO "PileOn_pkey";
 ALTER TABLE "PileOn" ALTER COLUMN "amount" DROP DEFAULT;
 DELETE FROM "PileOn" WHERE "amount" <= 0;  -- empty accumulator rows carry no money
 ALTER TABLE "PileOn" DROP COLUMN IF EXISTS "updatedAt";
+
+-- Production (hand-built) has these as timestamptz; Prisma expects
+-- timestamp(3) holding UTC. AT TIME ZONE 'UTC' keeps every instant the same.
+ALTER TABLE "IntegrationSync" ALTER COLUMN "lastRunAt" DROP DEFAULT;
+ALTER TABLE "IntegrationSync" ALTER COLUMN "lastRunAt" TYPE TIMESTAMP(3)
+  USING (CASE WHEN pg_typeof("lastRunAt")::text = 'timestamp with time zone'
+              THEN ("lastRunAt"::timestamptz AT TIME ZONE 'UTC') ELSE "lastRunAt"::timestamp END);
+ALTER TABLE "IntegrationSync" ALTER COLUMN "lastRunAt" SET DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE "TimeOff" ALTER COLUMN "start" TYPE TIMESTAMP(3)
+  USING (CASE WHEN pg_typeof("start")::text = 'timestamp with time zone'
+              THEN ("start"::timestamptz AT TIME ZONE 'UTC') ELSE "start"::timestamp END);
+ALTER TABLE "TimeOff" ALTER COLUMN "end" TYPE TIMESTAMP(3)
+  USING (CASE WHEN pg_typeof("end")::text = 'timestamp with time zone'
+              THEN ("end"::timestamptz AT TIME ZONE 'UTC') ELSE "end"::timestamp END);
 
 -- ── 5. Drop single-tenant FKs and indexes, add company-aware ones ──────────
 ALTER TABLE "Kudo"           DROP CONSTRAINT IF EXISTS "Kudo_fromId_fkey";
@@ -169,14 +189,23 @@ ALTER TABLE "AuditLog"       DROP CONSTRAINT IF EXISTS "AuditLog_targetId_fkey";
 ALTER TABLE "IncentiveClaim" DROP CONSTRAINT IF EXISTS "IncentiveClaim_userId_fkey";
 ALTER TABLE "IncentiveClaim" DROP CONSTRAINT IF EXISTS "IncentiveClaim_incentiveId_fkey";
 
+ALTER TABLE "Kudo" DROP CONSTRAINT IF EXISTS "Kudo_toId_createdAt_idx";
 DROP INDEX IF EXISTS "Kudo_toId_createdAt_idx";
+ALTER TABLE "Kudo" DROP CONSTRAINT IF EXISTS "Kudo_fromId_createdAt_idx";
 DROP INDEX IF EXISTS "Kudo_fromId_createdAt_idx";
+ALTER TABLE "Kudo" DROP CONSTRAINT IF EXISTS "Kudo_createdAt_idx";
 DROP INDEX IF EXISTS "Kudo_createdAt_idx";
+ALTER TABLE "TimeOff" DROP CONSTRAINT IF EXISTS "TimeOff_start_end_idx";
 DROP INDEX IF EXISTS "TimeOff_start_end_idx";
+ALTER TABLE "AuditLog" DROP CONSTRAINT IF EXISTS "AuditLog_createdAt_idx";
 DROP INDEX IF EXISTS "AuditLog_createdAt_idx";
+ALTER TABLE "AuditLog" DROP CONSTRAINT IF EXISTS "AuditLog_action_idx";
 DROP INDEX IF EXISTS "AuditLog_action_idx";
+ALTER TABLE "AuditLog" DROP CONSTRAINT IF EXISTS "AuditLog_actorId_idx";
 DROP INDEX IF EXISTS "AuditLog_actorId_idx";
+ALTER TABLE "IncentiveClaim" DROP CONSTRAINT IF EXISTS "IncentiveClaim_userId_incentiveId_idx";
 DROP INDEX IF EXISTS "IncentiveClaim_userId_incentiveId_idx";
+ALTER TABLE "IncentiveClaim" DROP CONSTRAINT IF EXISTS "IncentiveClaim_status_idx";
 DROP INDEX IF EXISTS "IncentiveClaim_status_idx";
 
 CREATE UNIQUE INDEX "Kudo_id_companyId_key" ON "Kudo"("id", "companyId");
