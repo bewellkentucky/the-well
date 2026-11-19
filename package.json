@@ -8,7 +8,14 @@
     "start": "next start",
     "lint": "eslint",
     "sync-bamboo": "tsx --tsconfig tsconfig.json scripts/sync-bamboohr.ts",
-    "sync-bamboo:full": "tsx --tsconfig tsconfig.json scripts/sync-bamboohr.ts --full"
+    "sync-bamboo:full": "tsx --tsconfig tsconfig.json scripts/sync-bamboohr.ts --full",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "db:push": "prisma db push",
+    "db:reset": "tsx scripts/db-truncate.ts && prisma db push && npm run db:seed",
+    "db:seed": "tsx --tsconfig tsconfig.json scripts/seed.ts",
+    "db:guard:prove": "bash scripts/prove-db-guard.sh",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.8.0",
@@ -31,6 +38,7 @@
     "pg": "^8.21.0",
     "tailwindcss": "^4",
     "tsx": "^4.22.3",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.12"
   }
 }

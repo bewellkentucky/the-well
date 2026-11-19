@@ -1,5 +1,5 @@
 import * as dotenv from "dotenv"
-dotenv.config({ path: ".env.local" })
+dotenv.config({ path: ".env.development.local", quiet: true })
 
 import { syncBambooHR } from "../lib/syncBambooHR"
 
